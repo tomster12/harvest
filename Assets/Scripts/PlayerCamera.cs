@@ -1,61 +1,64 @@
 using UnityEngine;
-using UnityEngine.UIElements.Experimental;
 
 public class PlayerCamera : MonoBehaviour
 {
-    public Transform CameraTransform => cameraTransform;
+    public Transform Camera => UnityEngine.Camera.main.transform;
 
     [Header("References")]
-    [SerializeField] private PlayerMovement playerMovement = null;
-    [SerializeField] private Transform cameraCentreTransform = null;
-    [SerializeField] private Transform cameraTransform = null;
+    [SerializeField] private PlayerController playerMovement = null;
 
     [Header("Config")]
-    [SerializeField] private Vector3 followOffset = new(0, 1, 0);
+    [SerializeField] private Vector3 playerOffset = new(0, 1, 0);
+    [SerializeField] private Vector3 cameraOffset = new(0, 4.0f, -5.4f);
+    [SerializeField] private Vector3 baseRotationEuler = new(30, 0, 0);
     [SerializeField] private float followLerpSpeed = 8;
+
+    [Header("Zoom Config")]
     [SerializeField] private float zoomLerpSpeed = 16;
     [SerializeField] private float zoomStrength = 0.06f;
     [SerializeField] private float zoomMin = 0.5f;
     [SerializeField] private float zoomMax = 2;
+    [SerializeField] private float baseZoom = 2;
+
+    [Header("Sway Config")]
     [SerializeField] private float swayEaseScale = 0.5f;
     [SerializeField] private float mouseSwayAmount = 5;
     [SerializeField] private float playerSwayAmount = 0.5f;
     [SerializeField] private float swayLerp = 10;
     [SerializeField] private float swayDeadzone = 0.05f;
 
-    private Quaternion initialCameraRot;
-    private Vector3 initialOffset;
-    private float zoomAmount = 1.0f;
+    private Quaternion baseRotation;
+    private float zoomAmount;
 
-    private void Start()
+    private void Awake()
     {
-        // Set camera position to player position
-        cameraCentreTransform.position = playerMovement.transform.position + followOffset;
-        initialCameraRot = cameraTransform.rotation;
-        initialOffset = cameraTransform.localPosition;
+        // Initialize camer state
+        baseRotation = Quaternion.Euler(baseRotationEuler);
+        zoomAmount = baseZoom;
+        UpdateCameraPosition(true);
+        UpdateRotation(true);
     }
 
     private void Update()
     {
-        UpdateZoom();
-        UpdateSway();
+        HandleInput();
+        UpdateRotation();
     }
 
-    private void UpdateZoom()
+    private void HandleInput()
     {
-        // Handle mouse scroll for zooming
+        // Zoom with mouse wheel
         float scroll = Input.mouseScrollDelta.y;
         zoomAmount = zoomAmount * (1.0f - scroll * zoomStrength);
         zoomAmount = Mathf.Clamp(zoomAmount, zoomMin, zoomMax);
-        cameraTransform.localPosition = Vector3.Lerp(cameraTransform.localPosition, initialOffset * zoomAmount, zoomLerpSpeed * Time.deltaTime);
     }
 
-    private void UpdateSway()
+    private void UpdateRotation(bool force = false)
     {
         float xSway = 0;
         float ySway = 0;
 
-        // Calculate current mouse deadzoned offset from centre
+        // Sway with the mouse
         float yOffset = Mathf.Clamp01(Input.mousePosition.y / Screen.height) - 0.5f;
         if (Mathf.Abs(yOffset) > swayDeadzone)
             xSway = -Easing.EaseOutQuad(swayEaseScale * (Mathf.Abs(yOffset) - swayDeadzone)) * Mathf.Sign(yOffset) * mouseSwayAmount;
@@ -63,36 +66,34 @@ public class PlayerCamera : MonoBehaviour
         if (Mathf.Abs(xOffset) > swayDeadzone)
             ySway = Easing.EaseOutQuad(swayEaseScale * (Mathf.Abs(xOffset) - swayDeadzone)) * Mathf.Sign(xOffset) * mouseSwayAmount;
 
-        // Sway rotation in direction player is moving
+        // Sway with player movement
         if (playerMovement.IsMoving)
         {
             Vector3 swayDir = Vector3.zero;
-            swayDir += playerMovement.InputDir.z * cameraTransform.forward;
-            swayDir += playerMovement.InputDir.x * cameraTransform.right;
-            Vector3 swayDirLocal = cameraTransform.InverseTransformDirection(swayDir);
+            swayDir += playerMovement.InputDir.z * Camera.forward;
+            swayDir += playerMovement.InputDir.x * Camera.right;
+            Vector3 swayDirLocal = Camera.InverseTransformDirection(swayDir);
             xSway += -swayDirLocal.z * playerSwayAmount;
             ySway += swayDirLocal.x * playerSwayAmount;
         }
 
-        // Lerp camera rotation towards sway rotation
-        if (xSway != 0 || ySway != 0)
-        {
-            Quaternion swayRotation = Quaternion.Euler(xSway, ySway, 0);
-            cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, initialCameraRot * swayRotation, swayLerp * Time.deltaTime);
-        }
-
-        // Lerp back to initial camera rotation
-        else cameraTransform.rotation = Quaternion.Lerp(cameraTransform.rotation, initialCameraRot, swayLerp * Time.deltaTime);
+        // Rotate the camera based on the sway
+        Quaternion targetRotation = baseRotation * Quaternion.Euler(xSway, ySway, 0);
+        if (!force) Camera.rotation = Quaternion.Lerp(Camera.rotation, targetRotation, swayLerp * Time.deltaTime);
+        else Camera.rotation = targetRotation;
     }
 
     private void FixedUpdate()
     {
-        FixedUpdatePosition();
+        UpdateCameraPosition();
     }
 
-    private void FixedUpdatePosition()
+    private void UpdateCameraPosition(bool force = false)
     {
-        // Lerp camera position towards player position
-        cameraCentreTransform.position = Vector3.Lerp(cameraCentreTransform.position, playerMovement.transform.position + followOffset, followLerpSpeed * Time.fixedDeltaTime);
+        // Move camera based on player position and zoom
+        Vector3 centrePosition = playerMovement.transform.position + playerOffset;
+        Vector3 targetPosition = centrePosition + cameraOffset.normalized * zoomAmount;
+        if (!force) Camera.position = Vector3.Lerp(Camera.position, targetPosition, followLerpSpeed * Time.deltaTime);
+        else Camera.position = targetPosition;
     }
 }

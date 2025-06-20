@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PlayerMovement : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
     public bool IsMoving => inputDir.sqrMagnitude > 0.01f;
     public Vector3 InputDir => inputDir.normalized;
@@ -20,17 +20,17 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        UpdateInput();
+        HandleInput();
         UpdateVisuals();
     }
 
-    private void UpdateInput()
+    private void HandleInput()
     {
         // Cast camera transform onto flat plane
         // Receive input from the player and cast on the flat plane
         inputDir = Vector3.zero;
-        Vector3 forwardDir = Vector3.ProjectOnPlane(playerCamera.CameraTransform.forward, Vector3.up).normalized;
-        inputDir += Input.GetAxisRaw("Horizontal") * playerCamera.CameraTransform.right;
+        Vector3 forwardDir = Vector3.ProjectOnPlane(playerCamera.Camera.forward, Vector3.up).normalized;
+        inputDir += Input.GetAxisRaw("Horizontal") * playerCamera.Camera.right;
         inputDir += Input.GetAxisRaw("Vertical") * forwardDir;
         inputDir = inputDir.normalized;
 
