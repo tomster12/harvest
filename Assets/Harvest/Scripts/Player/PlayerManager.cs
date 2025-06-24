@@ -1,0 +1,76 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class PlayerManager : MonoBehaviour
+{
+    public static PlayerManager Instance { get; private set; }
+
+    public Inventory Inventory { get; private set; }
+
+    [Header("Prefabs")]
+    [SerializeField] private GameObject playerPrefab = null;
+
+    private void Awake()
+    {
+        // Ensure it is the only instance and last for full lifetime
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        // Delete a player if it exists
+        GameObject existingPlayer = GameObject.FindWithTag("Player");
+        if (existingPlayer != null) DestroyImmediate(existingPlayer);
+
+        // Add listeners
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
+        // Setup inventory
+        Inventory = new Inventory(4, 3);
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        SpawnPlayerAtSpawnpoint();
+    }
+
+    private void SpawnPlayerAtSpawnpoint()
+    {
+        // Expect a spawnpoint object
+        GameObject spawnPoint = GameObject.FindWithTag("Spawnpoint");
+        Debug.Assert(spawnPoint != null, "Spawnpoint not found in the scene. Please add a GameObject with the 'Spawnpoint' tag.");
+
+        // Delete any existing players in the scene
+        GameObject[] existingPlayers = GameObject.FindGameObjectsWithTag("Player");
+        foreach (GameObject existingPlayer in existingPlayers)
+        {
+            Destroy(existingPlayer);
+        }
+
+        // Instantiate the player at the spawnpoint
+        GameObject playerObject = Instantiate(playerPrefab, spawnPoint.transform.position, spawnPoint.transform.rotation);
+        Player player = playerObject.GetComponent<Player>();
+        player.OnSpawn();
+    }
+
+    private void OnGUI()
+    {
+        // Simple buttons for changing scenes
+        GUIStyle style = new GUIStyle(GUI.skin.button)
+        {
+            fontSize = 20,
+            alignment = TextAnchor.MiddleCenter
+        };
+        if (GUI.Button(new Rect(10, 10, 250, 40), "Scene: Hub", style))
+        {
+            SceneManager.LoadScene("HubScene");
+        }
+        if (GUI.Button(new Rect(270, 10, 250, 40), "Scene: Area", style))
+        {
+            SceneManager.LoadScene("AreaScene");
+        }
+    }
+}
