@@ -221,7 +221,11 @@ public partial class Inventory : ISerdeable<InventoryDTO>
 
         if (existingItemInstance.Amount + newItemInstance.Amount <= existingItemInstance.Data.MaxStackSize)
         {
-            if (!preview) existingItemInstance.SetAmount(existingItemInstance.Amount + newItemInstance.Amount);
+            if (!preview)
+            {
+                existingItemInstance.SetAmount(existingItemInstance.Amount + newItemInstance.Amount);
+                newItemInstance.SetAmount(0);
+            }
             return true;
         }
         else if (existingItemInstance.Amount < existingItemInstance.Data.MaxStackSize)

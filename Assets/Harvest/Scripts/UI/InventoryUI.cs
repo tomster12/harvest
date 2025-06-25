@@ -64,8 +64,7 @@ public class InventoryUI : MonoBehaviour
         // Placed and swapped with a new item
         else if (response.Item1 == ItemPlaceResponse.Replaced)
         {
-            InventoryItemUI newHeldItemUI = itemUIs[response.Item2];
-            heldItemUI.SetItem(newHeldItemUI.ItemInstance);
+            heldItemUI.SetItem(response.Item2);
             heldItemUI.SetHeldByMouse(heldItemUI.MouseOffset);
         }
 

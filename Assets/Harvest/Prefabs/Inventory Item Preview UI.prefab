@@ -90,6 +90,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   image: {fileID: 1678180894727466831}
   colourValid: {r: 0.5566038, g: 0.5566038, b: 0.5566038, a: 0.39215687}
-  colourStacked: {r: 0.4297778, g: 0.6901961, b: 0.4117647, a: 0.39215687}
-  colourReplaced: {r: 0.4117647, g: 0.4787914, b: 0.6901961, a: 0.39215687}
+  colourStacked: {r: 0.4117647, g: 0.47843137, b: 0.6901961, a: 0.39215687}
+  colourReplaced: {r: 0.6901961, g: 0.59664375, b: 0.4117647, a: 0.39215687}
   colourBlocked: {r: 0.6901961, g: 0.43597898, b: 0.4117647, a: 0.39215687}
