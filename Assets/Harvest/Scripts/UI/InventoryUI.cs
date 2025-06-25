@@ -85,6 +85,32 @@ public class InventoryUI : MonoBehaviour
         }
     }
 
+    public void HoverPreview(InventoryItemUI heldInventoryItemUI, InventoryItemUI hoveredInventoryItemUI)
+    {
+        if (heldInventoryItemUI.State != InventoryItemUI.StateType.EMPTY)
+        {
+            // Preview holding and potentially placing an item
+            var preview = PlaceOrStackHeldItem(heldInventoryItemUI, true);
+            inventoryItemPreviewUI.SetPreview(heldInventoryItemUI, this, preview);
+        }
+        else if (hoveredInventoryItemUI != null && hoveredInventoryItemUI.InventoryUI == this)
+        {
+            // Preview hovering an item (using placed response for now)
+            Vector2Int slot = hoveredInventoryItemUI.ItemInstance.InventoryPosition;
+            inventoryItemPreviewUI.SetPreview(hoveredInventoryItemUI, hoveredInventoryItemUI.InventoryUI, (slot, (ItemPlaceResponse.Placed, hoveredInventoryItemUI.ItemInstance)));
+        }
+        else
+        {
+            // Otherwise disable the preview
+            DisablePreview();
+        }
+    }
+
+    public void DisablePreview()
+    {
+        inventoryItemPreviewUI.HidePreview();
+    }
+
     public Vector2Int ConvertWorldToGridPos(Vector2 worldPos)
     {
         Vector2 localPos = worldPos - (Vector2)Rect.position;
@@ -105,8 +131,23 @@ public class InventoryUI : MonoBehaviour
 
     [Header("Prefabs")]
     [SerializeField] private GameObject inventoryItemUIPrefab;
+    [SerializeField] private GameObject inventoryItemPreviewUIPrefab;
 
     private Dictionary<ItemInstance, InventoryItemUI> itemUIs = new();
+    private InventoryItemPreviewUI inventoryItemPreviewUI;
+
+    private void Awake()
+    {
+        // Move the rect arbitrarily
+        Rect.anchoredPosition = new(150f, -150f);
+
+        // Add the item preview to just below the items
+        GameObject inventoryItemPreviewUIObject = Instantiate(inventoryItemPreviewUIPrefab, Rect);
+        inventoryItemPreviewUI = inventoryItemPreviewUIObject.GetComponent<InventoryItemPreviewUI>();
+        inventoryItemPreviewUIObject.name = "Inventory Item Indicator UI";
+        inventoryItemPreviewUIObject.transform.SetSiblingIndex(itemContainer.GetSiblingIndex() - 1);
+        inventoryItemPreviewUIObject.SetActive(false);
+    }
 
     private void OnDestroy()
     {

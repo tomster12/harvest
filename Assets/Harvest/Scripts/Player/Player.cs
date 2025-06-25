@@ -11,6 +11,7 @@ public class Player : MonoBehaviour
         // Initialize camera state
         camBaseRot = Quaternion.Euler(camBaseRotEuler);
         camZoom = camZoomBase;
+        facingDir = transform.forward;
         FixedUpdateCameraPosition(true);
         UpdateCamera(true);
 
@@ -18,9 +19,6 @@ public class Player : MonoBehaviour
         GameObject inventoryUIObject = Instantiate(inventoryUIPrefab, playerUIContainer);
         inventoryUI = inventoryUIObject.GetComponent<InventoryUI>();
         inventoryUIObject.name = "Player Inventory UI";
-        GameObject heldInventoryItemIndicatorUIObject = Instantiate(inventoryItemIndicatorUIPrefab, playerUIContainer);
-        heldInventoryItemPreviewUI = heldInventoryItemIndicatorUIObject.GetComponent<InventoryItemPreviewUI>();
-        heldInventoryItemIndicatorUIObject.name = "Player Held Inventory Item Indicator UI";
         GameObject heldInventoryItemUIObject = Instantiate(inventoryItemUIPrefab, playerUIContainer);
         heldInventoryItemUI = heldInventoryItemUIObject.GetComponent<InventoryItemUI>();
         heldInventoryItemUIObject.name = "Player Held Inventory Item UI";
@@ -30,7 +28,6 @@ public class Player : MonoBehaviour
     [Header("Prefab")]
     [SerializeField] private GameObject inventoryUIPrefab;
     [SerializeField] private GameObject inventoryItemUIPrefab;
-    [SerializeField] private GameObject inventoryItemIndicatorUIPrefab;
     [SerializeField] private GameObject looseItemPrefab;
 
     [Header("Camera Config")]
@@ -66,7 +63,7 @@ public class Player : MonoBehaviour
     private LooseItem hoveredLooseItem = null;
     private InventoryUI inventoryUI;
     private InventoryItemUI heldInventoryItemUI;
-    private InventoryItemPreviewUI heldInventoryItemPreviewUI;
+    private InventoryUI lastHoveredInventoryUI;
     private bool isMousePressed = false;
     private bool isHoveringUI = false;
 
@@ -166,6 +163,10 @@ public class Player : MonoBehaviour
         bool isHoveringInventoryItemUI = hoveredInventoryItemUI != null;
         isHoveringUI = isHoveringInventoryUI || isHoveringInventoryItemUI;
 
+        // Disable preview when stopping hovering inventory
+        if (lastHoveredInventoryUI != hoveredInventoryUI && lastHoveredInventoryUI != null) lastHoveredInventoryUI.DisablePreview();
+        lastHoveredInventoryUI = hoveredInventoryUI;
+
         // Handle interacting while holding an item
         if (isMousePressed)
         {
@@ -179,7 +180,9 @@ public class Player : MonoBehaviour
                 // Item was dropped outside any inventory
                 else
                 {
-                    GameObject looseItemObject = Instantiate(looseItemPrefab, transform.position, Quaternion.identity);
+                    Vector3 droppedPosition = transform.position + facingDir * 0.5f + Vector3.up * 0.5f;
+                    Quaternion droppedRotation = Quaternion.LookRotation(facingDir, Vector3.up);
+                    GameObject looseItemObject = Instantiate(looseItemPrefab, droppedPosition, Quaternion.identity);
                     LooseItem looseItem = looseItemObject.GetComponent<LooseItem>();
                     looseItem.SetItemInstance(heldInventoryItemUI.ItemInstance);
                     heldInventoryItemUI.SetItem(null);
@@ -196,25 +199,10 @@ public class Player : MonoBehaviour
         }
         else
         {
-            if (IsHoldingItemUI)
+            // Tell the hovered inventory the needed information for preview
+            if (isHoveringInventoryUI)
             {
-                // Preview clicking into an inventory
-                if (isHoveringInventoryUI)
-                {
-                    var preview = hoveredInventoryUI.PlaceOrStackHeldItem(heldInventoryItemUI, true);
-                    heldInventoryItemPreviewUI.SetPreview(heldInventoryItemUI, hoveredInventoryUI, preview);
-                }
-            }
-            else if (isHoveringInventoryItemUI)
-            {
-                // Preview hovering an item (using placed response for now)
-                Vector2Int slot = hoveredInventoryItemUI.ItemInstance.InventoryPosition;
-                heldInventoryItemPreviewUI.SetPreview(hoveredInventoryItemUI, hoveredInventoryItemUI.InventoryUI, (slot, (Inventory.ItemPlaceResponse.Placed, hoveredInventoryItemUI.ItemInstance)));
-            }
-            else
-            {
-                // Hide preview otherwise
-                heldInventoryItemPreviewUI.HidePreview();
+                inventoryUI.HoverPreview(heldInventoryItemUI, hoveredInventoryItemUI);
             }
         }
     }
