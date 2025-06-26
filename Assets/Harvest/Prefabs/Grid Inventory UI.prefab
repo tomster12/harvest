@@ -132,7 +132,7 @@ GameObject:
   - component: {fileID: 1604769438801681248}
   - component: {fileID: 1787221024845123230}
   m_Layer: 5
-  m_Name: Inventory UI
+  m_Name: Grid Inventory UI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -157,7 +157,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1000, y: 1000}
+  m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &4283357641065388133
 MonoBehaviour:
@@ -168,12 +168,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 4015203399251158968}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9bb504125bf49248a4cc5f20fbfd50f, type: 3}
+  m_Script: {fileID: 11500000, guid: 058b5e95db1013943b8d0791ebde31c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   itemContainer: {fileID: 7938545321909954445}
-  inventoryItemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
-  inventoryItemPreviewUIPrefab: {fileID: 4287918901736663878, guid: bfe0086d981c2c448833f57da2c58dfd, type: 3}
+  itemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
+  previewUIPrefab: {fileID: 4287918901736663878, guid: bfe0086d981c2c448833f57da2c58dfd, type: 3}
 --- !u!222 &1604769438801681248
 CanvasRenderer:
   m_ObjectHideFlags: 0

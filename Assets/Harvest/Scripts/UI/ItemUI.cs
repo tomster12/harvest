@@ -1,14 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class InventoryItemUI : MonoBehaviour
+public class ItemUI : MonoBehaviour
 {
     public enum StateType
-    { EMPTY, INVENTORY, MOUSE };
+    { EMPTY, CONTAINER, MOUSE };
 
     public RectTransform Rect => (RectTransform)transform;
     public ItemInstance ItemInstance { get; private set; }
-    public InventoryUI InventoryUI { get; private set; }
+    public IItemContainerUI ContainerUI { get; private set; }
     public StateType State { get; private set; } = StateType.EMPTY;
     public Vector2 MouseOffset { get; private set; } = Vector2.zero;
 
@@ -25,14 +25,14 @@ public class InventoryItemUI : MonoBehaviour
             ItemInstance.OnAmountChanged += OnAmountChanged;
             gameObject.SetActive(true);
             gameObject.name = $"Inventory Item UI ({newItemInstance.Data.Name})";
-            Rect.sizeDelta = InventoryUI.GetGridSize(newItemInstance.Data.SizeX, newItemInstance.Data.SizeY);
+            Rect.sizeDelta = GridInventoryUI.GetGridSize(newItemInstance.Data.SizeX, newItemInstance.Data.SizeY);
             iconImage.sprite = newItemInstance.Data.Icon;
             amountText.text = ItemInstance.Amount.ToString();
         }
         else
         {
             // Turn off item UI if no item is set
-            InventoryUI = null;
+            ContainerUI = null;
             gameObject.SetActive(false);
             State = StateType.EMPTY;
         }
@@ -41,17 +41,18 @@ public class InventoryItemUI : MonoBehaviour
     public void SetHeldByMouse(Vector2 offset)
     {
         MouseOffset = offset;
-        InventoryUI = null;
+        ContainerUI = null;
         State = StateType.MOUSE;
         RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPoint);
         Rect.localPosition = localPoint - MouseOffset;
     }
 
-    public void SetInInventory(InventoryUI inventoryUI, int x, int y)
+    public void SetLocalPosition(IItemContainerUI containerUI, RectTransform parent, float x, float y)
     {
-        InventoryUI = inventoryUI;
-        Rect.localPosition = inventoryUI.ConvertGridPosToLocalPos(x, y);
-        State = StateType.INVENTORY;
+        ContainerUI = containerUI;
+        Rect.transform.SetParent(parent);
+        Rect.localPosition = new Vector3(x, y, 0);
+        State = StateType.CONTAINER;
     }
 
     public void OnAmountChanged()
@@ -72,7 +73,7 @@ public class InventoryItemUI : MonoBehaviour
         amountText.text = string.Empty;
         State = StateType.EMPTY;
         MouseOffset = Vector2.zero;
-        InventoryUI = null;
+        ContainerUI = null;
         ItemInstance = null;
     }
 

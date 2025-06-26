@@ -183,15 +183,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9d278f8fe798314fa77f1ea73493003, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  inventoryUIPrefab: {fileID: 4015203399251158968, guid: b579e50e0c1d54941aef74dce7011cc2, type: 3}
-  inventoryItemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
-  inventoryItemIndicatorUIPrefab: {fileID: 4287918901736663878, guid: bfe0086d981c2c448833f57da2c58dfd, type: 3}
+  gridInventoryUIPrefab: {fileID: 4015203399251158968, guid: b579e50e0c1d54941aef74dce7011cc2, type: 3}
+  itemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
   looseItemPrefab: {fileID: 5752497616234786773, guid: 9ad9a72ade0ac384298559c6f84a55ba, type: 3}
   camCentreOffset: {x: 0, y: 1, z: 0}
   camOrbitDir: {x: 0, y: 4, z: -5.4}
   camBaseRotEuler: {x: 33, y: 0, z: 0}
   camFollowLerp: 8
-  camZoomLerp: 20
   camZoomStrength: 0.1
   camZoomMin: 2
   camZoomMax: 15

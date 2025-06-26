@@ -3,32 +3,46 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public struct InventoryDTO
+public struct GridInventoryDTO
 {
     public (Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs;
     public int[,] slots;
 
-    public InventoryDTO((Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs, int[,] slots)
+    public GridInventoryDTO((Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs, int[,] slots)
     {
         this.itemInstanceDTOs = itemInstanceDTOs;
         this.slots = slots;
     }
 }
 
-public partial class Inventory : ISerdeable<InventoryDTO>
+public class GridInventory : ISerdeable<GridInventoryDTO>
 {
-    public enum ItemPlaceResponse
-    { Placed, Stacked, Replaced, Blocked, OutOfBounds };
+    public enum InteractResponseType
+    { Placed, Stacked, Replaced, Removed, Blocked, OutOfBounds, Invalid };
+
+    public struct InteractResponse
+    {
+        public InteractResponseType type;
+        public ItemInstance itemInstance;
+
+        public InteractResponse(InteractResponseType type, ItemInstance itemInstance = null)
+        {
+            this.type = type;
+            this.itemInstance = itemInstance;
+        }
+    }
 
     public event Action<ItemInstance> OnItemAdded = delegate { };
 
     public event Action<ItemInstance> OnItemRemoved = delegate { };
 
     public List<ItemInstance> ItemInstances { get; private set; } = new List<ItemInstance>();
+
     public int SizeX => sizeX;
+
     public int SizeY => sizeY;
 
-    public Inventory(int sizeX, int sizeY)
+    public GridInventory(int sizeX, int sizeY)
     {
         ItemInstances = new List<ItemInstance>();
         slots = new int[sizeX, sizeY];
@@ -45,14 +59,14 @@ public partial class Inventory : ISerdeable<InventoryDTO>
         }
     }
 
-    public InventoryDTO Serialize()
+    public GridInventoryDTO Serialize()
     {
         (Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs = new (Vector2Int, ItemInstanceDTO)[ItemInstances.Count];
         for (int i = 0; i < ItemInstances.Count; i++) itemInstanceDTOs[i] = (ItemInstances[i].InventoryPosition, ItemInstances[i].Serialize());
         return new(itemInstanceDTOs, slots);
     }
 
-    public void Deserialize(InventoryDTO inventoryDTO)
+    public void Deserialize(GridInventoryDTO inventoryDTO)
     {
         slots = inventoryDTO.slots;
         sizeX = inventoryDTO.slots.GetLength(0);
@@ -67,48 +81,55 @@ public partial class Inventory : ISerdeable<InventoryDTO>
         }
     }
 
-    public (ItemPlaceResponse, ItemInstance) PlaceOrStackItem(ItemInstance itemInstance, int x, int y, bool preview = false)
+    public InteractResponse PlaceOrStackItem(ItemInstance itemInstance, int x, int y, bool preview = false)
     {
         // Check position is in bounds
         if (x < 0 || y < 0 || x + itemInstance.Data.SizeX > sizeX || y + itemInstance.Data.SizeY > sizeY)
         {
-            return (ItemPlaceResponse.OutOfBounds, null);
+            // return (ItemPlaceResponse.OutOfBounds, null);
+            return new InteractResponse(InteractResponseType.OutOfBounds);
         }
 
         // Check if item under cursor matches and stack
         if (slots[x, y] != -1)
         {
             ItemInstance existingItemInstance = ItemInstances[slots[x, y]];
-            if (StackItemOntoExisting(existingItemInstance, itemInstance, preview)) return (ItemPlaceResponse.Stacked, null);
+            if (StackItemOntoExisting(existingItemInstance, itemInstance, preview))
+            {
+                return new InteractResponse(InteractResponseType.Stacked, existingItemInstance);
+            }
         }
 
         // Find number of overlapping items
-        HashSet<int> overlappingItems = new();
+        HashSet<int> overlappingItemInstances = new();
         for (int i = 0; i < itemInstance.Data.SizeX; i++)
         {
             for (int j = 0; j < itemInstance.Data.SizeY; j++)
             {
                 if (x + i >= sizeX || y + j >= sizeY || slots[x + i, y + j] == -1) continue;
-                overlappingItems.Add(slots[x + i, y + j]);
+                overlappingItemInstances.Add(slots[x + i, y + j]);
             }
         }
 
         // Overlapping 2+ items, therefore blocked
-        if (overlappingItems.Count > 1)
+        if (overlappingItemInstances.Count > 1)
         {
-            return (ItemPlaceResponse.Blocked, null);
+            return new InteractResponse(InteractResponseType.Blocked);
         }
 
         // Overlapping 1 item
-        else if (overlappingItems.Count == 1)
+        else if (overlappingItemInstances.Count == 1)
         {
-            var existingItemIndex = overlappingItems.First();
-            var existingItem = ItemInstances[existingItemIndex];
+            var existingItemIndex = overlappingItemInstances.First();
+            var existingItemInstance = ItemInstances[existingItemIndex];
 
             // If item matches try stack
-            if (existingItem.Data == itemInstance.Data)
+            if (existingItemInstance.Data == itemInstance.Data)
             {
-                if (StackItemOntoExisting(existingItem, itemInstance, preview)) return (ItemPlaceResponse.Stacked, null);
+                if (StackItemOntoExisting(existingItemInstance, itemInstance, preview))
+                {
+                    return new InteractResponse(InteractResponseType.Stacked, existingItemInstance);
+                }
             }
 
             // If have not stacked at this point replace
@@ -117,21 +138,21 @@ public partial class Inventory : ISerdeable<InventoryDTO>
                 RemoveItemIndex(existingItemIndex);
                 Debug.Assert(PlaceItem(itemInstance, x, y), "Item place failed after removing single overlapping item, this should never happen.");
             }
-            return (ItemPlaceResponse.Replaced, existingItem);
+            return new InteractResponse(InteractResponseType.Replaced, existingItemInstance);
         }
 
         // Overlapping nothing, so try place
         if (PlaceItem(itemInstance, x, y, preview))
         {
-            return (ItemPlaceResponse.Placed, itemInstance);
+            return new InteractResponse(InteractResponseType.Placed, itemInstance);
         }
 
-        return (ItemPlaceResponse.Blocked, null);
+        return new InteractResponse(InteractResponseType.Blocked);
     }
 
-    public ItemPlaceResponse DepositItem(ItemInstance itemInstance)
+    public InteractResponse DepositItem(ItemInstance itemInstance)
     {
-        ItemPlaceResponse response = ItemPlaceResponse.Blocked;
+        InteractResponseType responseType = InteractResponseType.Blocked;
 
         // While can stack item, stack it
         while (true)
@@ -142,7 +163,7 @@ public partial class Inventory : ISerdeable<InventoryDTO>
             {
                 if (StackItemOntoExisting(existingItemInstance, itemInstance))
                 {
-                    response = ItemPlaceResponse.Stacked;
+                    responseType = InteractResponseType.Stacked;
                     found = true;
                 }
             }
@@ -160,28 +181,27 @@ public partial class Inventory : ISerdeable<InventoryDTO>
                 {
                     if (PlaceItem(itemInstance, x, y))
                     {
-                        response = ItemPlaceResponse.Placed;
+                        responseType = InteractResponseType.Placed;
                         found = true;
                     }
                 }
             }
         }
 
-        return response;
+        return new InteractResponse(responseType, itemInstance);
     }
 
-    public ItemInstance RemoveItem(int x, int y)
+    public InteractResponse RemoveItem(int x, int y)
     {
-        if (slots[x, y] == -1) return null;
+        if (slots[x, y] == -1) return new InteractResponse(InteractResponseType.Invalid);
         return RemoveItemIndex(slots[x, y]);
     }
 
-    public bool RemoveItem(ItemInstance itemInstance)
+    public InteractResponse RemoveItem(ItemInstance itemInstance)
     {
         int index = ItemInstances.IndexOf(itemInstance);
-        if (index == -1) return false;
-        RemoveItemIndex(index);
-        return true;
+        if (index == -1) return new InteractResponse(InteractResponseType.Invalid);
+        return RemoveItemIndex(index);
     }
 
     private int[,] slots;
@@ -241,7 +261,7 @@ public partial class Inventory : ISerdeable<InventoryDTO>
         return false;
     }
 
-    private ItemInstance RemoveItemIndex(int itemIndex)
+    private InteractResponse RemoveItemIndex(int itemIndex)
     {
         ItemInstance itemInstance = ItemInstances[itemIndex];
         itemInstance.SetInventory(null);
@@ -257,7 +277,6 @@ public partial class Inventory : ISerdeable<InventoryDTO>
         }
 
         OnItemRemoved?.Invoke(itemInstance);
-
-        return itemInstance;
+        return new InteractResponse(InteractResponseType.Removed, itemInstance);
     }
 }

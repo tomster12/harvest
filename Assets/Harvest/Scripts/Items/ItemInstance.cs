@@ -20,7 +20,7 @@ public partial class ItemInstance : ISerdeable<ItemInstanceDTO>
 
     public ItemData Data => data;
     public int Amount => amount;
-    public Inventory Inventory { get; private set; } = null;
+    public GridInventory Inventory { get; private set; } = null;
     public Vector2Int InventoryPosition { get; private set; } = new Vector2Int(-1, -1);
 
     public ItemInstance(ItemData data, int amount)
@@ -53,7 +53,7 @@ public partial class ItemInstance : ISerdeable<ItemInstanceDTO>
         OnAmountChanged?.Invoke();
     }
 
-    public void SetInventory(Inventory inventory, int x = -1, int y = -1)
+    public void SetInventory(GridInventory inventory, int x = -1, int y = -1)
     {
         Inventory = inventory;
         InventoryPosition = new Vector2Int(x, y);

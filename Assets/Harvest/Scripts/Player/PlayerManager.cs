@@ -5,7 +5,7 @@ public class PlayerManager : MonoBehaviour
 {
     public static PlayerManager Instance { get; private set; }
 
-    public Inventory Inventory { get; private set; }
+    public GridInventory Inventory { get; private set; }
 
     [Header("Prefabs")]
     [SerializeField] private GameObject playerPrefab = null;
@@ -29,7 +29,7 @@ public class PlayerManager : MonoBehaviour
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         // Setup inventory
-        Inventory = new Inventory(4, 3);
+        Inventory = new GridInventory(4, 3);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
