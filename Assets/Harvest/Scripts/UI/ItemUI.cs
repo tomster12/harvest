@@ -12,21 +12,21 @@ public class ItemUI : MonoBehaviour
     public StateType State { get; private set; } = StateType.EMPTY;
     public Vector2 MouseOffset { get; private set; } = Vector2.zero;
 
-    public void SetItem(ItemInstance newItemInstance)
+    public void SetItem(ItemInstance itemInstance)
     {
         // Unsubscribe from old Item
         if (ItemInstance != null) ItemInstance.OnAmountChanged -= OnAmountChanged;
 
-        ItemInstance = newItemInstance;
+        ItemInstance = itemInstance;
 
         if (ItemInstance != null)
         {
             // Set up item UI with new Item
             ItemInstance.OnAmountChanged += OnAmountChanged;
             gameObject.SetActive(true);
-            gameObject.name = $"Inventory Item UI ({newItemInstance.Data.Name})";
-            Rect.sizeDelta = GridInventoryUI.GetGridSize(newItemInstance.Data.SizeX, newItemInstance.Data.SizeY);
-            iconImage.sprite = newItemInstance.Data.Icon;
+            gameObject.name = $"Inventory Item UI ({itemInstance.Data.Name})";
+            Rect.sizeDelta = GridInventoryUI.GetGridSize(itemInstance.Data.SizeX, itemInstance.Data.SizeY);
+            iconImage.sprite = itemInstance.Data.Icon;
             amountText.text = ItemInstance.Amount.ToString();
         }
         else

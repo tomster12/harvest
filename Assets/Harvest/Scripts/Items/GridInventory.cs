@@ -15,28 +15,13 @@ public struct GridInventoryDTO
     }
 }
 
-public class GridInventory : ISerdeable<GridInventoryDTO>
+public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContainer
 {
-    public enum InteractResponseType
-    { Placed, Stacked, Replaced, Removed, Blocked, OutOfBounds, Invalid };
-
-    public struct InteractResponse
-    {
-        public InteractResponseType type;
-        public ItemInstance itemInstance;
-
-        public InteractResponse(InteractResponseType type, ItemInstance itemInstance = null)
-        {
-            this.type = type;
-            this.itemInstance = itemInstance;
-        }
-    }
-
     public event Action<ItemInstance> OnItemAdded = delegate { };
 
     public event Action<ItemInstance> OnItemRemoved = delegate { };
 
-    public List<ItemInstance> ItemInstances { get; private set; } = new List<ItemInstance>();
+    public List<ItemInstance> ItemInstances => itemInstances;
 
     public int SizeX => sizeX;
 
@@ -44,7 +29,7 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
 
     public GridInventory(int sizeX, int sizeY)
     {
-        ItemInstances = new List<ItemInstance>();
+        itemInstances = new List<ItemInstance>();
         slots = new int[sizeX, sizeY];
         this.sizeX = sizeX;
         this.sizeY = sizeY;
@@ -61,8 +46,8 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
 
     public GridInventoryDTO Serialize()
     {
-        (Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs = new (Vector2Int, ItemInstanceDTO)[ItemInstances.Count];
-        for (int i = 0; i < ItemInstances.Count; i++) itemInstanceDTOs[i] = (ItemInstances[i].InventoryPosition, ItemInstances[i].Serialize());
+        (Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs = new (Vector2Int, ItemInstanceDTO)[itemInstances.Count];
+        for (int i = 0; i < itemInstances.Count; i++) itemInstanceDTOs[i] = (itemPositions[itemInstances[i]], itemInstances[i].Serialize());
         return new(itemInstanceDTOs, slots);
     }
 
@@ -71,32 +56,33 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
         slots = inventoryDTO.slots;
         sizeX = inventoryDTO.slots.GetLength(0);
         sizeY = inventoryDTO.slots.GetLength(1);
-        ItemInstances.Clear();
+        itemInstances.Clear();
         for (int i = 0; i < inventoryDTO.itemInstanceDTOs.Length; i++)
         {
             var (itemPos, itemInstanceDTO) = inventoryDTO.itemInstanceDTOs[i];
             ItemInstance itemInstance = ItemInstance.DeserializeNew(itemInstanceDTO);
-            itemInstance.SetInventory(this, itemPos.x, itemPos.y);
-            ItemInstances.Add(itemInstance);
+            itemInstance.SetContainer(this);
+            itemInstances.Add(itemInstance);
+            itemPositions[itemInstance] = itemPos;
         }
     }
 
-    public InteractResponse PlaceOrStackItem(ItemInstance itemInstance, int x, int y, bool preview = false)
+    public ItemContainerInteractResponse PlaceOrStackItem(ItemInstance itemInstance, int x, int y, bool preview = false)
     {
         // Check position is in bounds
         if (x < 0 || y < 0 || x + itemInstance.Data.SizeX > sizeX || y + itemInstance.Data.SizeY > sizeY)
         {
             // return (ItemPlaceResponse.OutOfBounds, null);
-            return new InteractResponse(InteractResponseType.OutOfBounds);
+            return new ItemContainerInteractResponse(ItemContainerInteractType.OutOfBounds);
         }
 
         // Check if item under cursor matches and stack
         if (slots[x, y] != -1)
         {
-            ItemInstance existingItemInstance = ItemInstances[slots[x, y]];
+            ItemInstance existingItemInstance = itemInstances[slots[x, y]];
             if (StackItemOntoExisting(existingItemInstance, itemInstance, preview))
             {
-                return new InteractResponse(InteractResponseType.Stacked, existingItemInstance);
+                return new ItemContainerInteractResponse(ItemContainerInteractType.Stacked, existingItemInstance);
             }
         }
 
@@ -114,21 +100,21 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
         // Overlapping 2+ items, therefore blocked
         if (overlappingItemInstances.Count > 1)
         {
-            return new InteractResponse(InteractResponseType.Blocked);
+            return new ItemContainerInteractResponse(ItemContainerInteractType.Blocked);
         }
 
         // Overlapping 1 item
         else if (overlappingItemInstances.Count == 1)
         {
             var existingItemIndex = overlappingItemInstances.First();
-            var existingItemInstance = ItemInstances[existingItemIndex];
+            var existingItemInstance = itemInstances[existingItemIndex];
 
             // If item matches try stack
             if (existingItemInstance.Data == itemInstance.Data)
             {
                 if (StackItemOntoExisting(existingItemInstance, itemInstance, preview))
                 {
-                    return new InteractResponse(InteractResponseType.Stacked, existingItemInstance);
+                    return new ItemContainerInteractResponse(ItemContainerInteractType.Stacked, existingItemInstance);
                 }
             }
 
@@ -138,32 +124,32 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
                 RemoveItemIndex(existingItemIndex);
                 Debug.Assert(PlaceItem(itemInstance, x, y), "Item place failed after removing single overlapping item, this should never happen.");
             }
-            return new InteractResponse(InteractResponseType.Replaced, existingItemInstance);
+            return new ItemContainerInteractResponse(ItemContainerInteractType.Replaced, existingItemInstance);
         }
 
         // Overlapping nothing, so try place
         if (PlaceItem(itemInstance, x, y, preview))
         {
-            return new InteractResponse(InteractResponseType.Placed, itemInstance);
+            return new ItemContainerInteractResponse(ItemContainerInteractType.Placed, itemInstance);
         }
 
-        return new InteractResponse(InteractResponseType.Blocked);
+        return new ItemContainerInteractResponse(ItemContainerInteractType.Blocked);
     }
 
-    public InteractResponse DepositItem(ItemInstance itemInstance)
+    public ItemContainerInteractResponse DepositItem(ItemInstance itemInstance)
     {
-        InteractResponseType responseType = InteractResponseType.Blocked;
+        ItemContainerInteractType responseType = ItemContainerInteractType.Blocked;
 
         // While can stack item, stack it
         while (true)
         {
             bool found = false;
 
-            foreach (ItemInstance existingItemInstance in ItemInstances)
+            foreach (ItemInstance existingItemInstance in itemInstances)
             {
                 if (StackItemOntoExisting(existingItemInstance, itemInstance))
                 {
-                    responseType = InteractResponseType.Stacked;
+                    responseType = ItemContainerInteractType.Stacked;
                     found = true;
                 }
             }
@@ -181,32 +167,41 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
                 {
                     if (PlaceItem(itemInstance, x, y))
                     {
-                        responseType = InteractResponseType.Placed;
+                        responseType = ItemContainerInteractType.Placed;
                         found = true;
                     }
                 }
             }
         }
 
-        return new InteractResponse(responseType, itemInstance);
+        return new ItemContainerInteractResponse(responseType, itemInstance);
     }
 
-    public InteractResponse RemoveItem(int x, int y)
+    public ItemContainerInteractResponse RemoveItem(int x, int y)
     {
-        if (slots[x, y] == -1) return new InteractResponse(InteractResponseType.Invalid);
+        if (slots[x, y] == -1) return new ItemContainerInteractResponse(ItemContainerInteractType.Invalid);
         return RemoveItemIndex(slots[x, y]);
     }
 
-    public InteractResponse RemoveItem(ItemInstance itemInstance)
+    public ItemContainerInteractResponse RemoveItem(ItemInstance itemInstance)
     {
-        int index = ItemInstances.IndexOf(itemInstance);
-        if (index == -1) return new InteractResponse(InteractResponseType.Invalid);
+        int index = itemInstances.IndexOf(itemInstance);
+        if (index == -1) return new ItemContainerInteractResponse(ItemContainerInteractType.Invalid);
         return RemoveItemIndex(index);
+    }
+
+    public bool TryGetItemPosition(ItemInstance itemInstance, out Vector2Int gridPos)
+    {
+        if (itemPositions.TryGetValue(itemInstance, out gridPos)) return true;
+        gridPos = default;
+        return false;
     }
 
     private int[,] slots;
     private int sizeX;
     private int sizeY;
+    public readonly List<ItemInstance> itemInstances = new();
+    private readonly Dictionary<ItemInstance, Vector2Int> itemPositions = new();
 
     private bool PlaceItem(ItemInstance itemInstance, int x, int y, bool preview = false)
     {
@@ -225,12 +220,13 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
         {
             for (int j = 0; j < itemInstance.Data.SizeY; j++)
             {
-                slots[x + i, y + j] = ItemInstances.Count;
+                slots[x + i, y + j] = itemInstances.Count;
             }
         }
 
-        ItemInstances.Add(itemInstance);
-        itemInstance.SetInventory(this, x, y);
+        itemInstances.Add(itemInstance);
+        itemPositions[itemInstance] = new Vector2Int(x, y);
+        itemInstance.SetContainer(this);
         OnItemAdded?.Invoke(itemInstance);
         return true;
     }
@@ -261,11 +257,12 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
         return false;
     }
 
-    private InteractResponse RemoveItemIndex(int itemIndex)
+    private ItemContainerInteractResponse RemoveItemIndex(int itemIndex)
     {
-        ItemInstance itemInstance = ItemInstances[itemIndex];
-        itemInstance.SetInventory(null);
-        ItemInstances.RemoveAt(itemIndex);
+        ItemInstance itemInstance = itemInstances[itemIndex];
+        itemInstance.SetContainer(null);
+        itemInstances.RemoveAt(itemIndex);
+        itemPositions.Remove(itemInstance);
 
         for (int x = 0; x < sizeX; x++)
         {
@@ -277,6 +274,6 @@ public class GridInventory : ISerdeable<GridInventoryDTO>
         }
 
         OnItemRemoved?.Invoke(itemInstance);
-        return new InteractResponse(InteractResponseType.Removed, itemInstance);
+        return new ItemContainerInteractResponse(ItemContainerInteractType.Removed, itemInstance);
     }
 }

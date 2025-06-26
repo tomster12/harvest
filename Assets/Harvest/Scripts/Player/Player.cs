@@ -18,14 +18,8 @@ public class Player : MonoBehaviour
         UpdateCamera(true);
 
         // Setup inventory UIs
-        GameObject inventoryUIObject = Instantiate(gridInventoryUIPrefab, playerUIContainer);
-        inventoryUI = inventoryUIObject.GetComponent<GridInventoryUI>();
-        inventoryUIObject.name = "Player Inventory UI";
-
-        GameObject heldItemUIObject = Instantiate(itemUIPrefab, playerUIContainer);
-        heldItemUI = heldItemUIObject.GetComponent<ItemUI>();
-        heldItemUIObject.name = "Player Held Inventory Item UI";
-
+        inventoryUI = PlayerUI.InstantiateElement<GridInventoryUI>(gridInventoryUIPrefab, "Player Inventory UI");
+        heldItemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, "Player Held Inventory Item UI");
         inventoryUI.SetInventory(PlayerManager.Instance.Inventory);
     }
 
@@ -157,7 +151,7 @@ public class Player : MonoBehaviour
             {
                 hoveredItemContainerUI = newHoveredInventoryUI;
             }
-            if (result.gameObject.TryGetComponent(out ItemUI newHoveredItemUI))
+            if (result.gameObject.TryGetComponent(out ItemUI newHoveredItemUI) && newHoveredItemUI != heldItemUI)
             {
                 hoveredItemUI = newHoveredItemUI;
             }
@@ -178,7 +172,7 @@ public class Player : MonoBehaviour
                 // Item was clicked onto an inventory
                 if (isHoveringItemContainerUI)
                 {
-                    hoveredItemContainerUI.PlaceOrStackHeldItem(heldItemUI);
+                    hoveredItemContainerUI.PlaceOrStackHeldItem(heldItemUI, hoveredItemUI);
                 }
                 // Item was dropped outside any inventory
                 else
@@ -235,8 +229,7 @@ public class Player : MonoBehaviour
             {
                 ItemInstance itemInstance = hoveredLooseItem.Pickup();
                 heldItemUI.SetItem(itemInstance);
-                Vector2 offset = GridInventoryUI.GetGridSize(1, 1) / 2;
-                offset = new Vector2(offset.x, -offset.y);
+                Vector2 offset = new(heldItemUI.Rect.sizeDelta.x / 2, -heldItemUI.Rect.sizeDelta.y / 2);
                 heldItemUI.SetHeldByMouse(offset);
                 isMousePressed = false;
             }

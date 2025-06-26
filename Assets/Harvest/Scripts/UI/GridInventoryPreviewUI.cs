@@ -9,7 +9,7 @@ public class GridInventoryPreviewUI : MonoBehaviour
     public void SetPreview(ItemUI itemUI, GridInventoryUI inventoryUI, GridInventoryUI.InteractResponse preview)
     {
         // If the preview is out of bounds hide the preview
-        if (preview.inventoryResponse.type == InteractResponseType.OutOfBounds)
+        if (preview.inventoryResponse.type == ItemContainerInteractType.OutOfBounds)
         {
             gameObject.SetActive(false);
             return;
@@ -22,26 +22,26 @@ public class GridInventoryPreviewUI : MonoBehaviour
         Rect.sizeDelta = itemUI.Rect.sizeDelta;
 
         // Move to the correct position in the inventory
-        Vector2 localPos = inventoryUI.ConvertGridPosToLocalPos(preview.slot.x, preview.slot.y);
+        Vector2 localPos = inventoryUI.ConvertGridPosToLocalPos(preview.gridPos.Value.x, preview.gridPos.Value.y);
         Rect.position = (Vector2)inventoryUI.Rect.position + localPos;
 
         // Recolour based on the preview response
         switch (preview.inventoryResponse.type)
         {
-            case InteractResponseType.Placed:
-            case InteractResponseType.Removed:
+            case ItemContainerInteractType.Placed:
+            case ItemContainerInteractType.Removed:
                 image.color = colourValid;
                 break;
 
-            case InteractResponseType.Stacked:
+            case ItemContainerInteractType.Stacked:
                 image.color = colourStacked;
                 break;
 
-            case InteractResponseType.Replaced:
+            case ItemContainerInteractType.Replaced:
                 image.color = colourReplaced;
                 break;
 
-            case InteractResponseType.Blocked:
+            case ItemContainerInteractType.Blocked:
                 image.color = colourBlocked;
                 break;
         }

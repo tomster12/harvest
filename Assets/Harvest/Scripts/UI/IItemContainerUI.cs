@@ -1,6 +1,6 @@
 public interface IItemContainerUI
 {
-    GridInventoryUI.InteractResponse PlaceOrStackHeldItem(ItemUI heldItemUI, bool preview = false);
+    GridInventoryUI.InteractResponse PlaceOrStackHeldItem(ItemUI heldItemUI, ItemUI hoveredItemUI, bool preview = false);
 
     GridInventoryUI.InteractResponse PickupItem(ItemUI heldItemUI, ItemUI hoveredItemUI);
 
