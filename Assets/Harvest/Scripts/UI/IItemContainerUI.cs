@@ -1,8 +1,8 @@
 public interface IItemContainerUI
 {
-    GridInventoryUI.InteractResponse PlaceOrStackHeldItem(ItemUI heldItemUI, ItemUI hoveredItemUI, bool preview = false);
+    void PlaceHeldItem(ItemUI heldItemUI, ItemUI hoveredItemUI);
 
-    GridInventoryUI.InteractResponse PickupItem(ItemUI heldItemUI, ItemUI hoveredItemUI);
+    void PickupItem(ItemUI heldItemUI, ItemUI hoveredItemUI);
 
     void HoverPreview(ItemUI heldItemUI, ItemUI hoveredItemUI);
 

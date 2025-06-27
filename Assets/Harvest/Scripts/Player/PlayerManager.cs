@@ -12,12 +12,8 @@ public class PlayerManager : MonoBehaviour
 
     private void Awake()
     {
-        // Ensure it is the only instance and last for full lifetime
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
+        // Make this is the main instance
+        if (Instance != null && Instance != this) Destroy(Instance.gameObject);
         Instance = this;
         DontDestroyOnLoad(gameObject);
 

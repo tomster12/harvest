@@ -18,7 +18,7 @@ public class Player : MonoBehaviour
         UpdateCamera(true);
 
         // Setup inventory UIs
-        inventoryUI = PlayerUI.InstantiateElement<GridInventoryUI>(gridInventoryUIPrefab, "Player Inventory UI");
+        inventoryUI = PlayerUI.InstantiateElement<GridInventoryUI>(gridInventoryUIPrefab, "Player Grid Inventory UI");
         heldItemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, "Player Held Inventory Item UI");
         inventoryUI.SetInventory(PlayerManager.Instance.Inventory);
     }
@@ -26,7 +26,6 @@ public class Player : MonoBehaviour
     [Header("Prefab")]
     [SerializeField] private GameObject gridInventoryUIPrefab;
     [SerializeField] private GameObject itemUIPrefab;
-    [SerializeField] private GameObject looseItemPrefab;
 
     [Header("Camera Config")]
     [SerializeField] private Vector3 camCentreOffset = new(0, 1, 0);
@@ -147,9 +146,9 @@ public class Player : MonoBehaviour
         ItemUI hoveredItemUI = null;
         foreach (var result in raycastResults)
         {
-            if (result.gameObject.TryGetComponent(out IItemContainerUI newHoveredInventoryUI))
+            if (result.gameObject.TryGetComponent(out IItemContainerUI newHoveredItemContainerUI))
             {
-                hoveredItemContainerUI = newHoveredInventoryUI;
+                hoveredItemContainerUI = newHoveredItemContainerUI;
             }
             if (result.gameObject.TryGetComponent(out ItemUI newHoveredItemUI) && newHoveredItemUI != heldItemUI)
             {
@@ -161,7 +160,10 @@ public class Player : MonoBehaviour
         isHoveringUI = isHoveringItemContainerUI || isHoveringItemUI;
 
         // Disable preview when stopping hovering inventory
-        if (lastHoveredItemContainerUI != hoveredItemContainerUI && lastHoveredItemContainerUI != null) lastHoveredItemContainerUI.DisablePreview();
+        if (lastHoveredItemContainerUI != hoveredItemContainerUI && lastHoveredItemContainerUI != null)
+        {
+            lastHoveredItemContainerUI.DisablePreview();
+        }
         lastHoveredItemContainerUI = hoveredItemContainerUI;
 
         // Handle interacting while holding an item
@@ -172,16 +174,14 @@ public class Player : MonoBehaviour
                 // Item was clicked onto an inventory
                 if (isHoveringItemContainerUI)
                 {
-                    hoveredItemContainerUI.PlaceOrStackHeldItem(heldItemUI, hoveredItemUI);
+                    hoveredItemContainerUI.PlaceHeldItem(heldItemUI, hoveredItemUI);
                 }
                 // Item was dropped outside any inventory
                 else
                 {
                     Vector3 droppedPosition = transform.position + facingDir * 0.5f + Vector3.up * 0.5f;
                     Quaternion droppedRotation = Quaternion.LookRotation(facingDir, Vector3.up);
-                    GameObject looseItemObject = Instantiate(looseItemPrefab, droppedPosition, droppedRotation);
-                    LooseItem looseItem = looseItemObject.GetComponent<LooseItem>();
-                    looseItem.SetItemInstance(heldItemUI.ItemInstance);
+                    LooseItem.Spawn(heldItemUI.ItemInstance, droppedPosition, droppedRotation);
                     heldItemUI.SetItem(null);
                 }
                 isMousePressed = false;

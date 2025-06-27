@@ -14,8 +14,6 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class Outline : MonoBehaviour
 {
-    private static HashSet<Mesh> registeredMeshes = new HashSet<Mesh>();
-
     public enum Mode
     {
         OutlineAll,
@@ -55,11 +53,19 @@ public class Outline : MonoBehaviour
         }
     }
 
-    [Serializable]
-    private class ListVector3
+    public void Initialize()
     {
-        public List<Vector3> data;
+        // Cache renderers
+        renderers = GetComponentsInChildren<Renderer>();
+
+        // Retrieve or generate smooth normals
+        LoadSmoothNormals();
+
+        // Apply material properties immediately
+        needsUpdate = true;
     }
+
+    private static readonly HashSet<Mesh> registeredMeshes = new();
 
     [SerializeField]
     private Mode outlineMode;
@@ -76,22 +82,18 @@ public class Outline : MonoBehaviour
     private bool precomputeOutline;
 
     [SerializeField, HideInInspector]
-    private List<Mesh> bakeKeys = new List<Mesh>();
+    private List<Mesh> bakeKeys = new();
 
     [SerializeField, HideInInspector]
-    private List<ListVector3> bakeValues = new List<ListVector3>();
+    private List<ListVector3> bakeValues = new();
 
     private Renderer[] renderers;
     private Material outlineMaskMaterial;
     private Material outlineFillMaterial;
-
     private bool needsUpdate;
 
     private void Awake()
     {
-        // Cache renderers
-        renderers = GetComponentsInChildren<Renderer>();
-
         // Instantiate outline materials
         outlineMaskMaterial = Instantiate(Resources.Load<Material>(@"Materials/OutlineMask"));
         outlineFillMaterial = Instantiate(Resources.Load<Material>(@"Materials/OutlineFill"));
@@ -99,11 +101,7 @@ public class Outline : MonoBehaviour
         outlineMaskMaterial.name = "OutlineMask (Instance)";
         outlineFillMaterial.name = "OutlineFill (Instance)";
 
-        // Retrieve or generate smooth normals
-        LoadSmoothNormals();
-
-        // Apply material properties immediately
-        needsUpdate = true;
+        Initialize();
     }
 
     private void OnEnable()
@@ -328,5 +326,11 @@ public class Outline : MonoBehaviour
                 outlineFillMaterial.SetFloat("_OutlineWidth", 0f);
                 break;
         }
+    }
+
+    [Serializable]
+    private class ListVector3
+    {
+        public List<Vector3> data;
     }
 }

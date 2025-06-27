@@ -27,6 +27,7 @@ public class ItemUI : MonoBehaviour
             gameObject.name = $"Inventory Item UI ({itemInstance.Data.Name})";
             Rect.sizeDelta = GridInventoryUI.GetGridSize(itemInstance.Data.SizeX, itemInstance.Data.SizeY);
             iconImage.sprite = itemInstance.Data.Icon;
+            amountText.gameObject.SetActive(itemInstance.Data.IsStackable);
             amountText.text = ItemInstance.Amount.ToString();
         }
         else

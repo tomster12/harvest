@@ -28,13 +28,6 @@ public partial class ItemInstance : ISerdeable<ItemInstanceDTO>
         this.amount = amount;
     }
 
-    public static ItemInstance DeserializeNew(ItemInstanceDTO itemDTO)
-    {
-        ItemInstance instance = new();
-        instance.Deserialize(itemDTO);
-        return instance;
-    }
-
     public ItemInstanceDTO Serialize()
     {
         return new(data.ID, amount);
@@ -42,8 +35,15 @@ public partial class ItemInstance : ISerdeable<ItemInstanceDTO>
 
     public void Deserialize(ItemInstanceDTO itemDTO)
     {
-        data = ItemDatabase.GetItemData(itemDTO.itemID);
+        data = AssetDatabase.GetItemData(itemDTO.itemID);
         amount = itemDTO.amount;
+    }
+
+    public static ItemInstance DeserializeNew(ItemInstanceDTO itemDTO)
+    {
+        ItemInstance instance = new();
+        instance.Deserialize(itemDTO);
+        return instance;
     }
 
     public void SetAmount(int amount)
@@ -57,6 +57,7 @@ public partial class ItemInstance : ISerdeable<ItemInstanceDTO>
         Container = container;
     }
 
+    [Header("Variables")]
     [SerializeField] private ItemData data;
     [SerializeField] private int amount;
 

@@ -1,15 +1,26 @@
 using UnityEngine;
 
-public class LooseItem : MonoBehaviour
+public class LooseItem : MonoBehaviour, IItemContainer
 {
-    public void OnHoverEnter()
+    public static LooseItem Spawn(ItemInstance itemInstance, Vector3 position, Quaternion rotation)
     {
-        outline.enabled = true;
+        GameObject looseItemObject = Instantiate(AssetDatabase.GetPrefab("Loose Item"), position, rotation);
+        looseItemObject.name = $"Loose Item ({itemInstance.Data.Name})";
+        LooseItem looseItem = looseItemObject.GetComponent<LooseItem>();
+
+        GameObject itemMesh = Instantiate(itemInstance.Data.MeshPrefab, looseItemObject.transform);
+        itemMesh.transform.localPosition = Vector3.zero;
+        looseItem.outline.Initialize();
+
+        looseItem.SetItemInstance(itemInstance);
+
+        return looseItem;
     }
 
-    public void OnHoverExit()
+    public void SetItemInstance(ItemInstance itemInstance)
     {
-        outline.enabled = false;
+        this.itemInstance = itemInstance;
+        itemInstance.SetContainer(this);
     }
 
     public ItemInstance Pickup()
@@ -18,9 +29,14 @@ public class LooseItem : MonoBehaviour
         return itemInstance;
     }
 
-    public void SetItemInstance(ItemInstance itemInstance)
+    public void OnHoverEnter()
     {
-        this.itemInstance = itemInstance;
+        outline.enabled = true;
+    }
+
+    public void OnHoverExit()
+    {
+        outline.enabled = false;
     }
 
     [Header("References")]

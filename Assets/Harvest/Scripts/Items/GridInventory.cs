@@ -24,7 +24,6 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
     public List<ItemInstance> ItemInstances => itemInstances;
 
     public int SizeX => sizeX;
-
     public int SizeY => sizeY;
 
     public GridInventory(int sizeX, int sizeY)
@@ -197,11 +196,11 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
         return false;
     }
 
+    private readonly List<ItemInstance> itemInstances = new();
+    private readonly Dictionary<ItemInstance, Vector2Int> itemPositions = new();
     private int[,] slots;
     private int sizeX;
     private int sizeY;
-    public readonly List<ItemInstance> itemInstances = new();
-    private readonly Dictionary<ItemInstance, Vector2Int> itemPositions = new();
 
     private bool PlaceItem(ItemInstance itemInstance, int x, int y, bool preview = false)
     {
