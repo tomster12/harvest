@@ -4,12 +4,12 @@ using UnityEngine.UI;
 public class ItemUI : MonoBehaviour
 {
     public enum StateType
-    { EMPTY, CONTAINER, MOUSE };
+    { Empty, Container, Mouse };
 
     public RectTransform Rect => (RectTransform)transform;
     public ItemInstance ItemInstance { get; private set; }
     public IItemContainerUI ContainerUI { get; private set; }
-    public StateType State { get; private set; } = StateType.EMPTY;
+    public StateType State { get; private set; } = StateType.Empty;
     public Vector2 MouseOffset { get; private set; } = Vector2.zero;
 
     public void SetItem(ItemInstance itemInstance)
@@ -35,7 +35,7 @@ public class ItemUI : MonoBehaviour
             // Turn off item UI if no item is set
             ContainerUI = null;
             gameObject.SetActive(false);
-            State = StateType.EMPTY;
+            State = StateType.Empty;
         }
     }
 
@@ -43,7 +43,7 @@ public class ItemUI : MonoBehaviour
     {
         MouseOffset = offset;
         ContainerUI = null;
-        State = StateType.MOUSE;
+        State = StateType.Mouse;
         RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPoint);
         Rect.localPosition = localPoint - MouseOffset;
     }
@@ -53,7 +53,29 @@ public class ItemUI : MonoBehaviour
         ContainerUI = containerUI;
         Rect.transform.SetParent(parent);
         Rect.localPosition = new Vector3(x, y, 0);
-        State = StateType.CONTAINER;
+        State = StateType.Container;
+    }
+
+    public void UpdateWithContainerResponse(ItemContainerInteractResponse response, Vector2 offset)
+    {
+        // Placed or stacked, so turn off held item
+        if (response.type == ItemContainerInteractType.Placed || (response.type == ItemContainerInteractType.Stacked && this.ItemInstance.Amount == 0))
+        {
+            this.SetItem(null);
+        }
+
+        // Replaced, so update the held item to the new item
+        else if (response.type == ItemContainerInteractType.Replaced)
+        {
+            this.SetHeldByMouse(offset);
+        }
+
+        // Removed, so set the held item to the hovered item
+        else if (response.type == ItemContainerInteractType.Removed)
+        {
+            this.SetItem(response.itemInstance);
+            this.SetHeldByMouse(offset);
+        }
     }
 
     public void OnAmountChanged()
@@ -72,7 +94,7 @@ public class ItemUI : MonoBehaviour
         Rect.sizeDelta = Vector2.zero;
         iconImage.sprite = null;
         amountText.text = string.Empty;
-        State = StateType.EMPTY;
+        State = StateType.Empty;
         MouseOffset = Vector2.zero;
         ContainerUI = null;
         ItemInstance = null;
@@ -88,7 +110,7 @@ public class ItemUI : MonoBehaviour
 
     private void Update()
     {
-        if (State == StateType.MOUSE)
+        if (State == StateType.Mouse)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPoint);
             Rect.localPosition = localPoint - MouseOffset;

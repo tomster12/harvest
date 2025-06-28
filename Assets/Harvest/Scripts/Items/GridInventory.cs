@@ -66,7 +66,7 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
         }
     }
 
-    public ItemContainerInteractResponse PlaceOrStackItem(ItemInstance itemInstance, int x, int y, bool preview = false)
+    public ItemContainerInteractResponse PlaceItem(ItemInstance itemInstance, int x, int y, bool preview = false)
     {
         // Check position is in bounds
         if (x < 0 || y < 0 || x + itemInstance.Data.SizeX > sizeX || y + itemInstance.Data.SizeY > sizeY)
@@ -121,13 +121,13 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
             if (!preview)
             {
                 RemoveItemIndex(existingItemIndex);
-                Debug.Assert(PlaceItem(itemInstance, x, y), "Item place failed after removing single overlapping item, this should never happen.");
+                Debug.Assert(PlaceItemAtPosition(itemInstance, x, y, false), "Item place failed after removing single overlapping item, this should never happen.");
             }
             return new ItemContainerInteractResponse(ItemContainerInteractType.Replaced, existingItemInstance);
         }
 
         // Overlapping nothing, so try place
-        if (PlaceItem(itemInstance, x, y, preview))
+        if (PlaceItemAtPosition(itemInstance, x, y, preview))
         {
             return new ItemContainerInteractResponse(ItemContainerInteractType.Placed, itemInstance);
         }
@@ -164,7 +164,7 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
             {
                 for (int y = 0; y < sizeY && !found; y++)
                 {
-                    if (PlaceItem(itemInstance, x, y))
+                    if (PlaceItemAtPosition(itemInstance, x, y))
                     {
                         responseType = ItemContainerInteractType.Placed;
                         found = true;
@@ -182,7 +182,7 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
         return RemoveItemIndex(slots[x, y]);
     }
 
-    public ItemContainerInteractResponse RemoveItem(ItemInstance itemInstance)
+    public ItemContainerInteractResponse PickupItem(ItemInstance itemInstance)
     {
         int index = itemInstances.IndexOf(itemInstance);
         if (index == -1) return new ItemContainerInteractResponse(ItemContainerInteractType.Invalid);
@@ -202,7 +202,7 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
     private int sizeX;
     private int sizeY;
 
-    private bool PlaceItem(ItemInstance itemInstance, int x, int y, bool preview = false)
+    private bool PlaceItemAtPosition(ItemInstance itemInstance, int x, int y, bool preview = false)
     {
         // Brute force check if the item fits in the inventory
         for (int i = 0; i < itemInstance.Data.SizeX; i++)

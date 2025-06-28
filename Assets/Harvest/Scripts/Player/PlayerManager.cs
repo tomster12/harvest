@@ -6,6 +6,7 @@ public class PlayerManager : MonoBehaviour
     public static PlayerManager Instance { get; private set; }
 
     public GridInventory Inventory { get; private set; }
+    public GearInventory Gear { get; private set; }
 
     [Header("Prefabs")]
     [SerializeField] private GameObject playerPrefab = null;
@@ -24,8 +25,9 @@ public class PlayerManager : MonoBehaviour
         // Add listeners
         SceneManager.sceneLoaded += OnSceneLoaded;
 
-        // Setup inventory
+        // Setup inventories
         Inventory = new GridInventory(4, 3);
+        Gear = new GearInventory();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -60,11 +62,11 @@ public class PlayerManager : MonoBehaviour
             fontSize = 20,
             alignment = TextAnchor.MiddleCenter
         };
-        if (GUI.Button(new Rect(10, 10, 250, 40), "Scene: Hub", style))
+        if (GUI.Button(new Rect(10, Screen.height - 50, 250, 40), "Scene: Hub", style))
         {
             SceneManager.LoadScene("HubScene");
         }
-        if (GUI.Button(new Rect(270, 10, 250, 40), "Scene: Area", style))
+        if (GUI.Button(new Rect(270, Screen.height - 50, 250, 40), "Scene: Area", style))
         {
             SceneManager.LoadScene("AreaScene");
         }

@@ -184,8 +184,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gridInventoryUIPrefab: {fileID: 4015203399251158968, guid: b579e50e0c1d54941aef74dce7011cc2, type: 3}
+  gearInventoryUIPrefab: {fileID: 2802936245369996191, guid: 3d1ecab094aebf04fb82e544e92fc109, type: 3}
   itemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
-  looseItemPrefab: {fileID: 5752497616234786773, guid: 9ad9a72ade0ac384298559c6f84a55ba, type: 3}
   camCentreOffset: {x: 0, y: 1, z: 0}
   camOrbitDir: {x: 0, y: 4, z: -5.4}
   camBaseRotEuler: {x: 33, y: 0, z: 0}

@@ -19,12 +19,16 @@ public class Player : MonoBehaviour
 
         // Setup inventory UIs
         inventoryUI = PlayerUI.InstantiateElement<GridInventoryUI>(gridInventoryUIPrefab, "Player Grid Inventory UI");
-        heldItemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, "Player Held Inventory Item UI");
         inventoryUI.SetInventory(PlayerManager.Instance.Inventory);
+        gearUI = PlayerUI.InstantiateElement<GearInventoryUI>(gearInventoryUIPrefab, "Player Gear Inventory UI");
+        gearUI.SetInventory(PlayerManager.Instance.Gear);
+        heldItemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, "Player Held Inventory Item UI");
+        heldItemUI.SetItem(null);
     }
 
     [Header("Prefab")]
     [SerializeField] private GameObject gridInventoryUIPrefab;
+    [SerializeField] private GameObject gearInventoryUIPrefab;
     [SerializeField] private GameObject itemUIPrefab;
 
     [Header("Camera Config")]
@@ -58,6 +62,7 @@ public class Player : MonoBehaviour
     private float camZoom = 1.0f;
     private LooseItem hoveredLooseItem = null;
     private GridInventoryUI inventoryUI;
+    private GearInventoryUI gearUI;
     private ItemUI heldItemUI;
     private IItemContainerUI lastHoveredItemContainerUI;
     private bool isMousePressed = false;
@@ -66,7 +71,7 @@ public class Player : MonoBehaviour
     private Camera Cam => Camera.main;
     private bool IsInputtingSprint => Input.GetKey(KeyCode.LeftShift);
     private bool IsInputtingMovement => moveInputDir.sqrMagnitude > 0.01f;
-    private bool IsHoldingItemUI => heldItemUI.State != ItemUI.StateType.EMPTY;
+    private bool IsHoldingItemUI => heldItemUI.State != ItemUI.StateType.Empty;
 
     private void Update()
     {
@@ -169,28 +174,20 @@ public class Player : MonoBehaviour
         // Handle interacting while holding an item
         if (isMousePressed)
         {
-            if (IsHoldingItemUI)
+            // Clicked onto an inventory, with or without a held item
+            if (isHoveringItemContainerUI)
             {
-                // Item was clicked onto an inventory
-                if (isHoveringItemContainerUI)
-                {
-                    hoveredItemContainerUI.PlaceHeldItem(heldItemUI, hoveredItemUI);
-                }
-                // Item was dropped outside any inventory
-                else
-                {
-                    Vector3 droppedPosition = transform.position + facingDir * 0.5f + Vector3.up * 0.5f;
-                    Quaternion droppedRotation = Quaternion.LookRotation(facingDir, Vector3.up);
-                    LooseItem.Spawn(heldItemUI.ItemInstance, droppedPosition, droppedRotation);
-                    heldItemUI.SetItem(null);
-                }
+                hoveredItemContainerUI.ClickItem(heldItemUI, hoveredItemUI);
                 isMousePressed = false;
             }
 
-            // Clicked onto an item
-            else if (isHoveringItemUI)
+            // Item was dropped outside any inventory
+            else if (IsHoldingItemUI)
             {
-                hoveredItemUI.ContainerUI.PickupItem(heldItemUI, hoveredItemUI);
+                Vector3 droppedPosition = transform.position + facingDir * 0.5f + Vector3.up * 0.5f;
+                Quaternion droppedRotation = Quaternion.LookRotation(facingDir, Vector3.up);
+                LooseItem.Spawn(heldItemUI.ItemInstance, droppedPosition, droppedRotation);
+                heldItemUI.SetItem(null);
                 isMousePressed = false;
             }
         }
@@ -199,7 +196,7 @@ public class Player : MonoBehaviour
             // Tell the hovered inventory the needed information for preview
             if (isHoveringItemContainerUI)
             {
-                hoveredItemContainerUI.HoverPreview(heldItemUI, hoveredItemUI);
+                hoveredItemContainerUI.PreviewClickItem(heldItemUI, hoveredItemUI);
             }
         }
     }
