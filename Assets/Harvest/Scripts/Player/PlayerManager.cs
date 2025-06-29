@@ -14,7 +14,7 @@ public class PlayerManager : MonoBehaviour
     private void Awake()
     {
         // Make this is the main instance
-        if (Instance != null && Instance != this) Destroy(Instance.gameObject);
+        if (Instance != null) return;
         Instance = this;
         DontDestroyOnLoad(gameObject);
 

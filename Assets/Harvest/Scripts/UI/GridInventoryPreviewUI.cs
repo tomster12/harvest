@@ -29,7 +29,7 @@ public class GridInventoryPreviewUI : MonoBehaviour
         switch (preview.inventoryResponse.type)
         {
             case ItemContainerInteractType.Placed:
-            case ItemContainerInteractType.Removed:
+            case ItemContainerInteractType.Pickup:
                 image.color = colourValid;
                 break;
 
@@ -42,6 +42,8 @@ public class GridInventoryPreviewUI : MonoBehaviour
                 break;
 
             case ItemContainerInteractType.Blocked:
+            case ItemContainerInteractType.OutOfBounds:
+            case ItemContainerInteractType.Invalid:
                 image.color = colourBlocked;
                 break;
         }

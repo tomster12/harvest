@@ -1,20 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 {
-    public struct InteractResponse
-    {
-        public ItemContainerInteractResponse inventoryResponse;
-        public Vector2Int? gridPos;
-
-        public InteractResponse(ItemContainerInteractResponse inventoryResponse, Vector2Int? gridPos = null)
-        {
-            this.inventoryResponse = inventoryResponse;
-            this.gridPos = gridPos;
-        }
-    }
-
     // Values calculated from the image
     public static float BG_IMAGE_GRID_SIZE = 80;
     public static float BG_IMAGE_BORDER_SIZE = 1;
@@ -25,6 +14,13 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     public RectTransform Rect => (RectTransform)transform;
     public GridInventory Inventory { get; private set; }
+
+    public static Vector2 GetGridSize(int gridSizeX, int gridSizeY)
+    {
+        float width = gridSizeX * (GRID_SIZE + GRID_BORDER_SIZE) - GRID_BORDER_SIZE;
+        float height = gridSizeY * (GRID_SIZE + GRID_BORDER_SIZE) - GRID_BORDER_SIZE;
+        return new Vector2(width, height);
+    }
 
     public void SetInventory(GridInventory newInventory)
     {
@@ -51,13 +47,6 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         foreach (ItemInstance itemInstance in Inventory.ItemInstances) OnItemAdded(itemInstance);
     }
 
-    public static Vector2 GetGridSize(int gridSizeX, int gridSizeY)
-    {
-        float width = gridSizeX * (GRID_SIZE + GRID_BORDER_SIZE) - GRID_BORDER_SIZE;
-        float height = gridSizeY * (GRID_SIZE + GRID_BORDER_SIZE) - GRID_BORDER_SIZE;
-        return new Vector2(width, height);
-    }
-
     public Vector2Int ConvertWorldToGridPos(Vector2 worldPos)
     {
         Vector2 localPos = worldPos - (Vector2)Rect.transform.position;
@@ -73,51 +62,60 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         return new Vector2(x, -y);
     }
 
-    public void ClickItem(ItemUI heldItemUI, ItemUI hoveredItemUI)
+    public void Click(ItemUI itemUI, Vector2 pos)
     {
-        Debug.Assert(heldItemUI != null || hoveredItemUI != null, "Must have either a held item or hovered item to click");
+        // Find the hovered item UI and its local position
+        ItemUI hoveredItemUI = GetHoveredItem(pos);
+        Vector2 hoveredItemUILocalPos = Vector2.zero;
+        if (hoveredItemUI != null) hoveredItemUI.GetPointInside(pos, out hoveredItemUILocalPos);
 
-        // Find where the item is in the inventory
-        Vector2 offsetTopLeft = (Vector2)heldItemUI.Rect.position + GRID_CELL_SIZE / 2;
-        Vector2Int itemGridPos = ConvertWorldToGridPos(offsetTopLeft);
-
-        // Cache hovered offset before it is removed
-        Vector2 hoveredItemUIPos = Vector2.zero;
-        if (hoveredItemUI) hoveredItemUIPos = hoveredItemUI.Rect.position;
-
-        // Either place or pickup an item from the inventory
         ItemContainerInteractResponse response;
-        if (heldItemUI.State != ItemUI.StateType.Empty) response = Inventory.PlaceItem(heldItemUI.ItemInstance, itemGridPos.x, itemGridPos.y, false);
-        else response = Inventory.PickupItem(hoveredItemUI.ItemInstance);
-
-        // Update the held item UI with the response
-        Vector2 offset = new Vector2(GridInventoryUI.GRID_CELL_SIZE.x, -GridInventoryUI.GRID_CELL_SIZE.y);
-        if (hoveredItemUI != null && hoveredItemUI.ItemInstance == response.itemInstance) offset = (Vector2)Input.mousePosition - hoveredItemUIPos;
-        heldItemUI.UpdateWithContainerResponse(response, offset);
-    }
-
-    public void PreviewClickItem(ItemUI heldItemUI, ItemUI hoveredItemUI)
-    {
-        if (heldItemUI.State != ItemUI.StateType.Empty)
+        if (itemUI.State != ItemUI.StateType.Empty)
         {
-            // Holding an item, so preview whether can place it
-            Vector2 offsetTopLeft = (Vector2)heldItemUI.Rect.position + GRID_CELL_SIZE / 2;
-            Vector2Int itemGridPos = ConvertWorldToGridPos(offsetTopLeft);
-            ItemContainerInteractResponse response = Inventory.PlaceItem(heldItemUI.ItemInstance, itemGridPos.x, itemGridPos.y, true);
-            previewUI.SetPreview(heldItemUI, this, new InteractResponse(response, itemGridPos));
-        }
-        else if (hoveredItemUI != null && hoveredItemUI.ContainerUI == (IItemContainerUI)this)
-        {
-            // Not holding anything, so preview hovering and removing an item
-            Debug.Assert(Inventory.TryGetItemPosition(hoveredItemUI.ItemInstance, out Vector2Int hoveredItemGridPos), "Hovered item must be in the inventory");
-            ItemContainerInteractResponse response = new(ItemContainerInteractType.Removed, hoveredItemUI.ItemInstance);
-            previewUI.SetPreview(hoveredItemUI, this, new InteractResponse(response, hoveredItemGridPos));
+            // Try place item into the inventory
+            Vector2 itemOffsetPos = (Vector2)itemUI.Rect.position + GRID_CELL_SIZE / 2;
+            Vector2Int itemGridPos = ConvertWorldToGridPos(itemOffsetPos);
+            response = Inventory.PlaceItem(itemUI.ItemInstance, itemGridPos.x, itemGridPos.y, false);
         }
         else
         {
-            // Otherwise disable the preview
-            DisablePreview();
+            // Otherwise just pickup whatever item is hovered
+            if (hoveredItemUI == null || hoveredItemUI.ItemInstance == null) return;
+            response = Inventory.PickupItem(hoveredItemUI.ItemInstance);
         }
+
+        // Update the held item UI with the response
+        Vector2 offset = new(GRID_CELL_SIZE.x, -GRID_CELL_SIZE.y);
+        if (hoveredItemUI != null) offset = hoveredItemUILocalPos;
+        itemUI.SetItemWithResponse(response, offset);
+    }
+
+    public void PreviewClick(ItemUI itemUI, Vector2 pos)
+    {
+        // Find the hovered item UI
+        ItemUI hoveredItemUI = GetHoveredItem(pos);
+
+        InteractResponse preview = null;
+        if (itemUI.State != ItemUI.StateType.Empty)
+        {
+            // Preview placing it into the inventory
+            Vector2 itemOffsetPos = (Vector2)itemUI.Rect.position + GRID_CELL_SIZE / 2;
+            Vector2Int itemGridPos = ConvertWorldToGridPos(itemOffsetPos);
+            ItemContainerInteractResponse response = Inventory.PlaceItem(itemUI.ItemInstance, itemGridPos.x, itemGridPos.y, true);
+            preview = new InteractResponse(response, itemGridPos);
+        }
+        else if (hoveredItemUI != null && hoveredItemUI.ContainerUI == (IItemContainerUI)this)
+        {
+            // Otherwise preview picking up whatever item is hovered
+            ItemContainerInteractResponse response = new(ItemContainerInteractType.Pickup, hoveredItemUI.ItemInstance);
+            Vector2 hoveredItemOffsetPos = (Vector2)itemUI.Rect.position + GRID_CELL_SIZE / 2;
+            Vector2Int hoveredItemGridPos = ConvertWorldToGridPos(hoveredItemOffsetPos);
+            preview = new InteractResponse(response, hoveredItemGridPos);
+        }
+
+        // Update the preview UI
+        if (preview != null) previewUI.SetPreview(itemUI, this, preview);
+        else DisablePreview();
     }
 
     public void DisablePreview()
@@ -125,7 +123,17 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         previewUI.HidePreview();
     }
 
-    private readonly Dictionary<ItemInstance, ItemUI> itemUIs = new();
+    public class InteractResponse
+    {
+        public ItemContainerInteractResponse inventoryResponse;
+        public Vector2Int? gridPos;
+
+        public InteractResponse(ItemContainerInteractResponse inventoryResponse, Vector2Int? gridPos = null)
+        {
+            this.inventoryResponse = inventoryResponse;
+            this.gridPos = gridPos;
+        }
+    }
 
     [Header("References")]
     [SerializeField] private RectTransform itemContainer;
@@ -134,6 +142,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
     [SerializeField] private GameObject itemUIPrefab;
     [SerializeField] private GameObject previewUIPrefab;
 
+    private Dictionary<ItemInstance, ItemUI> itemUIs = new();
     private GridInventoryPreviewUI previewUI;
 
     private void Awake()
@@ -158,6 +167,13 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         }
     }
 
+    private ItemUI GetHoveredItem(Vector2 pos)
+    {
+        List<ItemUI> hoveredItems = itemUIs.Values.Where(i => i.GetPointInside(pos, out _)).ToList();
+        Debug.Assert(hoveredItems.Count <= 1);
+        return hoveredItems.Count > 0 ? hoveredItems[0] : null;
+    }
+
     private void OnItemAdded(ItemInstance itemInstance)
     {
         // Create new inventory item UI and
@@ -165,7 +181,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         itemUI.SetItem(itemInstance);
         Debug.Assert(Inventory.TryGetItemPosition(itemInstance, out Vector2Int itemGridPos), "Item must be in the inventory");
         Vector2 localPos = ConvertGridPosToLocalPos(itemGridPos.x, itemGridPos.y);
-        itemUI.SetLocalPosition(this, itemContainer, localPos.x, localPos.y);
+        itemUI.SetStateToContainer(this, itemContainer, localPos.x, localPos.y);
         itemUIs.Add(itemInstance, itemUI);
     }
 

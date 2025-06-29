@@ -15,6 +15,7 @@ public struct GridInventoryDTO
     }
 }
 
+[Serializable]
 public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContainer
 {
     public event Action<ItemInstance> OnItemAdded = delegate { };
@@ -176,12 +177,6 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
         return new ItemContainerInteractResponse(responseType, itemInstance);
     }
 
-    public ItemContainerInteractResponse RemoveItem(int x, int y)
-    {
-        if (slots[x, y] == -1) return new ItemContainerInteractResponse(ItemContainerInteractType.Invalid);
-        return RemoveItemIndex(slots[x, y]);
-    }
-
     public ItemContainerInteractResponse PickupItem(ItemInstance itemInstance)
     {
         int index = itemInstances.IndexOf(itemInstance);
@@ -273,6 +268,6 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
         }
 
         OnItemRemoved?.Invoke(itemInstance);
-        return new ItemContainerInteractResponse(ItemContainerInteractType.Removed, itemInstance);
+        return new ItemContainerInteractResponse(ItemContainerInteractType.Pickup, itemInstance);
     }
 }

@@ -7,6 +7,7 @@ public struct GearInventoryDTO
 {
 }
 
+[Serializable]
 public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContainer
 {
     public event Action<ItemInstance> OnItemAdded = delegate { };
@@ -37,7 +38,7 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
 
             // Replace an existing item
             ItemInstance existingItem = equipmentItems[equipmentData.equipmentType];
-            if (existingItem != null)
+            if (existingItem != null && existingItem.Data != null)
             {
                 if (!preview)
                 {
@@ -68,7 +69,7 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
             Debug.Assert(toolData.toolType != ToolType.None, "ToolData must have a valid ToolType for Tool type in GearInventory.");
 
             // Replace an existing tool
-            if (toolItem != null)
+            if (toolItem != null && toolItem.Data != null)
             {
                 if (!preview)
                 {
@@ -112,7 +113,7 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
             equipmentItems.Remove(equipmentData.equipmentType);
             itemInstance.SetContainer(null);
             OnItemRemoved?.Invoke(itemInstance);
-            return new ItemContainerInteractResponse(ItemContainerInteractType.Removed, itemInstance);
+            return new ItemContainerInteractResponse(ItemContainerInteractType.Pickup, itemInstance);
         }
 
         // Remove a tool item
@@ -129,7 +130,7 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
             toolItem = null;
             itemInstance.SetContainer(null);
             OnItemRemoved?.Invoke(itemInstance);
-            return new ItemContainerInteractResponse(ItemContainerInteractType.Removed, itemInstance);
+            return new ItemContainerInteractResponse(ItemContainerInteractType.Pickup, itemInstance);
         }
 
         // If the item is not found, return blocked

@@ -1,3 +1,5 @@
+using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -146,59 +148,26 @@ public class Player : MonoBehaviour
     private void UpdateInteractingItemContainers()
     {
         // Find what container and item UIs are being hovered
-        var raycastResults = UIUtility.GetEventSystemRaycastResults();
-        IItemContainerUI hoveredItemContainerUI = null;
-        ItemUI hoveredItemUI = null;
-        foreach (var result in raycastResults)
-        {
-            if (result.gameObject.TryGetComponent(out IItemContainerUI newHoveredItemContainerUI))
-            {
-                hoveredItemContainerUI = newHoveredItemContainerUI;
-            }
-            if (result.gameObject.TryGetComponent(out ItemUI newHoveredItemUI) && newHoveredItemUI != heldItemUI)
-            {
-                hoveredItemUI = newHoveredItemUI;
-            }
-        }
-        bool isHoveringItemContainerUI = hoveredItemContainerUI != null;
-        bool isHoveringItemUI = hoveredItemUI != null;
-        isHoveringUI = isHoveringItemContainerUI || isHoveringItemUI;
+        var hoveredContainer = UIUtility.GetEventSystemRaycastResults()
+            .Select(r => r.gameObject.GetComponent<IItemContainerUI>())
+            .FirstOrDefault(c => c != null);
+        isHoveringUI |= hoveredContainer != null;
 
-        // Disable preview when stopping hovering inventory
-        if (lastHoveredItemContainerUI != hoveredItemContainerUI && lastHoveredItemContainerUI != null)
-        {
-            lastHoveredItemContainerUI.DisablePreview();
-        }
-        lastHoveredItemContainerUI = hoveredItemContainerUI;
+        // Remove preview when unhovering an inventory
+        if (lastHoveredItemContainerUI != hoveredContainer && lastHoveredItemContainerUI != null) lastHoveredItemContainerUI.DisablePreview();
+        lastHoveredItemContainerUI = hoveredContainer;
 
-        // Handle interacting while holding an item
         if (isMousePressed)
         {
-            // Clicked onto an inventory, with or without a held item
-            if (isHoveringItemContainerUI)
-            {
-                hoveredItemContainerUI.ClickItem(heldItemUI, hoveredItemUI);
-                isMousePressed = false;
-            }
+            // Click inside or outside an inventory
+            isMousePressed = false;
+            if (hoveredContainer != null) hoveredContainer.Click(heldItemUI, Input.mousePosition);
+            else if (IsHoldingItemUI) DropHeldItem();
+            else isMousePressed = true;
+        }
 
-            // Item was dropped outside any inventory
-            else if (IsHoldingItemUI)
-            {
-                Vector3 droppedPosition = transform.position + facingDir * 0.5f + Vector3.up * 0.5f;
-                Quaternion droppedRotation = Quaternion.LookRotation(facingDir, Vector3.up);
-                LooseItem.Spawn(heldItemUI.ItemInstance, droppedPosition, droppedRotation);
-                heldItemUI.SetItem(null);
-                isMousePressed = false;
-            }
-        }
-        else
-        {
-            // Tell the hovered inventory the needed information for preview
-            if (isHoveringItemContainerUI)
-            {
-                hoveredItemContainerUI.PreviewClickItem(heldItemUI, hoveredItemUI);
-            }
-        }
+        // Preview a click otherwise
+        else hoveredContainer?.PreviewClick(heldItemUI, Input.mousePosition);
     }
 
     private void UpdateInteractingWorld()
@@ -227,7 +196,7 @@ public class Player : MonoBehaviour
                 ItemInstance itemInstance = hoveredLooseItem.Pickup();
                 heldItemUI.SetItem(itemInstance);
                 Vector2 offset = new(heldItemUI.Rect.sizeDelta.x / 2, -heldItemUI.Rect.sizeDelta.y / 2);
-                heldItemUI.SetHeldByMouse(offset);
+                heldItemUI.SetStateToMouse(offset);
                 isMousePressed = false;
             }
         }
@@ -262,5 +231,15 @@ public class Player : MonoBehaviour
         Vector3 targetPosition = centrePosition + camOrbitDir.normalized * camZoom;
         if (!force) Cam.transform.position = Vector3.Lerp(Cam.transform.position, targetPosition, camFollowLerp * Time.deltaTime);
         else Cam.transform.position = targetPosition;
+    }
+
+    private void DropHeldItem()
+    {
+        Debug.Assert(IsHoldingItemUI, "Cannot drop item when not holding one");
+        Vector3 droppedPosition = transform.position + facingDir * 0.5f + Vector3.up * 0.5f;
+        Quaternion droppedRotation = Quaternion.LookRotation(facingDir, Vector3.up);
+        LooseItem.Spawn(heldItemUI.ItemInstance, droppedPosition, droppedRotation);
+        heldItemUI.SetItem(null);
+        isMousePressed = false;
     }
 }

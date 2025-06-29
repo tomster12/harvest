@@ -1,8 +1,10 @@
+using UnityEngine;
+
 public interface IItemContainerUI
 {
-    void ClickItem(ItemUI heldItemUI, ItemUI hoveredItemUI);
+    void Click(ItemUI itemUI, Vector2 pos);
 
-    void PreviewClickItem(ItemUI heldItemUI, ItemUI hoveredItemUI);
+    void PreviewClick(ItemUI itemUI, Vector2 pos);
 
     void DisablePreview();
 }

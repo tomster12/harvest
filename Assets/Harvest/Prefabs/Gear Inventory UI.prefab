@@ -223,6 +223,11 @@ MonoBehaviour:
   equipmentFeetContainer: {fileID: 2114628132663792000}
   equipmentHandsContainer: {fileID: 2819139056695303537}
   toolContainer: {fileID: 3927976365964408992}
+  colourDefault: {r: 0.20784314, g: 0.20784314, b: 0.20784314, a: 1}
+  colourValid: {r: 0.5568628, g: 0.5568628, b: 0.5568628, a: 1}
+  colourStacked: {r: 0.4117647, g: 0.47843137, b: 0.6901961, a: 1}
+  colourReplaced: {r: 0.6901961, g: 0.59607846, b: 0.4117647, a: 1}
+  colourBlocked: {r: 0.6901961, g: 0.43529412, b: 0.4117647, a: 1}
 --- !u!1 &2895277361006100583
 GameObject:
   m_ObjectHideFlags: 0

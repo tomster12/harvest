@@ -19,44 +19,26 @@ public class ItemUI : MonoBehaviour
 
         ItemInstance = itemInstance;
 
-        if (ItemInstance != null)
+        // Turn off item UI if no item is set
+        if (ItemInstance == null)
         {
-            // Set up item UI with new Item
-            ItemInstance.OnAmountChanged += OnAmountChanged;
-            gameObject.SetActive(true);
-            gameObject.name = $"Inventory Item UI ({itemInstance.Data.Name})";
-            Rect.sizeDelta = GridInventoryUI.GetGridSize(itemInstance.Data.SizeX, itemInstance.Data.SizeY);
-            iconImage.sprite = itemInstance.Data.Icon;
-            amountText.gameObject.SetActive(itemInstance.Data.IsStackable);
-            amountText.text = ItemInstance.Amount.ToString();
-        }
-        else
-        {
-            // Turn off item UI if no item is set
             ContainerUI = null;
             gameObject.SetActive(false);
             State = StateType.Empty;
+            return;
         }
+
+        // Set up item UI with new Item
+        ItemInstance.OnAmountChanged += OnAmountChanged;
+        gameObject.SetActive(true);
+        gameObject.name = $"Inventory Item UI ({itemInstance.Data.Name})";
+        Rect.sizeDelta = GridInventoryUI.GetGridSize(itemInstance.Data.SizeX, itemInstance.Data.SizeY);
+        iconImage.sprite = itemInstance.Data.Icon;
+        amountText.gameObject.SetActive(itemInstance.Data.IsStackable);
+        amountText.text = ItemInstance.Amount.ToString();
     }
 
-    public void SetHeldByMouse(Vector2 offset)
-    {
-        MouseOffset = offset;
-        ContainerUI = null;
-        State = StateType.Mouse;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPoint);
-        Rect.localPosition = localPoint - MouseOffset;
-    }
-
-    public void SetLocalPosition(IItemContainerUI containerUI, RectTransform parent, float x, float y)
-    {
-        ContainerUI = containerUI;
-        Rect.transform.SetParent(parent);
-        Rect.localPosition = new Vector3(x, y, 0);
-        State = StateType.Container;
-    }
-
-    public void UpdateWithContainerResponse(ItemContainerInteractResponse response, Vector2 offset)
+    public void SetItemWithResponse(ItemContainerInteractResponse response, Vector2 offset)
     {
         // Placed or stacked, so turn off held item
         if (response.type == ItemContainerInteractType.Placed || (response.type == ItemContainerInteractType.Stacked && this.ItemInstance.Amount == 0))
@@ -67,21 +49,38 @@ public class ItemUI : MonoBehaviour
         // Replaced, so update the held item to the new item
         else if (response.type == ItemContainerInteractType.Replaced)
         {
-            this.SetHeldByMouse(offset);
+            this.SetStateToMouse(offset);
         }
 
         // Removed, so set the held item to the hovered item
-        else if (response.type == ItemContainerInteractType.Removed)
+        else if (response.type == ItemContainerInteractType.Pickup)
         {
             this.SetItem(response.itemInstance);
-            this.SetHeldByMouse(offset);
+            this.SetStateToMouse(offset);
         }
     }
 
-    public void OnAmountChanged()
+    public void SetStateToMouse(Vector2 offset)
     {
-        // Update Item amount
-        amountText.text = ItemInstance.Amount.ToString();
+        State = StateType.Mouse;
+        ContainerUI = null;
+        MouseOffset = offset;
+        GetPointInside(Input.mousePosition, out Vector2 localPoint);
+        Rect.localPosition = localPoint - MouseOffset;
+    }
+
+    public void SetStateToContainer(IItemContainerUI containerUI, RectTransform parent, float x, float y)
+    {
+        State = StateType.Container;
+        ContainerUI = containerUI;
+        Rect.transform.SetParent(parent);
+        Rect.localPosition = new Vector3(x, y, 0);
+    }
+
+    public bool GetPointInside(Vector2 pos, out Vector2 localPos)
+    {
+        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect, pos, null, out localPos);
+        return Rect.rect.Contains(localPos);
     }
 
     [Header("References")]
@@ -115,5 +114,11 @@ public class ItemUI : MonoBehaviour
             RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPoint);
             Rect.localPosition = localPoint - MouseOffset;
         }
+    }
+
+    private void OnAmountChanged()
+    {
+        // Update Item amount
+        amountText.text = ItemInstance.Amount.ToString();
     }
 }

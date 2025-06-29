@@ -1,5 +1,5 @@
 public enum ItemContainerInteractType
-{ Placed, Stacked, Replaced, Removed, Blocked, OutOfBounds, Invalid };
+{ Placed, Stacked, Replaced, Pickup, Blocked, OutOfBounds, Invalid };
 
 public struct ItemContainerInteractResponse
 {

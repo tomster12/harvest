@@ -14,7 +14,7 @@ public struct ItemInstanceDTO
 }
 
 [Serializable]
-public partial class ItemInstance : ISerdeable<ItemInstanceDTO>
+public class ItemInstance : ISerdeable<ItemInstanceDTO>
 {
     public event Action OnAmountChanged = delegate { };
 
