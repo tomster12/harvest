@@ -122,7 +122,8 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
             if (!preview)
             {
                 RemoveItemIndex(existingItemIndex);
-                Debug.Assert(PlaceItemAtPosition(itemInstance, x, y, false), "Item place failed after removing single overlapping item, this should never happen.");
+                bool placed = PlaceItemAtPosition(itemInstance, x, y, false);
+                Debug.Assert(placed, "Item place failed after removing a single overlapping item, this should never happen.");
             }
             return new ItemContainerInteractResponse(ItemContainerInteractType.Replaced, existingItemInstance);
         }

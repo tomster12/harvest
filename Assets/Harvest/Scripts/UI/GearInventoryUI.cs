@@ -61,7 +61,7 @@ public class GearInventoryUI : MonoBehaviour, IItemContainerUI
         }
 
         // Update the item UI based on the response
-        Vector2 offset = new(GRID_CELL_SIZE.x, -GRID_CELL_SIZE.y);
+        Vector2 offset = new(GRID_CELL_SIZE.x / 2f, -GRID_CELL_SIZE.y / 2f);
         if (hoveredItemUI != null) offset = hoveredItemUILocalPos;
         itemUI.SetItemWithResponse(response, offset);
     }
@@ -136,11 +136,11 @@ public class GearInventoryUI : MonoBehaviour, IItemContainerUI
     [SerializeField] private RectTransform toolContainer;
 
     [Header("Config")]
-    [SerializeField] private Color colourDefault = Color.green;
-    [SerializeField] private Color colourValid = Color.green;
-    [SerializeField] private Color colourStacked = Color.yellow;
-    [SerializeField] private Color colourReplaced = Color.red;
-    [SerializeField] private Color colourBlocked = Color.gray;
+    [SerializeField] private Color colourDefault = new(0.2f, 0.2f, 0.2f, 1f);
+    [SerializeField] private Color colourValid = new(0.55f, 0.55f, 0.55f, 1f);
+    [SerializeField] private Color colourStacked = new(0.41f, 0.48f, 0.69f, 1f);
+    [SerializeField] private Color colourReplaced = new(0.69f, 0.6f, 0.42f, 1f);
+    [SerializeField] private Color colourBlocked = new(0.69f, 0.42f, 0.44f, 1f);
 
     private List<GearSlot> gearSlots = new();
     private Dictionary<EquipmentType, GearSlot> equipmentSlots = new();

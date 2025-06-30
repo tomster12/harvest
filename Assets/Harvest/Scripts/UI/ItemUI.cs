@@ -1,3 +1,4 @@
+using UnityEditor.ShaderKeywordFilter;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -40,23 +41,17 @@ public class ItemUI : MonoBehaviour
 
     public void SetItemWithResponse(ItemContainerInteractResponse response, Vector2 offset)
     {
-        // Placed or stacked, so turn off held item
+        // Placed or stacked this item, so turn off
         if (response.type == ItemContainerInteractType.Placed || (response.type == ItemContainerInteractType.Stacked && this.ItemInstance.Amount == 0))
         {
             this.SetItem(null);
         }
 
-        // Replaced, so update the held item to the new item
-        else if (response.type == ItemContainerInteractType.Replaced)
+        // Removed / replaced an existing item, so update
+        else if (response.type == ItemContainerInteractType.Replaced || response.type == ItemContainerInteractType.Pickup)
         {
             this.SetStateToMouse(offset);
-        }
-
-        // Removed, so set the held item to the hovered item
-        else if (response.type == ItemContainerInteractType.Pickup)
-        {
             this.SetItem(response.itemInstance);
-            this.SetStateToMouse(offset);
         }
     }
 
@@ -65,8 +60,7 @@ public class ItemUI : MonoBehaviour
         State = StateType.Mouse;
         ContainerUI = null;
         MouseOffset = offset;
-        GetPointInside(Input.mousePosition, out Vector2 localPoint);
-        Rect.localPosition = localPoint - MouseOffset;
+        UpdatePositionWithMouse();
     }
 
     public void SetStateToContainer(IItemContainerUI containerUI, RectTransform parent, float x, float y)
@@ -79,7 +73,7 @@ public class ItemUI : MonoBehaviour
 
     public bool GetPointInside(Vector2 pos, out Vector2 localPos)
     {
-        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect, pos, null, out localPos);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(Rect, pos, null, out localPos);
         return Rect.rect.Contains(localPos);
     }
 
@@ -109,11 +103,14 @@ public class ItemUI : MonoBehaviour
 
     private void Update()
     {
-        if (State == StateType.Mouse)
-        {
-            RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPoint);
-            Rect.localPosition = localPoint - MouseOffset;
-        }
+        if (State == StateType.Mouse) UpdatePositionWithMouse();
+    }
+
+    private void UpdatePositionWithMouse()
+    {
+        if (State != StateType.Mouse) return;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPoint);
+        Rect.localPosition = localPoint - MouseOffset;
     }
 
     private void OnAmountChanged()

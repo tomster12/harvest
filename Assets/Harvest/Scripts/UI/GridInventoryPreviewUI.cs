@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using static GridInventory;
 
 public class GridInventoryPreviewUI : MonoBehaviour
 {
@@ -58,8 +57,8 @@ public class GridInventoryPreviewUI : MonoBehaviour
     [SerializeField] private Image image;
 
     [Header("Config")]
-    [SerializeField] private Color colourValid = Color.green;
-    [SerializeField] private Color colourStacked = Color.yellow;
-    [SerializeField] private Color colourReplaced = Color.red;
-    [SerializeField] private Color colourBlocked = Color.gray;
+    [SerializeField] private Color colourValid = new(0.55f, 0.55f, 0.55f, 1f);
+    [SerializeField] private Color colourStacked = new(0.41f, 0.48f, 0.69f, 1f);
+    [SerializeField] private Color colourReplaced = new(0.69f, 0.6f, 0.42f, 1f);
+    [SerializeField] private Color colourBlocked = new(0.69f, 0.42f, 0.44f, 1f);
 }

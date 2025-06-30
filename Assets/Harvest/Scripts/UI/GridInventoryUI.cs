@@ -85,7 +85,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         }
 
         // Update the held item UI with the response
-        Vector2 offset = new(GRID_CELL_SIZE.x, -GRID_CELL_SIZE.y);
+        Vector2 offset = new(GRID_CELL_SIZE.x / 2f, -GRID_CELL_SIZE.y / 2f);
         if (hoveredItemUI != null) offset = hoveredItemUILocalPos;
         itemUI.SetItemWithResponse(response, offset);
     }
@@ -95,6 +95,8 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         // Find the hovered item UI
         ItemUI hoveredItemUI = GetHoveredItem(pos);
 
+        // Calculate the preview + item UI for the preview UI
+        ItemUI relevantItemUI = null;
         InteractResponse preview = null;
         if (itemUI.State != ItemUI.StateType.Empty)
         {
@@ -103,18 +105,20 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
             Vector2Int itemGridPos = ConvertWorldToGridPos(itemOffsetPos);
             ItemContainerInteractResponse response = Inventory.PlaceItem(itemUI.ItemInstance, itemGridPos.x, itemGridPos.y, true);
             preview = new InteractResponse(response, itemGridPos);
+            relevantItemUI = itemUI;
         }
         else if (hoveredItemUI != null && hoveredItemUI.ContainerUI == (IItemContainerUI)this)
         {
-            // Otherwise preview picking up whatever item is hovered
+            // Preview picking up whatever item is hovered
             ItemContainerInteractResponse response = new(ItemContainerInteractType.Pickup, hoveredItemUI.ItemInstance);
-            Vector2 hoveredItemOffsetPos = (Vector2)itemUI.Rect.position + GRID_CELL_SIZE / 2;
+            Vector2 hoveredItemOffsetPos = (Vector2)hoveredItemUI.Rect.position + GRID_CELL_SIZE / 2;
             Vector2Int hoveredItemGridPos = ConvertWorldToGridPos(hoveredItemOffsetPos);
             preview = new InteractResponse(response, hoveredItemGridPos);
+            relevantItemUI = hoveredItemUI;
         }
 
         // Update the preview UI
-        if (preview != null) previewUI.SetPreview(itemUI, this, preview);
+        if (preview != null) previewUI.SetPreview(relevantItemUI, this, preview);
         else DisablePreview();
     }
 
