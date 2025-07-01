@@ -183,22 +183,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9d278f8fe798314fa77f1ea73493003, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridInventoryUIPrefab: {fileID: 4015203399251158968, guid: b579e50e0c1d54941aef74dce7011cc2, type: 3}
-  gearInventoryUIPrefab: {fileID: 2802936245369996191, guid: 3d1ecab094aebf04fb82e544e92fc109, type: 3}
-  itemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
-  camCentreOffset: {x: 0, y: 1, z: 0}
-  camOrbitDir: {x: 0, y: 4, z: -5.4}
-  camBaseRotEuler: {x: 33, y: 0, z: 0}
-  camFollowLerp: 8
-  camZoomStrength: 0.1
-  camZoomMin: 2
-  camZoomMax: 15
-  camZoomBase: 6
-  camSwayEaseScale: 0.5
-  camSwayMouseAmount: 5
-  camSwayPlayerAmount: 0.5
-  camSwayLerp: 10
-  camSwayDeadzone: 0.05
-  movementSpeed: 5
-  sprintMultiplier: 1.2
-  rotationSpeed: 200
+  input:
+    IsMousePressed: 0
+  camera:
+    camCentreOffset: {x: 0, y: 1, z: 0}
+    camOrbitDir: {x: 0, y: 4, z: -5.4}
+    camBaseRotEuler: {x: 30, y: 0, z: 0}
+    camFollowLerp: 8
+    camZoomStrength: 0.1
+    camZoomMin: 2
+    camZoomMax: 15
+    camZoomBase: 6
+    camSwayEaseScale: 0.5
+    camSwayMouseAmount: 5
+    camSwayPlayerAmount: 0.5
+    camSwayLerp: 10
+    camSwayDeadzone: 0.05
+  interactor:
+    gridInventoryUIPrefab: {fileID: 4015203399251158968, guid: b579e50e0c1d54941aef74dce7011cc2, type: 3}
+    gearInventoryUIPrefab: {fileID: 2802936245369996191, guid: 3d1ecab094aebf04fb82e544e92fc109, type: 3}
+    itemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
+  movement:
+    movementSpeed: 5
+    sprintMultiplier: 1.2
+    rotationSpeed: 200

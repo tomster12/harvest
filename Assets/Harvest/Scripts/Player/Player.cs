@@ -1,245 +1,33 @@
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class Player : MonoBehaviour
 {
+    public PlayerInput input;
+    public new PlayerCamera camera;
+    public PlayerInteractor interactor;
+    public PlayerMovement movement;
+    public PlayerAnimator animator;
+
     public void OnSpawn()
     {
-        // Find the player UI container in the world (from tag because prefabs cant have references)
-        GameObject playerUIContainerObject = GameObject.FindWithTag("PlayerUI");
-        Debug.Assert(playerUIContainerObject != null, "Player UI container not found");
-        playerUIContainer = playerUIContainerObject.GetComponent<RectTransform>();
-        Debug.Assert(playerUIContainer != null, "Player UI container not found");
-
-        // Initialize camera state
-        camBaseRot = Quaternion.Euler(camBaseRotEuler);
-        camZoom = camZoomBase;
-        facingDir = transform.forward;
-        FixedUpdateCameraPosition(true);
-        UpdateCamera(true);
-
-        // Setup inventory UIs
-        inventoryUI = PlayerUI.InstantiateElement<GridInventoryUI>(gridInventoryUIPrefab, "Player Grid Inventory UI");
-        inventoryUI.SetInventory(PlayerManager.Instance.Inventory);
-        gearUI = PlayerUI.InstantiateElement<GearInventoryUI>(gearInventoryUIPrefab, "Player Gear Inventory UI");
-        gearUI.SetInventory(PlayerManager.Instance.Gear);
-        heldItemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, "Player Held Inventory Item UI");
-        heldItemUI.SetItem(null);
+        input.Init(this);
+        camera.Init(this);
+        interactor.Init(this);
+        movement.Init(this);
+        animator.Init(this);
     }
-
-    [Header("Prefab")]
-    [SerializeField] private GameObject gridInventoryUIPrefab;
-    [SerializeField] private GameObject gearInventoryUIPrefab;
-    [SerializeField] private GameObject itemUIPrefab;
-
-    [Header("Camera Config")]
-    [SerializeField] private Vector3 camCentreOffset = new(0, 1, 0);
-    [SerializeField] private Vector3 camOrbitDir = new(0, 4.0f, -5.4f);
-    [SerializeField] private Vector3 camBaseRotEuler = new(30, 0, 0);
-    [SerializeField] private float camFollowLerp = 8;
-
-    [Header("Camera Zoom Config")]
-    [SerializeField] private float camZoomStrength = 0.1f;
-    [SerializeField] private float camZoomMin = 2f;
-    [SerializeField] private float camZoomMax = 15f;
-    [SerializeField] private float camZoomBase = 6;
-
-    [Header("Camera Sway Config")]
-    [SerializeField] private float camSwayEaseScale = 0.5f;
-    [SerializeField] private float camSwayMouseAmount = 5;
-    [SerializeField] private float camSwayPlayerAmount = 0.5f;
-    [SerializeField] private float camSwayLerp = 10;
-    [SerializeField] private float camSwayDeadzone = 0.05f;
-
-    [Header("Movement Config")]
-    [SerializeField] private float movementSpeed = 5f;
-    [SerializeField] private float sprintMultiplier = 1.2f;
-    [SerializeField] private float rotationSpeed = 200f;
-
-    private RectTransform playerUIContainer;
-    private Quaternion camBaseRot = Quaternion.identity;
-    private Vector3 moveInputDir = Vector3.zero;
-    private Vector3 facingDir = Vector3.zero;
-    private float camZoom = 1.0f;
-    private LooseItem hoveredLooseItem = null;
-    private GridInventoryUI inventoryUI;
-    private GearInventoryUI gearUI;
-    private ItemUI heldItemUI;
-    private IItemContainerUI lastHoveredItemContainerUI;
-    private bool isMousePressed = false;
-    private bool isHoveringUI = false;
-
-    private Camera Cam => Camera.main;
-    private bool IsInputtingSprint => Input.GetKey(KeyCode.LeftShift);
-    private bool IsInputtingMovement => moveInputDir.sqrMagnitude > 0.01f;
-    private bool IsHoldingItemUI => heldItemUI.State != ItemUI.StateType.Empty;
 
     private void Update()
     {
-        isHoveringUI = false;
-        HandleInput();
-        UpdateInteractingItemContainers();
-        UpdateInteractingWorld();
-        UpdateAnimation();
-        UpdateCamera();
-    }
-
-    private void HandleInput()
-    {
-        // Handle mouse input
-        isMousePressed = Input.GetMouseButtonDown(0);
-
-        // Cast camera transform onto flat plane
-        Vector3 forwardDir = Vector3.ProjectOnPlane(Cam.transform.forward, Vector3.up).normalized;
-
-        // Receive input from the player and cast on the flat plane
-        moveInputDir = Vector3.zero;
-        moveInputDir += Input.GetAxisRaw("Horizontal") * Cam.transform.right;
-        moveInputDir += Input.GetAxisRaw("Vertical") * forwardDir;
-        moveInputDir = moveInputDir.normalized;
-
-        // Only update the facing direction if there is movement input
-        if (IsInputtingMovement) facingDir = moveInputDir;
-
-        // Zoom with mouse wheel
-        float scroll = Input.mouseScrollDelta.y;
-        camZoom *= 1.0f - scroll * camZoomStrength;
-        camZoom = Mathf.Clamp(camZoom, camZoomMin, camZoomMax);
-    }
-
-    private void UpdateAnimation()
-    {
-        // Squish character to show sprinting
-        float squishAmount = IsInputtingSprint ? 0.9f : 1.0f;
-        transform.localScale = new Vector3(1, squishAmount, 1);
-    }
-
-    private void UpdateCamera(bool force = false)
-    {
-        float xSway = 0;
-        float ySway = 0;
-
-        // Sway with the mouse
-        float yOffset = Mathf.Clamp01(Input.mousePosition.y / Screen.height) - 0.5f;
-        if (Mathf.Abs(yOffset) > camSwayDeadzone)
-            xSway = -Easing.EaseOutQuad(camSwayEaseScale * (Mathf.Abs(yOffset) - camSwayDeadzone)) * Mathf.Sign(yOffset) * camSwayMouseAmount;
-        float xOffset = Mathf.Clamp01(Input.mousePosition.x / Screen.width) - 0.5f;
-        if (Mathf.Abs(xOffset) > camSwayDeadzone)
-            ySway = Easing.EaseOutQuad(camSwayEaseScale * (Mathf.Abs(xOffset) - camSwayDeadzone)) * Mathf.Sign(xOffset) * camSwayMouseAmount;
-
-        // Sway with player movement
-        if (IsInputtingMovement)
-        {
-            Vector3 swayDir = Vector3.zero;
-            swayDir += moveInputDir.z * Cam.transform.forward;
-            swayDir += moveInputDir.x * Cam.transform.right;
-            Vector3 swayDirLocal = Cam.transform.InverseTransformDirection(swayDir);
-            xSway += -swayDirLocal.z * camSwayPlayerAmount;
-            ySway += swayDirLocal.x * camSwayPlayerAmount;
-        }
-
-        // Rotate the camera based on the sway
-        Quaternion targetRotation = camBaseRot * Quaternion.Euler(xSway, ySway, 0);
-        if (!force) Cam.transform.rotation = Quaternion.Lerp(Cam.transform.rotation, targetRotation, camSwayLerp * Time.deltaTime);
-        else Cam.transform.rotation = targetRotation;
-    }
-
-    private void UpdateInteractingItemContainers()
-    {
-        // Find what container and item UIs are being hovered
-        var hoveredContainer = UIUtility.GetEventSystemRaycastResults()
-            .Select(r => r.gameObject.GetComponent<IItemContainerUI>())
-            .FirstOrDefault(c => c != null);
-        isHoveringUI |= hoveredContainer != null;
-
-        // Remove preview when unhovering an inventory
-        if (lastHoveredItemContainerUI != hoveredContainer && lastHoveredItemContainerUI != null) lastHoveredItemContainerUI.DisablePreview();
-        lastHoveredItemContainerUI = hoveredContainer;
-
-        if (isMousePressed)
-        {
-            // Click inside or outside an inventory
-            isMousePressed = false;
-            if (hoveredContainer != null) hoveredContainer.Click(heldItemUI, Input.mousePosition);
-            else if (IsHoldingItemUI) DropHeldItem();
-            else isMousePressed = true;
-        }
-
-        // Preview a click otherwise
-        else hoveredContainer?.PreviewClick(heldItemUI, Input.mousePosition);
-    }
-
-    private void UpdateInteractingWorld()
-    {
-        if (!IsHoldingItemUI && !isHoveringUI)
-        {
-            // Raycast to check for loose items
-            Ray ray = Cam.ScreenPointToRay(Input.mousePosition);
-            LooseItem newHoveredLooseItem = null;
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
-            {
-                if (hit.rigidbody) newHoveredLooseItem = hit.rigidbody.GetComponent<LooseItem>();
-            }
-
-            // If we have a new item, update the hovered item
-            if (newHoveredLooseItem != hoveredLooseItem)
-            {
-                if (hoveredLooseItem != null) hoveredLooseItem.OnHoverExit();
-                hoveredLooseItem = newHoveredLooseItem;
-                if (hoveredLooseItem != null) hoveredLooseItem.OnHoverEnter();
-            }
-
-            // If we are hovering an item and click then try to pick it up
-            if (hoveredLooseItem != null && isMousePressed)
-            {
-                ItemInstance itemInstance = hoveredLooseItem.Pickup();
-                heldItemUI.SetItem(itemInstance);
-                Vector2 offset = new(heldItemUI.Rect.sizeDelta.x / 2, -heldItemUI.Rect.sizeDelta.y / 2);
-                heldItemUI.SetStateToMouse(offset);
-                isMousePressed = false;
-            }
-        }
+        input.HandleInput();
+        camera.UpdateCamera();
+        interactor.UpdateInteractions();
+        animator.UpdateAnimation();
     }
 
     private void FixedUpdate()
     {
-        FixedUpdateMovement();
-        FixedUpdateCameraPosition();
-    }
-
-    private void FixedUpdateMovement()
-    {
-        // Rotate towards input direction
-        if (facingDir.sqrMagnitude > 0.01f)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(facingDir, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
-        }
-
-        if (!IsInputtingMovement) return;
-
-        // Move in input direction
-        float speed = IsInputtingSprint ? movementSpeed * sprintMultiplier : movementSpeed;
-        transform.position += speed * Time.fixedDeltaTime * moveInputDir;
-    }
-
-    private void FixedUpdateCameraPosition(bool force = false)
-    {
-        // Move camera based on player position and zoom
-        Vector3 centrePosition = transform.position + camCentreOffset;
-        Vector3 targetPosition = centrePosition + camOrbitDir.normalized * camZoom;
-        if (!force) Cam.transform.position = Vector3.Lerp(Cam.transform.position, targetPosition, camFollowLerp * Time.deltaTime);
-        else Cam.transform.position = targetPosition;
-    }
-
-    private void DropHeldItem()
-    {
-        Debug.Assert(IsHoldingItemUI, "Cannot drop item when not holding one");
-        Vector3 droppedPosition = transform.position + facingDir * 0.5f + Vector3.up * 0.5f;
-        Quaternion droppedRotation = Quaternion.LookRotation(facingDir, Vector3.up);
-        LooseItem.Spawn(heldItemUI.ItemInstance, droppedPosition, droppedRotation);
-        heldItemUI.SetItem(null);
-        isMousePressed = false;
+        camera.FixedUpdateCamera();
+        movement.FixedUpdateMovement();
     }
 }
