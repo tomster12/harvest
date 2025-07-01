@@ -1,21 +1,24 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class PlayerManager : MonoBehaviour
+public class PlayerPersistent : MonoBehaviour
 {
-    public static PlayerManager Instance { get; private set; }
-
     public GridInventory Inventory { get; private set; }
     public GearInventory Gear { get; private set; }
+
+    private static PlayerPersistent instance;
 
     [Header("Prefabs")]
     [SerializeField] private GameObject playerPrefab = null;
 
     private void Awake()
     {
-        // Make this is the main instance
-        if (Instance != null) return;
-        Instance = this;
+        if (instance != null && instance != this)
+        {
+            DestroyImmediate(gameObject);
+            return;
+        }
+        instance = this;
         DontDestroyOnLoad(gameObject);
 
         // Delete a player if it exists
@@ -51,7 +54,7 @@ public class PlayerManager : MonoBehaviour
         // Instantiate the player at the spawnpoint
         GameObject playerObject = Instantiate(playerPrefab, spawnPoint.transform.position, spawnPoint.transform.rotation);
         Player player = playerObject.GetComponent<Player>();
-        player.OnSpawn();
+        player.Init(this);
     }
 
     private void OnGUI()

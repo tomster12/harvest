@@ -14,7 +14,7 @@ public class PlayerCamera
         camBaseRot = Quaternion.Euler(camBaseRotEuler);
         camZoom = camZoomBase;
         UpdateCamera(true);
-        FixedUpdateCamera(true);
+        FollowPlayerPosition(true);
     }
 
     public void UpdateCamera(bool force = false)
@@ -23,7 +23,7 @@ public class PlayerCamera
         float ySway = 0;
 
         // Update camera zoom with mouse wheel
-        camZoom *= 1.0f - player.input.InputScroll * camZoomStrength;
+        camZoom *= 1.0f - player.Input.InputScroll * camZoomStrength;
         camZoom = Mathf.Clamp(camZoom, camZoomMin, camZoomMax);
 
         // Sway with the mouse
@@ -35,11 +35,11 @@ public class PlayerCamera
             ySway = Easing.EaseOutQuad(camSwayEaseScale * (Mathf.Abs(xOffset) - camSwayDeadzone)) * Mathf.Sign(xOffset) * camSwayMouseAmount;
 
         // Sway with player movement
-        if (player.input.IsInputtingMovement)
+        if (player.Input.IsInputtingMovement)
         {
             Vector3 swayDir = Vector3.zero;
-            swayDir += player.input.InputMovement.z * Camera.transform.forward;
-            swayDir += player.input.InputMovement.x * Camera.transform.right;
+            swayDir += player.Input.InputMovement.z * Camera.transform.forward;
+            swayDir += player.Input.InputMovement.x * Camera.transform.right;
             Vector3 swayDirLocal = Camera.transform.InverseTransformDirection(swayDir);
             xSway += -swayDirLocal.z * camSwayPlayerAmount;
             ySway += swayDirLocal.x * camSwayPlayerAmount;
@@ -51,7 +51,7 @@ public class PlayerCamera
         else Camera.transform.rotation = targetRotation;
     }
 
-    public void FixedUpdateCamera(bool force = false)
+    public void FollowPlayerPosition(bool force = false)
     {
         // Move camera based on player position and zoom
         Vector3 centrePosition = player.transform.position + camCentreOffset;

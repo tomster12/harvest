@@ -9,12 +9,5 @@ public class PlayerAnimator
         this.player = player;
     }
 
-    public void UpdateAnimation()
-    {
-        // Squish character to show sprinting
-        float squishAmount = player.input.IsInputtingSprint ? 0.9f : 1.0f;
-        player.transform.localScale = new Vector3(1, squishAmount, 1);
-    }
-
     private Player player;
 }

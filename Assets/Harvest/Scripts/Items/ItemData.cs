@@ -56,16 +56,16 @@ public class ItemData : ScriptableObject
     public GameObject MeshPrefab;
 
     [Header("Type")]
-    public ItemType type;
-    public ToolItemData toolData = null;
-    public EquipmentItemData equipmentData = null;
-    public ToolPartType? partType;
+    public ItemType Type;
+    public ToolItemData ToolData = null;
+    public EquipmentItemData EquipmentData = null;
+    public ToolPartType? PartType;
 
     public bool IsStackable => MaxStackSize > 1;
 
     private void OnValidate()
     {
-        if (type != ItemType.Tool) toolData = null;
-        if (type != ItemType.Equipment) equipmentData = null;
+        if (Type != ItemType.Tool) ToolData = null;
+        if (Type != ItemType.Equipment) EquipmentData = null;
     }
 }

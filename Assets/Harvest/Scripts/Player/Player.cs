@@ -1,33 +1,73 @@
+using System;
 using UnityEngine;
+
+[Flags]
+public enum PlayerBlockFlags
+{
+    None = 0,
+    Movement = 1 << 0,
+    Inventory = 1 << 1,
+    Input = 1 << 2
+}
 
 public class Player : MonoBehaviour
 {
-    public PlayerInput input;
-    public new PlayerCamera camera;
-    public PlayerInteractor interactor;
-    public PlayerMovement movement;
-    public PlayerAnimator animator;
+    public PlayerPersistent Persistent;
+    public PlayerInput Input;
+    public PlayerCamera Camera;
+    public PlayerToolHandler ToolHandler;
+    public PlayerInteractor Interactor;
+    public PlayerMovement Movement;
+    public PlayerActionHandler Actions;
+    public PlayerAnimator Animator;
 
-    public void OnSpawn()
+    public PlayerBlockFlags BlockFlags = PlayerBlockFlags.None;
+
+    public void Init(PlayerPersistent persistent)
     {
-        input.Init(this);
-        camera.Init(this);
-        interactor.Init(this);
-        movement.Init(this);
-        animator.Init(this);
+        Persistent = persistent;
+        Input.Init(this);
+        Camera.Init(this);
+        ToolHandler.Init(this);
+        Interactor.Init(this);
+        Movement.Init(this);
+        Actions.Init(this);
+        Animator.Init(this);
     }
+
+    public void Block(PlayerBlockFlags flags)
+    {
+        BlockFlags |= flags;
+    }
+
+    public void Unblock(PlayerBlockFlags flags)
+    {
+        BlockFlags &= ~flags;
+    }
+
+    public bool IsBlocked(PlayerBlockFlags flags) => (BlockFlags & flags) != PlayerBlockFlags.None;
 
     private void Update()
     {
-        input.HandleInput();
-        camera.UpdateCamera();
-        interactor.UpdateInteractions();
-        animator.UpdateAnimation();
+        Input.ReceiveInput();
+        Camera.UpdateCamera();
+        Interactor.HandleInteractingItemContainers();
+        Interactor.HandleInteractingWorld();
+        Actions.UpdateActions();
     }
 
     private void FixedUpdate()
     {
-        camera.FixedUpdateCamera();
-        movement.FixedUpdateMovement();
+        if (!IsBlocked(PlayerBlockFlags.Movement))
+        {
+            Movement.MoveInDirection(Input.InputMovement);
+        }
+        Movement.FixedUpdate();
+        Camera.FollowPlayerPosition();
+    }
+
+    private void LateUpdate()
+    {
+        Movement.LateUpdate();
     }
 }

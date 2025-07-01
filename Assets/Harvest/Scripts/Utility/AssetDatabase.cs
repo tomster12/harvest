@@ -17,7 +17,7 @@ public class AssetDatabase : MonoBehaviour
         return prefab;
     }
 
-    private static AssetDatabase Instance;
+    private static bool isInitialized = false;
     private static readonly Dictionary<string, ItemData> itemDictionary = new();
     private static readonly Dictionary<string, GameObject> prefabDictionary = new();
 
@@ -27,12 +27,16 @@ public class AssetDatabase : MonoBehaviour
     [Header("Prefabs")]
     [SerializeField] private List<GameObject> prefabs = new();
 
-    private void OnValidate()
+    private void Awake()
     {
-        // Make this is the main instance
-        if (Instance != null && Instance != this) Destroy(Instance.gameObject);
-        Instance = this;
-        if (Application.isPlaying) DontDestroyOnLoad(gameObject);
+        ReloadDatabase();
+    }
+
+    [ContextMenu("Reload Database")]
+    private void ReloadDatabase()
+    {
+        if (isInitialized) return;
+        isInitialized = true;
 
         // Load the locally defined variables into the static dictionaries
         itemDictionary.Clear();
