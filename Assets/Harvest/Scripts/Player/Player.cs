@@ -51,14 +51,16 @@ public class Player : MonoBehaviour
     {
         Input.ReceiveInput();
         Camera.UpdateCamera();
+        ToolHandler.UpdateTool();
         Interactor.HandleInteractingItemContainers();
         Interactor.HandleInteractingWorld();
         Actions.UpdateActions();
+        Animator.UpdateAnimations();
     }
 
     private void FixedUpdate()
     {
-        if (!IsBlocked(PlayerBlockFlags.Movement))
+        if (!IsBlocked(PlayerBlockFlags.Movement) && Input.IsInputtingMovement)
         {
             Movement.MoveInDirection(Input.InputMovement);
         }
@@ -69,5 +71,10 @@ public class Player : MonoBehaviour
     private void LateUpdate()
     {
         Movement.LateUpdate();
+    }
+
+    private void OnDrawGizmos()
+    {
+        ToolHandler.DebugGizmos();
     }
 }

@@ -17,14 +17,14 @@ public class PickupLooseItemAction : PlayerAction
         SetCancellable(true);
     }
 
-    public override async Task RunAsync(Player player, CancellationToken token)
+    public override async Task RunAsync(CancellationToken ct, Player player)
     {
         // Move towards target
-        player.Movement.MoveTowardsPosition(pickupPosition);
-        while (!player.Movement.ReachedTarget(0.5f))
+        player.Movement.MoveTowardsPosition(pickupPosition, 0.5f);
+        while (!player.Movement.HasReachedTarget)
         {
             await Task.Yield();
-            token.ThrowIfCancellationRequested();
+            ct.ThrowIfCancellationRequested();
         }
 
         // Pickup the item and update held item

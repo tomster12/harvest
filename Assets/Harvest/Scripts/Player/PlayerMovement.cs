@@ -1,59 +1,84 @@
 using System;
-using Unity.VisualScripting;
 using UnityEngine;
 
 [Serializable]
 public class PlayerMovement
 {
-    public Vector3 TargetForward { get; private set; } = Vector3.zero;
+    public Vector3 TargetFacingDir { get; private set; } = Vector3.zero;
+    public bool IsMoving { get; private set; }
 
     public void Init(Player player)
     {
         this.player = player;
+        TargetFacingDir = player.transform.forward;
+        inputDirection = null;
+        targetPosition = null;
+        IsMoving = false;
     }
 
     public void MoveInDirection(Vector3 dir)
     {
         // Overwrite and set to moving in a direction
-        inputDirection = dir;
+        inputDirection = dir.normalized;
         targetPosition = null;
     }
 
-    public bool MoveTowardsPosition(Vector3 position)
+    public void MoveTowardsPosition(Vector3 position, float threshold = 0.1f)
     {
         // Overwrite and set to moving towards a position
         inputDirection = null;
         targetPosition = position;
-        return (targetPosition.Value - player.transform.position).sqrMagnitude > 0.01f;
+        targetThreshold = threshold;
+    }
+
+    public void FaceTowardsPoint(Vector3 point)
+    {
+        // Set the target facing direction towards a point
+        Vector3 directDir = point - player.transform.position;
+        Vector3 flatDir = Vector3.ProjectOnPlane(directDir, Vector3.up);
+        TargetFacingDir = flatDir.normalized;
     }
 
     public void FixedUpdate()
     {
-        Vector3 finalDir = Vector3.zero;
+        // Reset target position if reached
+        if (targetPosition.HasValue && HasReachedTarget) targetPosition = null;
 
-        // Either move in direction or towards target position
-        if (inputDirection.HasValue) finalDir = inputDirection.Value.normalized;
-        else if (targetPosition.HasValue) finalDir = (targetPosition.Value - player.transform.position).normalized;
-
-        // Face towards direction and move towards target position if set
-        if (finalDir.sqrMagnitude > 0.01f)
+        // Check if moving in direction or towards point
+        Vector3? finalDir = null;
+        if (inputDirection.HasValue)
         {
-            TargetForward = finalDir;
-            Vector3 movement = movementSpeed * Time.fixedDeltaTime * finalDir;
-            rb.MovePosition(rb.position + movement);
+            finalDir = inputDirection.Value;
+        }
+        else if (targetPosition.HasValue)
+        {
+            Vector3 directDir = targetPosition.Value - player.transform.position;
+            Vector3 flatDir = Vector3.ProjectOnPlane(directDir, Vector3.up);
+            finalDir = flatDir.normalized;
         }
 
-        // Rotate player towards facing direction
-        Vector3 flatForward = new Vector3(TargetForward.x, 0f, TargetForward.z);
-        if (flatForward.sqrMagnitude > 0.01f)
+        // We are moving in some direction
+        if (finalDir.HasValue)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(flatForward, Vector3.up);
+            // Naively move in target direction
+            IsMoving = true;
+            Vector3 movement = movementSpeed * Time.fixedDeltaTime * finalDir.Value;
+            rb.MovePosition(rb.position + movement);
+
+            // Set target rotation based on the final direction
+            Vector3 finalDirFlat = new(finalDir.Value.x, 0f, finalDir.Value.z);
+            TargetFacingDir = finalDirFlat;
+        }
+        else IsMoving = false;
+
+        // Rotate towards the target direction
+        Quaternion targetRotation = Quaternion.LookRotation(TargetFacingDir, Vector3.up);
+        if (!IsFacingTarget)
+        {
             Quaternion newRot = Quaternion.RotateTowards(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
             rb.MoveRotation(newRot);
         }
-
-        // Reset target position if reached
-        if (targetPosition.HasValue && ReachedTarget()) targetPosition = null;
+        else rb.rotation = targetRotation;
     }
 
     public void LateUpdate()
@@ -61,19 +86,19 @@ public class PlayerMovement
         inputDirection = null;
     }
 
-    public bool ReachedTarget(float threshold = 0.01f)
-    {
-        return !targetPosition.HasValue || (targetPosition.Value - player.transform.position).sqrMagnitude <= threshold;
-    }
+    public bool HasReachedTarget => !targetPosition.HasValue || (targetPosition.Value - player.transform.position).sqrMagnitude <= targetThreshold;
+    public bool IsFacingTarget => Vector3.Angle(TargetFacingDir, player.transform.forward) <= rotationThreshold;
 
     [Header("References")]
     [SerializeField] private Rigidbody rb;
 
     [Header("Config")]
-    [SerializeField] private float movementSpeed = 5f;
-    [SerializeField] private float rotationSpeed = 200f;
+    [SerializeField] private float movementSpeed = 3.5f;
+    [SerializeField] private float rotationSpeed = 450f;
+    [SerializeField] private float rotationThreshold = 0.1f;
 
     private Player player;
     private Vector3? inputDirection;
     private Vector3? targetPosition;
+    private float targetThreshold = 0.01f;
 }

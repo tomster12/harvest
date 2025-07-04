@@ -51,12 +51,15 @@ public class PlayerInteractor
         // Only interact with world if not interacting with inventory
         if (IsHoldingItemUI || IsHoveringUI) return;
 
-        // Raycast to check for loose items
-        Ray ray = player.Camera.Camera.ScreenPointToRay(Input.mousePosition);
+        // Get first hit that is a loose item
         LooseItem newHoveredLooseItem = null;
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+        foreach (RaycastHit hit in player.Input.RaycastHits)
         {
-            if (hit.rigidbody) newHoveredLooseItem = hit.rigidbody.GetComponent<LooseItem>();
+            if (hit.rigidbody != null)
+            {
+                newHoveredLooseItem = hit.rigidbody.GetComponent<LooseItem>();
+                if (newHoveredLooseItem != null) break;
+            }
         }
 
         // Hovering a new item so update and preview
@@ -70,6 +73,7 @@ public class PlayerInteractor
         // Clicking on a hovered loose item so try pickup
         if (hoveredLooseItem != null && player.Input.IsMousePressed)
         {
+            player.Input.IsMousePressed = false;
             Vector3 targetPosition = hoveredLooseItem.transform.position - (hoveredLooseItem.transform.position - player.transform.position).normalized * 0.1f;
             PlayerAction action = new PickupLooseItemAction(hoveredLooseItem, targetPosition);
             player.Actions.StartAction(action);
@@ -94,8 +98,8 @@ public class PlayerInteractor
         Debug.Assert(IsHoldingItemUI, "Cannot drop item when not holding one");
 
         // Drop the held item as a loose item in front of the player
-        Vector3 droppedPosition = player.transform.position + player.Movement.TargetForward * 0.5f + Vector3.up * 0.5f;
-        Quaternion droppedRotation = Quaternion.LookRotation(player.Movement.TargetForward, Vector3.up);
+        Vector3 droppedPosition = player.transform.position + player.Movement.TargetFacingDir * 0.5f + Vector3.up * 0.5f;
+        Quaternion droppedRotation = Quaternion.LookRotation(player.Movement.TargetFacingDir, Vector3.up);
         LooseItem.Spawn(HeldItemUI.ItemInstance, droppedPosition, droppedRotation);
         HeldItemUI.SetItem(null);
         player.Input.IsMousePressed = false;

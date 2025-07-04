@@ -29,13 +29,13 @@ public static class ItemMetadata
 [Serializable]
 public class ToolItemData
 {
-    public ToolType toolType;
+    public ToolType Type;
 }
 
 [Serializable]
 public class EquipmentItemData
 {
-    public EquipmentType equipmentType;
+    public EquipmentType Type;
 }
 
 [Serializable]

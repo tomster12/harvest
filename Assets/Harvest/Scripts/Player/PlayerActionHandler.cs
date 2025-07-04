@@ -15,70 +15,72 @@ public class PlayerActionHandler
 
     public async void StartAction(PlayerAction action)
     {
-        // Try to cancel and wait for any current action
-        if (currentAction != null)
+        Debug.Assert(!isCancelling, "Cannot start a new action while cancelling an existing one");
+
+        if (isRunning)
         {
             if (!currentAction.Cancellable)
             {
                 Debug.LogWarning($"Action '{currentAction.GetType().Name}' is currently running and cannot be cancelled.");
                 return;
             }
-            CancelCurrentAction();
-            if (currentActionTask != null) await currentActionTask;
+            await CancelCurrentAction();
         }
 
-        // Setup and start the new action task
-        cts = new CancellationTokenSource();
-        currentAction = action;
-        player.Block(action.PlayerBlockFlags);
-        currentActionTask = RunActionTask();
+        currentActionTask = RunActionTask(action);
     }
 
     public void UpdateActions()
     {
-        // Check cancel conditions for the current action
-        if (currentAction != null)
+        if (isRunning && !isCancelling)
         {
             foreach (var condition in currentAction.CancelConditions)
             {
                 if (condition.Evaluate(player))
                 {
-                    CancelCurrentAction();
+                    _ = CancelCurrentAction();
                     break;
                 }
             }
         }
     }
 
-    public void CancelCurrentAction()
+    public async Task CancelCurrentAction()
     {
+        Debug.Assert(currentAction != null, "Cannot cancel action when currentAction is null");
+        Debug.Assert(!isCancelling, "Already cancelling an action");
+
+        isCancelling = true;
         cts?.Cancel();
+        await currentActionTask;
+        isCancelling = false;
     }
 
     private Player player;
     private CancellationTokenSource cts;
     private PlayerAction currentAction;
     private Task currentActionTask;
+    private bool isRunning;
+    private bool isCancelling;
 
-    private async Task RunActionTask()
+    private async Task RunActionTask(PlayerAction action)
     {
-        // Start, wait for cancellation, and cleanup an action
-        try
-        {
-            currentActionTask = currentAction.RunAsync(player, cts.Token);
-            await currentActionTask;
-        }
-        catch (OperationCanceledException)
-        {
-            Debug.Log($"Action '{currentAction.GetType().Name}' was cancelled.");
-        }
-        finally
-        {
-            Debug.Assert(currentAction != null, "Cleanup called but no current action is set.");
-            player.Unblock(currentAction.PlayerBlockFlags);
-            currentAction = null;
-            cts.Dispose();
-            cts = null;
-        }
+        Debug.Assert(currentAction == null, "Cannot run action task with null currentAction");
+
+        cts = new CancellationTokenSource();
+        currentAction = action;
+        player.Block(action.PlayerBlockFlags);
+
+        // Cancellations are caught and handled inside this wrapper so no errors should bubble up
+        isRunning = true;
+        currentActionTask = currentAction.RunAsyncWrapper(cts.Token, player);
+        await currentActionTask;
+
+        player.Unblock(currentAction.PlayerBlockFlags);
+        currentAction = null;
+        currentActionTask = null;
+        cts.Dispose();
+        cts = null;
+        isRunning = false;
     }
 }
