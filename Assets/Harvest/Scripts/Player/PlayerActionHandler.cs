@@ -50,6 +50,8 @@ public class PlayerActionHandler
         Debug.Assert(currentAction != null, "Cannot cancel action when currentAction is null");
         Debug.Assert(!isCancelling, "Already cancelling an action");
 
+        Debug.Log($"Cancelling action {currentAction.GetType().Name}");
+
         isCancelling = true;
         cts?.Cancel();
         await currentActionTask;
@@ -67,20 +69,17 @@ public class PlayerActionHandler
     {
         Debug.Assert(currentAction == null, "Cannot run action task with null currentAction");
 
-        cts = new CancellationTokenSource();
+        isRunning = true;
         currentAction = action;
         player.Block(action.PlayerBlockFlags);
 
-        // Cancellations are caught and handled inside this wrapper so no errors should bubble up
-        isRunning = true;
-        currentActionTask = currentAction.RunAsyncWrapper(cts.Token, player);
-        await currentActionTask;
+        cts = new CancellationTokenSource();
+        await currentAction.FullRunAsync(cts.Token);
 
         player.Unblock(currentAction.PlayerBlockFlags);
-        currentAction = null;
-        currentActionTask = null;
         cts.Dispose();
         cts = null;
+        currentAction = null;
         isRunning = false;
     }
 }

@@ -67,7 +67,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         // Find the hovered item UI and its local position
         ItemUI hoveredItemUI = GetHoveredItem(pos);
         Vector2 hoveredItemUILocalPos = Vector2.zero;
-        if (hoveredItemUI != null) hoveredItemUI.GetPointInside(pos, out hoveredItemUILocalPos);
+        if (hoveredItemUI != null) hoveredItemUI.GetPosInside(pos, out hoveredItemUILocalPos);
 
         ItemContainerInteractResponse response;
         if (itemUI.State != ItemUI.StateType.Empty)
@@ -173,7 +173,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
 
     private ItemUI GetHoveredItem(Vector2 pos)
     {
-        List<ItemUI> hoveredItems = itemUIs.Values.Where(i => i.GetPointInside(pos, out _)).ToList();
+        List<ItemUI> hoveredItems = itemUIs.Values.Where(i => i.GetPosInside(pos, out _)).ToList();
         Debug.Assert(hoveredItems.Count <= 1);
         return hoveredItems.Count > 0 ? hoveredItems[0] : null;
     }

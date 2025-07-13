@@ -71,7 +71,7 @@ public class ItemUI : MonoBehaviour
         Rect.localPosition = new Vector3(x, y, 0);
     }
 
-    public bool GetPointInside(Vector2 pos, out Vector2 localPos)
+    public bool GetPosInside(Vector2 pos, out Vector2 localPos)
     {
         RectTransformUtility.ScreenPointToLocalPointInRectangle(Rect, pos, null, out localPos);
         return Rect.rect.Contains(localPos);
@@ -109,8 +109,8 @@ public class ItemUI : MonoBehaviour
     private void UpdatePositionWithMouse()
     {
         if (State != StateType.Mouse) return;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPoint);
-        Rect.localPosition = localPoint - MouseOffset;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPos);
+        Rect.localPosition = localPos - MouseOffset;
     }
 
     private void OnAmountChanged()

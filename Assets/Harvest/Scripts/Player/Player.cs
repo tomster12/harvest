@@ -26,6 +26,7 @@ public class Player : MonoBehaviour
     public void Init(PlayerPersistent persistent)
     {
         Persistent = persistent;
+
         Input.Init(this);
         Camera.Init(this);
         ToolHandler.Init(this);
@@ -33,6 +34,9 @@ public class Player : MonoBehaviour
         Movement.Init(this);
         Actions.Init(this);
         Animator.Init(this);
+
+        idleAnimation = new IdleAnimation(Animator);
+        walkingAnimation = new WalkingAnimation(Animator);
     }
 
     public void Block(PlayerBlockFlags flags)
@@ -47,15 +51,39 @@ public class Player : MonoBehaviour
 
     public bool IsBlocked(PlayerBlockFlags flags) => (BlockFlags & flags) != PlayerBlockFlags.None;
 
+    private PlayerAnimator.Handle animatorHandle;
+    private IdleAnimation idleAnimation;
+    private WalkingAnimation walkingAnimation;
+
     private void Update()
     {
         Input.ReceiveInput();
         Camera.UpdateCamera();
         ToolHandler.UpdateTool();
+
         Interactor.HandleInteractingItemContainers();
         Interactor.HandleInteractingWorld();
+
         Actions.UpdateActions();
+        UpdateBaseAnimations();
         Animator.UpdateAnimations();
+    }
+
+    private void UpdateBaseAnimations()
+    {
+        // Always try and take control if possible
+        if (!Animator.IsAnimationLocked)
+        {
+            animatorHandle = Animator.Lock(-1);
+            animatorHandle.OnInvalidate = () => animatorHandle = null;
+        }
+
+        // We have control so idle or walk
+        if (animatorHandle != null)
+        {
+            if (Movement.IsMoving && Animator.CurrentAnimation != walkingAnimation) animatorHandle.PlayAnimation(walkingAnimation);
+            else if (!Movement.IsMoving && Animator.CurrentAnimation != idleAnimation) animatorHandle.PlayAnimation(idleAnimation);
+        }
     }
 
     private void FixedUpdate()

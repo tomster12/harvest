@@ -24,7 +24,7 @@ public class PlayerInteractor
     public void HandleInteractingItemContainers()
     {
         // Find what container UIs and item UIs are being hovered
-        var hoveredContainerUI = UIUtility.GetEventSystemRaycastResults()
+        var hoveredContainerUI = UIUtil.GetEventSystemRaycastResults()
             .Select(r => r.gameObject.GetComponent<IItemContainerUI>())
             .FirstOrDefault(c => c != null);
         IsHoveringUI = hoveredContainerUI != null;
@@ -51,6 +51,13 @@ public class PlayerInteractor
         // Only interact with world if not interacting with inventory
         if (IsHoldingItemUI || IsHoveringUI) return;
 
+        // Only update if not already picking up an item
+        if (pickupAction != null)
+        {
+            if (pickupAction.IsRunning) return;
+            pickupAction = null;
+        }
+
         // Get first hit that is a loose item
         LooseItem newHoveredLooseItem = null;
         foreach (RaycastHit hit in player.Input.RaycastHits)
@@ -75,8 +82,8 @@ public class PlayerInteractor
         {
             player.Input.IsMousePressed = false;
             Vector3 targetPosition = hoveredLooseItem.transform.position - (hoveredLooseItem.transform.position - player.transform.position).normalized * 0.1f;
-            PlayerAction action = new PickupLooseItemAction(hoveredLooseItem, targetPosition);
-            player.Actions.StartAction(action);
+            pickupAction = new PickupLooseItemAction(player, hoveredLooseItem, targetPosition);
+            player.Actions.StartAction(pickupAction);
         }
     }
 
@@ -90,6 +97,7 @@ public class PlayerInteractor
     private GearInventoryUI gearUI;
     private IItemContainerUI lastHoveredContainerUI;
     private LooseItem hoveredLooseItem;
+    private PickupLooseItemAction pickupAction;
 
     private bool IsHoldingItemUI => HeldItemUI.State != ItemUI.StateType.Empty;
 

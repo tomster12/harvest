@@ -1,73 +1,154 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using UnityEngine;
-
-public enum PlayerAttachmentSlot
-{ Hand }
-
-public enum PlayerAnimationTarget
-{ Hand }
 
 [Serializable]
 public class PlayerAnimator
 {
+    public bool IsAnimationLocked => currentHandle != null;
+    public PlayerAnimation CurrentAnimation => currentAnimation;
+
     public void Init(Player player)
     {
-        this.player = player;
-        idleAnimation = new IdleAnimation();
-        walkingAnimation = new WalkingAnimation();
+        // Setup internal variables
+        Array.ForEach(player.GetComponentsInChildren<CustomTag>(), t =>
+        {
+            if (t.HasTag(CustomTagType.AttachmentSlot)) attachmentSlots[t.name] = t.transform;
+            if (t.HasTag(CustomTagType.AnimationTransform)) animationTransforms[t.name] = t.transform;
+            if (t.HasTag(CustomTagType.AnimationPoint)) animationPoints[t.name] = t.transform;
+        });
     }
 
     public void UpdateAnimations()
     {
-        // If we are not doing some custom animation then just play idle or walking animation based on movement state
-        if (currentAnimation == null || currentAnimation == idleAnimation || currentAnimation == walkingAnimation)
-        {
-            if (player.Movement.IsMoving && currentAnimation != walkingAnimation) PlayAnimation(walkingAnimation);
-            else if (!player.Movement.IsMoving && currentAnimation != idleAnimation) PlayAnimation(idleAnimation);
-        }
-
-        currentAnimation?.Update(Time.deltaTime);
+        currentAnimation?.Update();
     }
 
-    public void PlayAnimation(PlayerAnimation animation)
+    public Handle Lock(int priority = 0)
+    {
+        if (currentHandle != null)
+        {
+            if (priority <= currentHandle.Priority)
+            {
+                Debug.LogWarning($"Attempted to lock animator with <= priority ({priority}) than current handle ({currentHandle.Priority}).");
+                return null;
+            }
+            currentHandle.Invalidate();
+        }
+        currentHandle = new Handle(this, priority);
+        return currentHandle;
+    }
+
+    public Transform GetAttachmentSlot(string name)
+    {
+        attachmentSlots.TryGetValue(name, out var slot);
+        Debug.Assert(slot != null, $"'{name}' not found in attachment slots");
+        return slot;
+    }
+
+    public Transform GetAnimationTransform(string name)
+    {
+        animationTransforms.TryGetValue(name, out var transform);
+        Debug.Assert(transform != null, $"'{name}' not found in animation transforms");
+        return transform;
+    }
+
+    public Transform GetAnimationPoint(string name)
+    {
+        animationPoints.TryGetValue(name, out var point);
+        Debug.Assert(point != null, $"'{name}' not found in animation points");
+        return point;
+    }
+
+    public class Handle
+    {
+        public Action OnInvalidate;
+        public int Priority { get; private set; }
+        public bool IsValid => animator.currentHandle == this;
+
+        public Handle(PlayerAnimator animator, int priority)
+        {
+            this.animator = animator;
+            Priority = priority;
+            animator.currentHandle = this;
+        }
+
+        public void Release()
+        {
+            if (!IsValid)
+            {
+                Debug.LogWarning("Attempted to release an invalid animation handle.");
+                return;
+            }
+            animator.Release();
+        }
+
+        public void Invalidate()
+        {
+            if (!IsValid)
+            {
+                Debug.LogWarning("Attempted to invalidate an invalid animation handle.");
+                return;
+            }
+            OnInvalidate?.Invoke();
+            animator.Release();
+        }
+
+        public void PlayAnimation(PlayerAnimation animation)
+        {
+            if (!IsValid)
+            {
+                Debug.LogWarning("Attempted to play an animation with an invalid handle.");
+                return;
+            }
+            animator.PlayAnimation(animation);
+        }
+
+        public void CancelAnimation()
+        {
+            if (!IsValid)
+            {
+                Debug.LogWarning("Attempted to cancel an animation with an invalid handle.");
+                return;
+            }
+            animator.CancelAnimation();
+        }
+
+        private readonly PlayerAnimator animator;
+    }
+
+    private readonly Dictionary<string, Transform> attachmentSlots = new();
+    private readonly Dictionary<string, Transform> animationTransforms = new();
+    private readonly Dictionary<string, Transform> animationPoints = new();
+
+    private Handle currentHandle;
+    private PlayerAnimation currentAnimation;
+
+    private void PlayAnimation(PlayerAnimation animation)
     {
         currentAnimation?.Cancel();
         currentAnimation = animation;
         currentAnimation.OnFinished += OnCurrentAnimationFinished;
-        currentAnimation.Start(this);
+        currentAnimation.Start();
     }
 
-    public void CancelAnimation()
+    private void CancelAnimation()
     {
+        if (currentAnimation == null) return;
         currentAnimation?.Cancel();
         currentAnimation = null;
     }
-
-    public Transform GetAttachmentSlot(PlayerAttachmentSlot slot) => slot switch
-    {
-        PlayerAttachmentSlot.Hand => handTransform,
-        _ => throw new ArgumentOutOfRangeException()
-    };
-
-    public Transform GetAnimationTarget(PlayerAnimationTarget target) => target switch
-    {
-        PlayerAnimationTarget.Hand => handTransform,
-        _ => throw new ArgumentOutOfRangeException()
-    };
-
-    [Header("References")]
-    [SerializeField] private Transform handTransform;
-
-    private Player player;
-    private PlayerAnimation currentAnimation;
-    private IdleAnimation idleAnimation;
-    private WalkingAnimation walkingAnimation;
 
     private void OnCurrentAnimationFinished()
     {
         currentAnimation.OnFinished -= OnCurrentAnimationFinished;
         currentAnimation = null;
+    }
+
+    private void Release()
+    {
+        Debug.Assert(currentHandle != null, "No animation handle to release");
+        currentHandle = null;
+        CancelAnimation();
     }
 }

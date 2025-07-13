@@ -43,7 +43,7 @@ public class GearInventoryUI : MonoBehaviour, IItemContainerUI
         // Find the hovered gear slot
         GearSlot hoveredSlot = GetHoveredSlot(pos);
         if (hoveredSlot == null) return;
-        hoveredSlot.GetPointInside(pos, out Vector2 hoveredItemUILocalPos);
+        hoveredSlot.GetPosInside(pos, out Vector2 hoveredItemUILocalPos);
         ItemInstance hoveredItemUI = GetItemInSlot(hoveredSlot);
 
         ItemContainerInteractResponse response;
@@ -215,7 +215,7 @@ public class GearInventoryUI : MonoBehaviour, IItemContainerUI
 
     private GearSlot GetHoveredSlot(Vector2 pos)
     {
-        return gearSlots.FirstOrDefault(slot => slot.GetPointInside(pos, out _));
+        return gearSlots.FirstOrDefault(slot => slot.GetPosInside(pos, out _));
     }
 
     private ItemInstance GetItemInSlot(GearSlot slot)
@@ -254,7 +254,7 @@ public class GearInventoryUI : MonoBehaviour, IItemContainerUI
         public Image Background;
         public ItemUI ItemUI;
 
-        public bool GetPointInside(Vector2 pos, out Vector2 localPos)
+        public bool GetPosInside(Vector2 pos, out Vector2 localPos)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(Container, pos, null, out localPos);
             return Container.rect.Contains(localPos);

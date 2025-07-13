@@ -7,7 +7,7 @@ public class PickupLooseItemAction : PlayerAction
     private readonly LooseItem item;
     private readonly Vector3 pickupPosition;
 
-    public PickupLooseItemAction(LooseItem item, Vector3 position)
+    public PickupLooseItemAction(Player player, LooseItem item, Vector3 position) : base(player)
     {
         this.item = item;
         this.pickupPosition = position;
@@ -17,20 +17,15 @@ public class PickupLooseItemAction : PlayerAction
         SetCancellable(true);
     }
 
-    public override async Task RunAsync(CancellationToken ct, Player player)
+    protected override async Task RunAsync(CancellationToken ct)
     {
-        // Move towards target
         player.Movement.MoveTowardsPosition(pickupPosition, 0.5f);
-        while (!player.Movement.HasReachedTarget)
-        {
-            await Task.Yield();
-            ct.ThrowIfCancellationRequested();
-        }
+        await AsyncUtil.WaitUntil(() => player.Movement.HasReachedTarget, ct);
 
-        // Pickup the item and update held item
         ItemInstance itemInstance = item.Pickup();
         player.Interactor.HeldItemUI.SetItem(itemInstance);
-        Vector2 offset = new(player.Interactor.HeldItemUI.Rect.sizeDelta.x / 2, -player.Interactor.HeldItemUI.Rect.sizeDelta.y / 2);
+        Vector2 offset = player.Interactor.HeldItemUI.Rect.sizeDelta / 2;
+        offset = new(offset.x, -offset.y);
         player.Interactor.HeldItemUI.SetStateToMouse(offset);
     }
 }

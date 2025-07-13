@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using static TreeEditor.TreeGroup;
-using Unity.VisualScripting.Antlr3.Runtime;
+using UnityEngine;
 
 public abstract class PlayerActionCancelCondition
 {
@@ -43,6 +42,11 @@ public abstract class PlayerAction
     public bool Cancellable { get; private set; } = true;
     public bool IsRunning { get; private set; }
 
+    public PlayerAction(Player player)
+    {
+        this.player = player;
+    }
+
     public PlayerAction AddPlayerBlock(PlayerBlockFlags flags)
     {
         PlayerBlockFlags |= flags;
@@ -61,7 +65,7 @@ public abstract class PlayerAction
         return this;
     }
 
-    public async Task RunAsyncWrapper(CancellationToken ct, Player player)
+    public async Task FullRunAsync(CancellationToken ct)
     {
         if (IsRunning) throw new InvalidOperationException("Action already running");
         IsRunning = true;
@@ -69,24 +73,36 @@ public abstract class PlayerAction
 
         try
         {
-            await RunAsync(ct, player);
+            await RunAsync(ct);
             OnCompleted?.Invoke(this);
         }
         catch (OperationCanceledException)
         {
-            // Just consume and ignore cancellation exceptions
+            await CancelAsync(ct);
             OnCancelled?.Invoke(this);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"PlayerAction: Error in action {GetType().Name}: {e}");
+            throw;
         }
         finally
         {
-            await CancelAsync(ct, player);
+            await FinishAsync(ct);
             IsRunning = false;
         }
     }
 
-    public abstract Task RunAsync(CancellationToken ct, Player player);
+    protected Player player;
 
-    public virtual Task CancelAsync(CancellationToken ct, Player player)
+    protected abstract Task RunAsync(CancellationToken ct);
+
+    protected virtual Task CancelAsync(CancellationToken ct)
+    {
+        return Task.CompletedTask;
+    }
+
+    protected virtual Task FinishAsync(CancellationToken ct)
     {
         return Task.CompletedTask;
     }

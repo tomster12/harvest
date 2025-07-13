@@ -1,34 +1,46 @@
-using Unity.VisualScripting.ReorderableList;
 using UnityEngine;
-using static UnityEditor.Progress;
 
 public class PlayerAxeTool : PlayerTool
 {
-    public const float MAX_PLAYER_TARGET_DISTANCE = 10f;
-    public const float CHOP_OFFSET = 0.65f;
-    public const float MAX_CHOP_GROUND_DISTANCE = 0.8f;
-    public const float MIN_CHOP_GROUND_DISTANCE = 0.15f;
+    public static float MAX_PLAYER_TARGET_DISTANCE = 10f;
+    public static float CHOP_BACK_OFFSET = 0.4f;
+    public static float CHOP_SIDE_OFFSET = 0.5f;
+    public static Vector2 CHOP_LOOK_OFFSET = new(-0.5f, -0.2f);
+    public static float MAX_CHOP_GROUND_DISTANCE = 0.8f;
+    public static float MIN_CHOP_GROUND_DISTANCE = 0.15f;
+    public static Color CHOP_GOOD_COLOR = new(0.2f, 1f, 0.2f, 0.5f);
+    public static Color CHOP_BAD_COLOR = new(1f, 0.2f, 0.2f, 0.5f);
+    public static float CHOP_SWAY_SCREEN_MAX = 0.03f;
+    public static float CHOP_SWAY_WORLD_MAX = 0.15f;
+    public static float CHOP_SWAY_NOISE_CLAMP = 0.1f;
+    public static float CHOP_SWAY_NOISE_MAGNITUDE = 0.0025f;
+    public static float CHOP_SWAY_NOISE_FREQUENCY_MIN = 0.4f;
+    public static float CHOP_SWAY_NOISE_FREQUENCY = 0.4f;
+    public static float CHOP_SWAY_SHAKE_MAGNITUDE = 0.02f;
+    public static float CHOP_SWAY_SHAKE_FREQUENCY = 8f;
 
     public override void Equip(Player player, ItemInstance itemInstance)
     {
         base.Equip(player, itemInstance);
 
-        // Create tool mesh
-        var parent = player.Animator.GetAttachmentSlot(PlayerAttachmentSlot.Hand);
-        toolMesh = GameObject.Instantiate(itemInstance.Data.MeshPrefab, parent);
-        GameObject handlePoint = toolMesh.transform.Find("Handle Point").gameObject;
-        toolMesh.transform.localPosition = -handlePoint.transform.localPosition;
-        toolMesh.transform.localRotation = Quaternion.Inverse(handlePoint.transform.localRotation);
+        // Create tool mesh attached to the left hand
+        var leftHandSlot = player.Animator.GetAttachmentSlot("Left Hand");
+        toolMesh = GameObject.Instantiate(itemInstance.Data.MeshPrefab, leftHandSlot);
+
+        // Set the local offset to match the handle point
+        Transform toolHandlePoint = toolMesh.transform.Find("Handle Point");
+        toolMesh.transform.localPosition = -toolHandlePoint.localPosition;
+        toolMesh.transform.localRotation = toolHandlePoint.localRotation;
 
         // Make colliders trigger
         var colliders = toolMesh.GetComponentsInChildren<Collider>();
         foreach (var collider in colliders) collider.isTrigger = true;
 
-        // Create preview
+        // Create mouse preview
         chopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
         chopPreview.transform.localScale = new Vector3(0.3f, 0.15f, 1f);
         Renderer renderer = chopPreview.GetComponent<Renderer>();
-        renderer.material = AssetDatabase.GetMaterial("Chop Preview");
+        renderer.sharedMaterial = AssetDatabase.GetMaterial("Chop Preview");
         chopPreview.SetActive(false);
     }
 
@@ -40,85 +52,70 @@ public class PlayerAxeTool : PlayerTool
 
     public override void UpdateTool()
     {
-        // If we're chopping dont update preview
+        // Dont update preview during chop
         if (isChopping)
         {
             if (currentAction.IsRunning) return;
             isChopping = false;
             currentAction = null;
-            chopFromPos = null;
         }
 
         chopPreview.SetActive(false);
-        chopFromPos = null;
 
-        // Find the first tree in range
-        var hit = FindFirstValidTargetInRange();
-        if (!hit.HasValue)
+        if (player.IsBlocked(PlayerBlockFlags.Movement | PlayerBlockFlags.Input)) return;
+
+        // Find a hovered valid target to chop
+        (RaycastHit, ChoppableTree)? maybeTree = GetFirstRaycastChoppableTree();
+        if (!maybeTree.HasValue) return;
+        RaycastHit hit = maybeTree.Value.Item1;
+        ChoppableTree tree = maybeTree.Value.Item2;
+
+        // Get the exact chop position from the tree
+        ChopPoint chopPoint = tree.GetChopPoint(hit);
+
+        // Check the hovered pos has a position in front it can be chopped from
+        Vector3 aboveChopFromPos = chopPoint.point + chopPoint.normal * CHOP_BACK_OFFSET;
+        aboveChopFromPos += Vector3.Cross(chopPoint.normal, Vector3.up) * CHOP_SIDE_OFFSET;
+        if (!Physics.Raycast(aboveChopFromPos, Vector3.down, out RaycastHit groundHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
+        if (groundHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
+
+        // Show chop preview on valid position
+        chopPreview.transform.SetPositionAndRotation(hit.point, Quaternion.LookRotation(-Vector3.up, hit.normal));
+        chopPreview.SetActive(true);
+
+        // Perform chop on click
+        if (player.Input.IsMousePressed)
         {
-            chopPreview.SetActive(false);
-            return;
-        }
-
-        // See if we can chop anything valid
-        if (!player.IsBlocked(PlayerBlockFlags.Movement | PlayerBlockFlags.Input))
-        {
-            Vector3 chopFromPosAbove = hit.Value.point + hit.Value.normal * CHOP_OFFSET;
-            if (Physics.Raycast(chopFromPosAbove, Vector3.down, out RaycastHit groundHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground")))
-            {
-                if (groundHit.distance > MIN_CHOP_GROUND_DISTANCE)
-                {
-                    // We can chop so preview it first
-                    chopPreview.transform.SetPositionAndRotation(hit.Value.point, Quaternion.LookRotation(-Vector3.up, hit.Value.normal));
-                    chopFromPos = groundHit.point;
-                    chopPreview.SetActive(true);
-
-                    // Otherwise if clicking then perform the chop action
-                    if (player.Input.IsMousePressed)
-                    {
-                        currentAction = new ChopTreeAction(hit.Value, groundHit.point);
-                        player.Actions.StartAction(currentAction);
-                        isChopping = true;
-                        player.Input.IsMousePressed = false;
-                    }
-                }
-            }
+            groundPos = groundHit.point;
+            currentAction = new ChopTreeAction(player, tree, chopPoint, groundPos, toolMesh, chopPreview);
+            player.Actions.StartAction(currentAction);
+            isChopping = true;
+            player.Input.IsMousePressed = false;
         }
     }
 
     public override void DebugGizmos()
     {
-        if (chopFromPos.HasValue)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(chopFromPos.Value, 0.1f);
-        }
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(groundPos, 0.1f);
     }
 
     private GameObject toolMesh;
     private GameObject chopPreview;
     private ChopTreeAction currentAction;
-    private Vector3? chopFromPos;
+    private Vector3 groundPos;
     private bool isChopping = false;
 
-    private RaycastHit? FindFirstValidTargetInRange()
+    private (RaycastHit, ChoppableTree)? GetFirstRaycastChoppableTree()
     {
-        // Find the first raycast hit that is a valid target within the specified distance
-        var hits = player.Input.RaycastHits;
-        if (hits == null || hits.Length == 0) return null;
-        foreach (var hit in hits)
+        foreach (var hit in player.Input.RaycastHits)
         {
-            if (IsValidTarget(hit))
+            if (hit.transform.gameObject.TryGetComponent(out ChoppableTree tree))
             {
                 float dist = Vector3.Distance(player.transform.position, hit.point);
-                if (dist <= MAX_PLAYER_TARGET_DISTANCE) return hit;
+                if (dist <= MAX_PLAYER_TARGET_DISTANCE) return (hit, tree);
             }
         }
         return null;
-    }
-
-    private bool IsValidTarget(RaycastHit hit)
-    {
-        return hit.collider.CompareTag("Choppable");
     }
 }

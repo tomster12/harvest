@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine.EventSystems;
 using UnityEngine;
 
-public class UIUtility : MonoBehaviour
+public class UIUtil : MonoBehaviour
 {
     public static List<RaycastResult> GetEventSystemRaycastResults()
     {

@@ -31,11 +31,12 @@ public class PlayerMovement
         targetThreshold = threshold;
     }
 
-    public void FaceTowardsPoint(Vector3 point)
+    public void FaceTowardsPosition(Vector3 position, float speedMult = 1.0f)
     {
-        // Set the target facing direction towards a point
-        Vector3 directDir = point - player.transform.position;
+        // Set the target facing direction towards a position
+        Vector3 directDir = position - player.transform.position;
         Vector3 flatDir = Vector3.ProjectOnPlane(directDir, Vector3.up);
+        rotationSpeedMult = speedMult;
         TargetFacingDir = flatDir.normalized;
     }
 
@@ -44,7 +45,7 @@ public class PlayerMovement
         // Reset target position if reached
         if (targetPosition.HasValue && HasReachedTarget) targetPosition = null;
 
-        // Check if moving in direction or towards point
+        // Check if moving in direction or towards position
         Vector3? finalDir = null;
         if (inputDirection.HasValue)
         {
@@ -75,10 +76,14 @@ public class PlayerMovement
         Quaternion targetRotation = Quaternion.LookRotation(TargetFacingDir, Vector3.up);
         if (!IsFacingTarget)
         {
-            Quaternion newRot = Quaternion.RotateTowards(rb.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+            Quaternion newRot = Quaternion.RotateTowards(rb.rotation, targetRotation, rotationSpeedMult * rotationSpeed * Time.fixedDeltaTime);
             rb.MoveRotation(newRot);
         }
-        else rb.rotation = targetRotation;
+        else
+        {
+            rb.rotation = targetRotation;
+            rotationSpeedMult = 1.0f;
+        }
     }
 
     public void LateUpdate()
@@ -100,5 +105,6 @@ public class PlayerMovement
     private Player player;
     private Vector3? inputDirection;
     private Vector3? targetPosition;
+    private float rotationSpeedMult = 1.0f;
     private float targetThreshold = 0.01f;
 }
