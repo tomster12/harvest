@@ -71,23 +71,23 @@ public class PlayerAxeTool : PlayerTool
         ChoppableTree tree = maybeTree.Value.Item2;
 
         // Get the exact chop position from the tree
-        ChopPoint chopPoint = tree.GetChopPoint(hit);
+        ChopTarget target = tree.GetChopTarget(hit);
 
         // Check the hovered pos has a position in front it can be chopped from
-        Vector3 aboveChopFromPos = chopPoint.point + chopPoint.normal * CHOP_BACK_OFFSET;
-        aboveChopFromPos += Vector3.Cross(chopPoint.normal, Vector3.up) * CHOP_SIDE_OFFSET;
+        Vector3 aboveChopFromPos = target.pos + target.normal * CHOP_BACK_OFFSET;
+        aboveChopFromPos += Vector3.Cross(target.normal, Vector3.up) * CHOP_SIDE_OFFSET;
         if (!Physics.Raycast(aboveChopFromPos, Vector3.down, out RaycastHit groundHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
         if (groundHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
+        chopFromPos = groundHit.point;
 
         // Show chop preview on valid position
-        chopPreview.transform.SetPositionAndRotation(hit.point, Quaternion.LookRotation(-Vector3.up, hit.normal));
+        chopPreview.transform.SetPositionAndRotation(target.pos, Quaternion.LookRotation(-Vector3.up, target.normal));
         chopPreview.SetActive(true);
 
         // Perform chop on click
         if (player.Input.IsMousePressed)
         {
-            groundPos = groundHit.point;
-            currentAction = new ChopTreeAction(player, tree, chopPoint, groundPos, toolMesh, chopPreview);
+            currentAction = new ChopTreeAction(player, tree, target, chopFromPos, toolMesh, chopPreview);
             player.Actions.StartAction(currentAction);
             isChopping = true;
             player.Input.IsMousePressed = false;
@@ -97,13 +97,13 @@ public class PlayerAxeTool : PlayerTool
     public override void DebugGizmos()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(groundPos, 0.1f);
+        Gizmos.DrawWireSphere(chopFromPos, 0.1f);
     }
 
     private GameObject toolMesh;
     private GameObject chopPreview;
     private ChopTreeAction currentAction;
-    private Vector3 groundPos;
+    private Vector3 chopFromPos;
     private bool isChopping = false;
 
     private (RaycastHit, ChoppableTree)? GetFirstRaycastChoppableTree()

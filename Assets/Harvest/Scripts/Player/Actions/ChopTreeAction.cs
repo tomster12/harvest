@@ -6,7 +6,7 @@ using System;
 
 public class ChopTreeAction : PlayerAction
 {
-    public ChopTreeAction(Player player, ChoppableTree tree, ChopPoint chopPoint, Vector3 chopStandPos, GameObject axeMesh, GameObject chopPreview) : base(player)
+    public ChopTreeAction(Player player, ChoppableTree tree, ChopTarget chopPoint, Vector3 chopStandPos, GameObject axeMesh, GameObject chopPreview) : base(player)
     {
         this.tree = tree;
         this.chopPoint = chopPoint;
@@ -35,7 +35,7 @@ public class ChopTreeAction : PlayerAction
 
         // We want to place the axe so that the hit point is on the target
         Transform axeHitPoint = axeMesh.transform.Find("Hit Point");
-        Matrix4x4 hitPoseMatrix = Matrix4x4.TRS(this.chopPoint.point, Quaternion.LookRotation(this.chopPoint.normal, Vector3.up), Vector3.one);
+        Matrix4x4 hitPoseMatrix = Matrix4x4.TRS(this.chopPoint.pos, Quaternion.LookRotation(this.chopPoint.normal, Vector3.up), Vector3.one);
         Matrix4x4 handToHitMatrix = leftHandTransform.worldToLocalMatrix * axeHitPoint.localToWorldMatrix;
         Matrix4x4 chopToMatrix = hitPoseMatrix * handToHitMatrix.inverse;
         chopToPos = chopToMatrix.GetColumn(3);
@@ -112,7 +112,7 @@ public class ChopTreeAction : PlayerAction
 
     private readonly GameObject axeMesh;
     private readonly GameObject chopPreview;
-    private readonly ChopPoint chopPoint;
+    private readonly ChopTarget chopPoint;
     private readonly ChoppableTree tree;
     private readonly Vector3 chopStandPos;
 
@@ -175,8 +175,7 @@ public class ChopTreeAction : PlayerAction
 
     private void OnHitTree()
     {
-        float accuracy = Mathf.Clamp01(1f - Mathf.Abs(offset));
-        float strength = 10f;
-        tree.Hit(chopPoint, strength, accuracy);
+        float strength = Mathf.Clamp01(1f - Mathf.Abs(offset)) * 0.1f;
+        tree.Hit(chopPoint, strength, 0.1f, 0.035f);
     }
 }
