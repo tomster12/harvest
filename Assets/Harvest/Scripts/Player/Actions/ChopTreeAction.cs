@@ -27,7 +27,7 @@ public class ChopTreeAction : PlayerAction
         // Create current mouse preview
         currentChopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
         currentChopPreview.transform.position = chopPreview.transform.position;
-        currentChopPreview.transform.localScale = new Vector3(0.25f, 0.15f, 1f);
+        currentChopPreview.transform.localScale = new Vector3(0.25f, 0.4f, 1f);
         currentChopPreview.transform.rotation = Quaternion.LookRotation(-Vector3.up, this.chopPoint.normal);
         currentChopPreviewRenderer = currentChopPreview.GetComponent<Renderer>();
         currentChopPreviewRenderer.sharedMaterial = new(AssetDatabase.GetMaterial("Chop Preview"));
@@ -90,7 +90,6 @@ public class ChopTreeAction : PlayerAction
 
     protected override async Task FinishAsync(CancellationToken ct)
     {
-        Debug.Log("ChopTreeAction: Finishing action");
         player.Input.ShowMouse();
         GameObject.Destroy(currentChopPreview);
         rightHandTransform.parent = player.transform;
@@ -175,7 +174,9 @@ public class ChopTreeAction : PlayerAction
 
     private void OnHitTree()
     {
-        float strength = Mathf.Clamp01(1f - Mathf.Abs(offset)) * 0.1f;
-        tree.Hit(chopPoint, strength, 0.1f, 0.035f);
+        float inaccuracy = Mathf.Clamp01(1f - Mathf.Abs(offset));
+        float strength = 0.01f + inaccuracy * 0.03f;
+        float height = 0.04f + inaccuracy * 0.04f;
+        tree.Hit(chopPoint, strength, 0.5f, height);
     }
 }

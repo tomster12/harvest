@@ -38,7 +38,7 @@ public class PlayerAxeTool : PlayerTool
 
         // Create mouse preview
         chopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        chopPreview.transform.localScale = new Vector3(0.3f, 0.15f, 1f);
+        chopPreview.transform.localScale = new Vector3(0.3f, 0.4f, 1f);
         Renderer renderer = chopPreview.GetComponent<Renderer>();
         renderer.sharedMaterial = AssetDatabase.GetMaterial("Chop Preview");
         chopPreview.SetActive(false);

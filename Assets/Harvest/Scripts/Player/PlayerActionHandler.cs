@@ -50,8 +50,6 @@ public class PlayerActionHandler
         Debug.Assert(currentAction != null, "Cannot cancel action when currentAction is null");
         Debug.Assert(!isCancelling, "Already cancelling an action");
 
-        Debug.Log($"Cancelling action {currentAction.GetType().Name}");
-
         isCancelling = true;
         cts?.Cancel();
         await currentActionTask;

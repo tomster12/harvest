@@ -279,9 +279,22 @@ public class DeformableMesh
 
     public void UpdateMesh()
     {
+        List<Vector3> meshVertices = new(triangles.Count);
+        List<int> meshTriangles = new(triangles.Count);
+
+        for (int i = 0; i < triangles.Count; i += 3)
+        {
+            meshVertices.Add(vertices[triangles[i]]);
+            meshVertices.Add(vertices[triangles[i + 1]]);
+            meshVertices.Add(vertices[triangles[i + 2]]);
+            meshTriangles.Add(i);
+            meshTriangles.Add(i + 1);
+            meshTriangles.Add(i + 2);
+        }
+
         mesh.Clear();
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
+        mesh.vertices = meshVertices.ToArray();
+        mesh.triangles = meshTriangles.ToArray();
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
     }
