@@ -174,9 +174,9 @@ public class ChopTreeAction : PlayerAction
 
     private void OnHitTree()
     {
-        float inaccuracy = Mathf.Clamp01(1f - Mathf.Abs(offset));
-        float strength = 0.01f + inaccuracy * 0.03f;
-        float height = 0.04f + inaccuracy * 0.04f;
+        float accuracy = Mathf.Clamp01(1f - Mathf.Abs(offset));
+        float strength = 0.01f + accuracy * 0.03f;
+        float height = 0.04f + accuracy * 0.04f;
         tree.Hit(chopPoint, strength, 0.5f, height);
     }
 }
