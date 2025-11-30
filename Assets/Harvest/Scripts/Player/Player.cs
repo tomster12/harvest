@@ -2,12 +2,12 @@ using System;
 using UnityEngine;
 
 [Flags]
-public enum PlayerBlockFlags
+public enum PlayerRestrictionFlag
 {
     None = 0,
-    Movement = 1 << 0,
-    Inventory = 1 << 1,
-    Input = 1 << 2
+    DoMovement = 1 << 0,
+    InteractInventory = 1 << 1,
+    DoAction = 1 << 2
 }
 
 public class Player : MonoBehaviour
@@ -21,7 +21,7 @@ public class Player : MonoBehaviour
     public PlayerActionHandler Actions;
     public PlayerAnimator Animator;
 
-    public PlayerBlockFlags BlockFlags = PlayerBlockFlags.None;
+    public PlayerRestrictionFlag ActionBlocks = PlayerRestrictionFlag.None;
 
     public void Init(PlayerPersistent persistent)
     {
@@ -39,32 +39,35 @@ public class Player : MonoBehaviour
         walkingAnimation = new WalkingAnimation(Animator);
     }
 
-    public void Block(PlayerBlockFlags flags)
+    public void Restrict(PlayerRestrictionFlag flags)
     {
-        BlockFlags |= flags;
+        ActionBlocks |= flags;
     }
 
-    public void Unblock(PlayerBlockFlags flags)
+    public void Unrestrict(PlayerRestrictionFlag flags)
     {
-        BlockFlags &= ~flags;
+        ActionBlocks &= ~flags;
     }
 
-    public bool IsBlocked(PlayerBlockFlags flags) => (BlockFlags & flags) != PlayerBlockFlags.None;
+    public bool IsRestricted(PlayerRestrictionFlag flags) => (ActionBlocks & flags) != PlayerRestrictionFlag.None;
 
-    private PlayerAnimator.Handle animatorHandle;
+    private PlayerAnimator.ControlHandle animatorControl;
     private IdleAnimation idleAnimation;
     private WalkingAnimation walkingAnimation;
 
     private void Update()
     {
         Input.ReceiveInput();
+
         Camera.UpdateCamera();
+
         ToolHandler.UpdateTool();
 
         Interactor.HandleInteractingItemContainers();
         Interactor.HandleInteractingWorld();
 
         Actions.UpdateActions();
+
         UpdateBaseAnimations();
         Animator.UpdateAnimations();
     }
@@ -72,23 +75,23 @@ public class Player : MonoBehaviour
     private void UpdateBaseAnimations()
     {
         // Always try and take control if possible
-        if (!Animator.IsAnimationLocked)
+        if (!Animator.IsControlled)
         {
-            animatorHandle = Animator.Lock(-1);
-            animatorHandle.OnInvalidate = () => animatorHandle = null;
+            animatorControl = Animator.TakeControl(-1);
+            animatorControl.OnCancelled = () => animatorControl = null;
         }
 
         // We have control so idle or walk
-        if (animatorHandle != null)
+        if (animatorControl != null)
         {
-            if (Movement.IsMoving && Animator.CurrentAnimation != walkingAnimation) animatorHandle.PlayAnimation(walkingAnimation);
-            else if (!Movement.IsMoving && Animator.CurrentAnimation != idleAnimation) animatorHandle.PlayAnimation(idleAnimation);
+            if (Movement.IsMoving && Animator.CurrentAnimation != walkingAnimation) animatorControl.PlayAnimation(walkingAnimation);
+            else if (!Movement.IsMoving && Animator.CurrentAnimation != idleAnimation) animatorControl.PlayAnimation(idleAnimation);
         }
     }
 
     private void FixedUpdate()
     {
-        if (!IsBlocked(PlayerBlockFlags.Movement) && Input.IsInputtingMovement)
+        if (!IsRestricted(PlayerRestrictionFlag.DoMovement) && Input.IsInputtingMovement)
         {
             Movement.MoveInDirection(Input.InputMovement);
         }

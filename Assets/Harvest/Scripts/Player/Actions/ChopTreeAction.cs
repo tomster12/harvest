@@ -14,7 +14,7 @@ public class ChopTreeAction : PlayerAction
         this.axeMesh = axeMesh;
         this.chopPreview = chopPreview;
 
-        AddPlayerBlock(PlayerBlockFlags.Movement);
+        AddPlayerRestriction(PlayerRestrictionFlag.DoMovement);
         AddCancelCondition(new CancelOnMovementInput());
         AddCancelCondition(new CancelOnMouseRelease());
         SetCancellable(true);
@@ -44,7 +44,7 @@ public class ChopTreeAction : PlayerAction
 
     protected override async Task RunAsync(CancellationToken ct)
     {
-        handle = player.Animator.Lock();
+        handle = player.Animator.TakeControl();
 
         // Start the player input reaction task
         handleMouseTask = HandleMouseInputAsync(ct);
@@ -125,7 +125,7 @@ public class ChopTreeAction : PlayerAction
     private readonly Quaternion chopToRot;
 
     private State state = State.Setup;
-    private PlayerAnimator.Handle handle;
+    private PlayerAnimator.ControlHandle handle;
     private Task handleMouseTask;
     private float offset = 0f;
     private Vector3 worldOffset = Vector3.zero;

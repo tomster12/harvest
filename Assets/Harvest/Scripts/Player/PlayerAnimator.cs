@@ -5,7 +5,7 @@ using UnityEngine;
 [Serializable]
 public class PlayerAnimator
 {
-    public bool IsAnimationLocked => currentHandle != null;
+    public bool IsControlled => currentHandle != null;
     public PlayerAnimation CurrentAnimation => currentAnimation;
 
     public void Init(Player player)
@@ -24,7 +24,7 @@ public class PlayerAnimator
         currentAnimation?.Update();
     }
 
-    public Handle Lock(int priority = 0)
+    public ControlHandle TakeControl(int priority = 0)
     {
         if (currentHandle != null)
         {
@@ -33,9 +33,9 @@ public class PlayerAnimator
                 Debug.LogWarning($"Attempted to lock animator with <= priority ({priority}) than current handle ({currentHandle.Priority}).");
                 return null;
             }
-            currentHandle.Invalidate();
+            currentHandle.Cancel();
         }
-        currentHandle = new Handle(this, priority);
+        currentHandle = new ControlHandle(this, priority);
         return currentHandle;
     }
 
@@ -60,13 +60,13 @@ public class PlayerAnimator
         return point;
     }
 
-    public class Handle
+    public class ControlHandle
     {
-        public Action OnInvalidate;
+        public Action OnCancelled;
         public int Priority { get; private set; }
-        public bool IsValid => animator.currentHandle == this;
+        public bool IsActive => animator.currentHandle == this;
 
-        public Handle(PlayerAnimator animator, int priority)
+        public ControlHandle(PlayerAnimator animator, int priority)
         {
             this.animator = animator;
             Priority = priority;
@@ -75,7 +75,7 @@ public class PlayerAnimator
 
         public void Release()
         {
-            if (!IsValid)
+            if (!IsActive)
             {
                 Debug.LogWarning("Attempted to release an invalid animation handle.");
                 return;
@@ -83,20 +83,20 @@ public class PlayerAnimator
             animator.Release();
         }
 
-        public void Invalidate()
+        public void Cancel()
         {
-            if (!IsValid)
+            if (!IsActive)
             {
-                Debug.LogWarning("Attempted to invalidate an invalid animation handle.");
+                Debug.LogWarning("Attempted to cancel an inactive animation handle.");
                 return;
             }
-            OnInvalidate?.Invoke();
+            OnCancelled?.Invoke();
             animator.Release();
         }
 
         public void PlayAnimation(PlayerAnimation animation)
         {
-            if (!IsValid)
+            if (!IsActive)
             {
                 Debug.LogWarning("Attempted to play an animation with an invalid handle.");
                 return;
@@ -106,7 +106,7 @@ public class PlayerAnimator
 
         public void CancelAnimation()
         {
-            if (!IsValid)
+            if (!IsActive)
             {
                 Debug.LogWarning("Attempted to cancel an animation with an invalid handle.");
                 return;
@@ -121,7 +121,7 @@ public class PlayerAnimator
     private readonly Dictionary<string, Transform> animationTransforms = new();
     private readonly Dictionary<string, Transform> animationPoints = new();
 
-    private Handle currentHandle;
+    private ControlHandle currentHandle;
     private PlayerAnimation currentAnimation;
 
     private void PlayAnimation(PlayerAnimation animation)

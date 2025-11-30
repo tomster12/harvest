@@ -62,7 +62,7 @@ public class PlayerAxeTool : PlayerTool
 
         chopPreview.SetActive(false);
 
-        if (player.IsBlocked(PlayerBlockFlags.Movement | PlayerBlockFlags.Input)) return;
+        if (player.IsRestricted(PlayerRestrictionFlag.DoMovement | PlayerRestrictionFlag.DoAction)) return;
 
         // Find a hovered valid target to chop
         (RaycastHit, ChoppableTree)? maybeTree = GetFirstRaycastChoppableTree();

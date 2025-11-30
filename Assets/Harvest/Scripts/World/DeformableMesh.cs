@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using UnityEngine;
 
 [Serializable]
@@ -64,7 +63,7 @@ public class DeformableMesh
             // If the triangle contains the vertex then transfer the vertex if needed
             if (triangles[i] == index || triangles[i + 1] == index || triangles[i + 2] == index)
             {
-                if (!isTriangleTransferred(i / 3))
+                if (isTriangleTransferred(i / 3))
                 {
                     if (triangles[i] == index) triangles[i] = newIndex;
                     if (triangles[i + 1] == index) triangles[i + 1] = newIndex;

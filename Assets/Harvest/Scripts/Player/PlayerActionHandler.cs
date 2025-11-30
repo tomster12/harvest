@@ -65,16 +65,16 @@ public class PlayerActionHandler
 
     private async Task RunActionTask(PlayerAction action)
     {
-        Debug.Assert(currentAction == null, "Cannot run action task with null currentAction");
+        Debug.Assert(currentAction == null, "Cannot run action task with non null currentAction");
 
         isRunning = true;
         currentAction = action;
-        player.Block(action.PlayerBlockFlags);
+        player.Restrict(action.PlayerRestrictions);
 
         cts = new CancellationTokenSource();
         await currentAction.FullRunAsync(cts.Token);
 
-        player.Unblock(currentAction.PlayerBlockFlags);
+        player.Unrestrict(currentAction.PlayerRestrictions);
         cts.Dispose();
         cts = null;
         currentAction = null;

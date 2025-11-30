@@ -34,7 +34,7 @@ public class PlayerInteractor
         lastHoveredContainerUI = hoveredContainerUI;
 
         // Click inside or outside a container
-        if (player.Input.IsMousePressed && !player.IsBlocked(PlayerBlockFlags.Inventory))
+        if (player.Input.IsMousePressed && !player.IsRestricted(PlayerRestrictionFlag.InteractInventory))
         {
             player.Input.IsMousePressed = false;
             if (hoveredContainerUI != null) hoveredContainerUI.Click(HeldItemUI, Input.mousePosition);

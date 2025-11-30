@@ -1344,7 +1344,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2116475620}
   m_Layer: 0
-  m_Name: ============== WORLD ==============
+  m_Name: ====== WORLD ======
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1375,7 +1375,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2128194853}
   m_Layer: 0
-  m_Name: ============== PLAYER ==============
+  m_Name: ====== PLAYER ======
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

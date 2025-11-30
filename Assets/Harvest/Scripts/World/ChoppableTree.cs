@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.UIElements;
 using static DeformableMesh;
 
 public class ChopTarget
@@ -184,7 +183,7 @@ public class ChoppableTree : MonoBehaviour
         // Perform a mesh ring cut at the chop rings height
         RingCut cut = deformMesh.CreateRingCut(origin.y);
 
-        // Use the cut vertices to produce the ring
+        // Use the cut vertices to calculate and create the ring
         Vector3 centre = cut.cutVertices.Select(v => deformMesh.Vertices[v])
             .Aggregate(Vector3.zero, (acc, v) => acc + v) / cut.cutVertices.Count;
 
@@ -206,14 +205,15 @@ public class ChoppableTree : MonoBehaviour
         };
 
         // Prepare the ring cut vertices for the points
+        // Each bottom vertex is a copy of the top with the lower triangles seperated
         var cutVertexInfos = cut.cutVertices
             .Select(v => new
             {
                 vertexTop = v,
                 vertexBottom = deformMesh.DuplicateVertex(v, (int t) =>
-                    cut.aboveVertices.Contains(deformMesh.Triangles[t * 3 + 0]) ||
-                    cut.aboveVertices.Contains(deformMesh.Triangles[t * 3 + 1]) ||
-                    cut.aboveVertices.Contains(deformMesh.Triangles[t * 3 + 2])),
+                    !cut.aboveVertices.Contains(deformMesh.Triangles[t * 3 + 0]) &&
+                    !cut.aboveVertices.Contains(deformMesh.Triangles[t * 3 + 1]) &&
+                    !cut.aboveVertices.Contains(deformMesh.Triangles[t * 3 + 2])),
                 angle = VectorUtil.GetPosAngle(deformMesh.Vertices[v] - centre)
             })
             .OrderBy(v => v.angle)
