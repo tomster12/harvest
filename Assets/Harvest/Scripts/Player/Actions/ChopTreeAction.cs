@@ -6,6 +6,13 @@ using System;
 
 public class ChopTreeAction : PlayerAction
 {
+    public ChopTreeAction(Player player) : base(player)
+    { }
+
+    protected override async Task RunAsync(CancellationToken ct)
+    { }
+
+    /*
     public ChopTreeAction(Player player, ChoppableTree tree, ChopTarget chopPoint, Vector3 chopStandPos, GameObject axeMesh, GameObject chopPreview) : base(player)
     {
         this.tree = tree;
@@ -179,4 +186,5 @@ public class ChopTreeAction : PlayerAction
         float height = 0.04f + accuracy * 0.04f;
         tree.Hit(chopPoint, strength, 0.5f, height);
     }
+    */
 }

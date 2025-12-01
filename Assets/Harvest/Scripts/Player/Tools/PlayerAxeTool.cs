@@ -52,6 +52,7 @@ public class PlayerAxeTool : PlayerTool
 
     public override void UpdateTool()
     {
+        /*
         // Dont update preview during chop
         if (isChopping)
         {
@@ -71,7 +72,7 @@ public class PlayerAxeTool : PlayerTool
         ChoppableTree tree = maybeTree.Value.Item2;
 
         // Get the exact chop position from the tree
-        ChopTarget target = tree.GetChopTarget(hit);
+        //ChopTarget target = tree.GetChopTarget(hit);
 
         // Check the hovered pos has a position in front it can be chopped from
         Vector3 aboveChopFromPos = target.pos + target.normal * CHOP_BACK_OFFSET;
@@ -92,6 +93,7 @@ public class PlayerAxeTool : PlayerTool
             isChopping = true;
             player.Input.IsMousePressed = false;
         }
+        */
     }
 
     public override void DebugGizmos()

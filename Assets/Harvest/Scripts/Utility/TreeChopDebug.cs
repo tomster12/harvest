@@ -1,4 +1,3 @@
-using Unity.VisualScripting.Antlr3.Runtime.Tree;
 using UnityEngine;
 
 [RequireComponent(typeof(Camera))]
@@ -24,7 +23,6 @@ public class TreeChopDebug : MonoBehaviour
     private Transform hitTransform;
     private Vector3? hitPoint;
     private ChoppableTree hitTree;
-    private ChopTarget hitChop;
 
     private void Update()
     {
@@ -34,15 +32,11 @@ public class TreeChopDebug : MonoBehaviour
             hitTransform = hit.transform;
             hitPoint = hit.point;
             hitTree = hitTransform.GetComponentInParent<ChoppableTree>();
-            hitChop = hitTree?.GetChopTarget(hit);
 
-            if (Input.GetKeyDown(chopKey))
+            if (Input.GetKeyDown(chopKey) && hitPoint != null && hitTree != null)
             {
-                if (hitChop != null)
-                {
-                    Debug.Log($"Chopping tree at {hitPoint}");
-                    hitTree.Hit(hitChop, hitDepth, hitWidth, hitHeight);
-                }
+                Debug.Log($"Chopping tree at {hitPoint}");
+                hitTree.Hit((Vector3)hitPoint, hitDepth, hitWidth, hitHeight);
             }
         }
         else
@@ -50,7 +44,7 @@ public class TreeChopDebug : MonoBehaviour
             hitTransform = null;
             hitPoint = null;
             hitTree = null;
-            hitChop = null;
+            //hitChop = null;
         }
     }
 
