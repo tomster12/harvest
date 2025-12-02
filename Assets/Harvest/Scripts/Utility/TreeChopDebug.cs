@@ -44,7 +44,6 @@ public class TreeChopDebug : MonoBehaviour
             hitTransform = null;
             hitPoint = null;
             hitTree = null;
-            //hitChop = null;
         }
     }
 

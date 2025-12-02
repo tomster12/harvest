@@ -2,19 +2,58 @@ using UnityEngine;
 
 public class ChoppableTree : MonoBehaviour
 {
+    public void Hit(Vector3 hitWorld, float depth, float width, float height)
+    {
+        Vector3 local = transform.InverseTransformPoint(hitWorld);
+        Vector2Int c = LocalToGrid(local);
+
+        int radT = Mathf.CeilToInt(width);
+        int radH = Mathf.CeilToInt(height);
+
+        for (int dTi = -radT; dTi <= radT; dTi++)
+        {
+            int ti = (c.x + dTi + gridThetaCount) % gridThetaCount;
+
+            for (int dHi = -radH; dHi <= radH; dHi++)
+            {
+                int hi = c.y + dHi;
+                if (hi < 0 || hi >= gridHeightCount) continue;
+
+                float ndt = Mathf.Abs(dTi) / (float)radT;
+                float ndh = Mathf.Abs(dHi) / (float)radH;
+                float dist = Mathf.Sqrt(ndt * ndt + ndh * ndh);
+                if (dist > 1f) continue;
+
+                float fall = 1f - dist;
+
+                currentRadiusGrid[ti, hi] = Mathf.Max(0f, currentRadiusGrid[ti, hi] - depth * fall);
+            }
+        }
+
+        RegenerateMesh();
+    }
+
     [Header("References")]
     [SerializeField] private MeshFilter mf;
+    [SerializeField] private MeshCollider mc;
 
     [Header("Grid Config")]
     [SerializeField] private int gridThetaCount = 128;
     [SerializeField] private int gridHeightCount = 256;
+    [SerializeField] private float radiusNoiseScale = 1f;
+    [SerializeField] private float radiusNoiseStrength = 0.25f;
+    [SerializeField] private int radiusNoiseSeed = 0;
 
     [Header("Geometry")]
     [SerializeField] private float baseRadius = 0.35f;
     [SerializeField] private float meshHeight = 8f;
+    [SerializeField] private float meshHorizontalNoiseScale = 10.0f;
+    [SerializeField] private float meshVerticalNoiseScale = 10.0f;
+    [SerializeField] private float meshHorizontalNoiseStrength = 0.04f;
+    [SerializeField] private float meshVerticalNoiseStrength = 0.04f;
 
-    private float[,] radiusGrid;
-
+    private float[,] currentRadiusGrid;
+    private float[,] baseRadiusGrid;
     private Mesh mesh;
 
     private void Awake()
@@ -32,13 +71,21 @@ public class ChoppableTree : MonoBehaviour
 
     private void GenerateBaseGrid()
     {
-        radiusGrid = new float[gridThetaCount, gridHeightCount];
+        baseRadiusGrid = new float[gridThetaCount, gridHeightCount];
+        currentRadiusGrid = new float[gridThetaCount, gridHeightCount];
 
         for (int ti = 0; ti < gridThetaCount; ti++)
         {
             for (int hi = 0; hi < gridHeightCount; hi++)
             {
-                radiusGrid[ti, hi] = baseRadius;
+                float theta = (ti / (float)gridThetaCount) * Mathf.PI * 2f;
+                float nx = Mathf.Cos(theta);
+                float nz = Mathf.Sin(theta) + (float)hi / (gridHeightCount - 1);
+                float n = Mathf.PerlinNoise(nx * radiusNoiseScale + radiusNoiseSeed, nz * radiusNoiseScale + radiusNoiseSeed);
+
+                float noiseOffset = (n - 0.5f) * radiusNoiseStrength;
+                baseRadiusGrid[ti, hi] = baseRadius + noiseOffset;
+                currentRadiusGrid[ti, hi] = baseRadiusGrid[ti, hi];
             }
         }
     }
@@ -49,31 +96,42 @@ public class ChoppableTree : MonoBehaviour
         {
             mesh = new Mesh();
             mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            mf.sharedMesh = mesh;
         }
-        else
-        {
-            mesh.Clear();
-        }
+        else mesh.Clear();
 
         int vCount = gridThetaCount * gridHeightCount;
         int tCount = (gridThetaCount * (gridHeightCount - 1)) * 6;
         Vector3[] vertices = new Vector3[vCount];
         Vector3[] normals = new Vector3[vCount];
+        Vector2[] uvs = new Vector2[vCount];
         int[] tris = new int[tCount];
 
-        // Build vertices
+        // Build vertices and normals
         int vi = 0;
         for (int hi = 0; hi < gridHeightCount; hi++)
         {
             for (int ti = 0; ti < gridThetaCount; ti++)
             {
-                Vector3 p = GridToLocal(ti, hi);
-                vertices[vi] = p;
+                Vector3 vertex = GridToLocal(ti, hi);
+                Vector3 normal = new Vector3(vertex.x, 0f, vertex.z).normalized;
+                Vector3 tangent = new Vector3(-normal.z, 0f, normal.x);
 
-                // For cylindrical normals
-                Vector3 n = new Vector3(p.x, 0, p.z).normalized;
-                normals[vi] = n;
+                float theta = (ti / (float)gridThetaCount) * Mathf.PI * 2f;
+                float nx = Mathf.Cos(theta);
+                float nz = Mathf.Sin(theta) + (float)hi / (gridHeightCount - 1);
+                float perpNoise = Mathf.PerlinNoise(nx * meshHorizontalNoiseScale + 100f, nz * meshHorizontalNoiseScale + 200f);
+                float vertNoise = Mathf.PerlinNoise(nx * meshVerticalNoiseScale + 300f, nz * meshVerticalNoiseScale + 400f);
+                Vector3 perpOffset = tangent * ((perpNoise - 0.5f) * meshHorizontalNoiseStrength);
+                float vertOffset = (vertNoise - 0.5f) * meshVerticalNoiseStrength;
+
+                vertex += perpOffset;
+                vertex.y += vertOffset;
+                vertices[vi] = vertex;
+                normals[vi] = normal;
+
+                // 1 = full bark, 0 = cut
+                float barkPct = 1f - Mathf.Clamp01(Mathf.Abs(baseRadiusGrid[ti, hi] - currentRadiusGrid[ti, hi]) / 0.1f);
+                uvs[vi] = new Vector2(barkPct, 0.0f);
 
                 vi++;
             }
@@ -105,7 +163,11 @@ public class ChoppableTree : MonoBehaviour
         mesh.vertices = vertices;
         mesh.normals = normals;
         mesh.triangles = tris;
+        mesh.uv = uvs;
         mesh.RecalculateBounds();
+
+        mf.sharedMesh = mesh;
+        mc.sharedMesh = mesh;
     }
 
     private Vector2Int LocalToGrid(Vector3 pLocal)
@@ -125,42 +187,8 @@ public class ChoppableTree : MonoBehaviour
     {
         float angle = (ti / (float)gridThetaCount) * Mathf.PI * 2f;
         float y = (hi / (float)(gridHeightCount - 1)) * meshHeight;
-        float r = radiusGrid[ti, hi];
+        float r = currentRadiusGrid[ti, hi];
 
         return new Vector3(Mathf.Cos(angle) * r, y, Mathf.Sin(angle) * r);
-    }
-
-    public void Hit(Vector3 hitWorld, float depth, float width, float height)
-    {
-        Vector3 local = transform.InverseTransformPoint(hitWorld);
-        Vector2Int c = LocalToGrid(local);
-
-        int radT = Mathf.CeilToInt(width);
-        int radH = Mathf.CeilToInt(height);
-
-        for (int dti = -radT; dti <= radT; dti++)
-        {
-            int ti = (c.x + dti + gridThetaCount) % gridThetaCount;
-
-            for (int dhi = -radH; dhi <= radH; dhi++)
-            {
-                int hi = c.y + dhi;
-                if (hi < 0 || hi >= gridHeightCount) continue;
-
-                float ndt = Mathf.Abs(dti) / (float)radT;
-                float ndh = Mathf.Abs(dhi) / (float)radH;
-                float dist = Mathf.Sqrt(ndt * ndt + ndh * ndh);
-                if (dist > 1f) continue;
-
-                float fall = 1f - dist;
-
-                radiusGrid[ti, hi] = Mathf.Max(
-                    0f,
-                    radiusGrid[ti, hi] - depth * fall
-                );
-            }
-        }
-
-        RegenerateMesh();
     }
 }
