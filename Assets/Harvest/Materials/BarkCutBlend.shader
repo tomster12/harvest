@@ -5,6 +5,7 @@ Shader "Custom/BarkCutBlend"
         _BaseMap ("Bark Texture", 2D) = "white" {}
         _WoodColor ("Wood Color", Color) = (0.55, 0.40, 0.25, 1)
         _BarkColor ("Bark Color", Color) = (0.55, 0.40, 0.25, 1)
+        _BarkStep ("Bark Step", Range(0, 1)) = 0.2
         _CutSharpness ("Cut Sharpness", Range(0.5, 8)) = 2
         _CavityDarken ("Cavity Darken", Range(0, 1)) = 0.3
     }
@@ -43,6 +44,7 @@ Shader "Custom/BarkCutBlend"
                 float4 _BaseMap_ST;
                 float4 _WoodColor;
                 float4 _BarkColor;
+                float _BarkStep;
                 float _CutSharpness;
                 float _CavityDarken;
             CBUFFER_END
@@ -61,18 +63,16 @@ Shader "Custom/BarkCutBlend"
 
             half4 frag(Varyings IN) : SV_Target
             {
-                // 1 = full bark, 0 = cut
-                float barkPct = saturate(IN.uv.x);
-                float barkT = pow(barkPct, _CutSharpness);
+                // 0 = bark, 0 = internal
+                float internalPct = saturate(IN.uv.x);
+                float internalStep = step(_BarkStep, pow(internalPct, _CutSharpness));
+                
+                float3 col = lerp(_BarkColor.rgb, _WoodColor.rgb, internalStep);
+                
+                float cavityDarken = internalPct * _CavityDarken;
+                col *= (1.0 - cavityDarken);
 
-                float3 woodCol = _WoodColor.rgb;
-                float3 barkCol = _BarkColor.rgb;
-                float3 baseCol = lerp(woodCol, barkCol, barkT);
-
-                float cavity = (1.0 - barkPct) * _CavityDarken;
-                baseCol *= (1.0 - cavity);
-
-                return float4(baseCol, 1);
+                return float4(col, 1);
             }
             ENDHLSL
         }

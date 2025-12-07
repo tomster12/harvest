@@ -37,7 +37,7 @@ public class ChoppableTree : MonoBehaviour
     [SerializeField] private MeshFilter mf;
     [SerializeField] private MeshCollider mc;
 
-    [Header("Grid Config")]
+    [Header("Grid")]
     [SerializeField] private int gridThetaCount = 128;
     [SerializeField] private int gridHeightCount = 256;
     [SerializeField] private float radiusNoiseScale = 1f;
@@ -51,6 +51,7 @@ public class ChoppableTree : MonoBehaviour
     [SerializeField] private float meshVerticalNoiseScale = 10.0f;
     [SerializeField] private float meshHorizontalNoiseStrength = 0.04f;
     [SerializeField] private float meshVerticalNoiseStrength = 0.04f;
+    [SerializeField] private float meshDepthScale = 1.0f;
 
     private float[,] currentRadiusGrid;
     private float[,] baseRadiusGrid;
@@ -129,9 +130,10 @@ public class ChoppableTree : MonoBehaviour
                 vertices[vi] = vertex;
                 normals[vi] = normal;
 
-                // 1 = full bark, 0 = cut
-                float barkPct = 1f - Mathf.Clamp01(Mathf.Abs(baseRadiusGrid[ti, hi] - currentRadiusGrid[ti, hi]) / 0.1f);
-                uvs[vi] = new Vector2(barkPct, 0.0f);
+                // 0 = bark, 0 = internal
+                float depth = baseRadiusGrid[ti, hi] - currentRadiusGrid[ti, hi];
+                float internalPct = Mathf.Clamp01(depth * meshDepthScale);
+                uvs[vi] = new Vector2(internalPct, 0.0f);
 
                 vi++;
             }

@@ -88,10 +88,11 @@ Material:
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
+    - _BarkStep: 0.021
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
-    - _CavityDarken: 0.455
+    - _CavityDarken: 0.449
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
@@ -124,7 +125,7 @@ Material:
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - _BarkColor: {r: 0.4528302, g: 0.37273052, b: 0.29263082, a: 1}
+    - _BarkColor: {r: 0.4245283, g: 0.36917144, b: 0.31439126, a: 1}
     - _BaseColor: {r: 0.5566038, g: 0.41171294, b: 0.29142934, a: 1}
     - _Color: {r: 0.5566037, g: 0.4117129, b: 0.2914293, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
