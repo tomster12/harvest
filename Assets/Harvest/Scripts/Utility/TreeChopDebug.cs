@@ -35,7 +35,6 @@ public class TreeChopDebug : MonoBehaviour
 
             if (Input.GetKeyDown(chopKey) && hitPoint != null && hitTree != null)
             {
-                Debug.Log($"Chopping tree at {hitPoint}");
                 hitTree.Hit((Vector3)hitPoint, hitDepth, hitWidth, hitHeight);
             }
         }
