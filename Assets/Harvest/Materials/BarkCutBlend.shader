@@ -1,22 +1,24 @@
-Shader "Custom/BarkCutBlendShadow"
+Shader "Custom/Super Simple Bark Cut Lit"
 {
     Properties
     {
-        _BarkTex ("Bark Texture", 2D) = "white" {}
+        [Header(Wood Options)]
         _WoodColor ("Wood Color", Color) = (0.72, 0.62, 0.50, 1)
         _BarkColor ("Bark Color", Color) = (0.42, 0.37, 0.31, 1)
-        _BarkEdgeColor ("Bark Edge Color", Color) = (0.49, 0.42, 0.35, 1) 
-        _BarkThreshold ("Bark Threshold", Range(0, 1)) = 0.02
-        _BarkEdgeWidth ("Bark Edge Width", Range(0, 0.2)) = 0.04
-        _DarkenAmount ("Darken Amount", Range(0, 1)) = 0.35
-        _DarkenThreshold ("Darken Threshold", Range(0, 1)) = 0.35
-        _ShadowSoftness ("Shadow Softness", Range(0, 1)) = 0.64
+        _BarkEdgeColor ("Bark Edge Color", Color) = (0.49, 0.42, 0.35, 1)
+        _BarkWidth ("Bark Width", Range(0, 0.2)) = 0.02
+        _BarkEdgeWidth ("Bark Edge Width", Range(0, 0.1)) = 0.04
+        _InnerDarkenAmount ("Dark Amount", Range(0, 1)) = 0.35
+        _InnerDarkenStart ("Darken Start", Range(0, 1)) = 0.35
+
+        [Header(Surface Options)]
+        _Smoothness ("Smoothness", Range(0, 1)) = 0.4
+        _Metallic ("Metallic", Range(0, 1)) = 0.0
     }
 
     SubShader
     {
-        Tags { "RenderType" = "Opaque" "UniversalMaterialType" = "Lit" }
-
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Queue" = "Geometry" }
 
         Pass
         {
@@ -26,126 +28,95 @@ Shader "Custom/BarkCutBlendShadow"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-
-            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct Varyings
-            {
-                float4 positionCS : SV_POSITION;
-                float2 uv : TEXCOORD0;
-                float3 normalWS : TEXCOORD1;
-                float4 shadowCoords : TEXCOORD2;
-            };
-
 
             CBUFFER_START(UnityPerMaterial)
-            float4 _BarkTex_ST;
-            float4 _WoodColor;
-            float4 _BarkColor;
-            float4 _BarkEdgeColor;
-            float _BarkThreshold;
-            float _BarkEdgeWidth;
-            float _DarkenAmount;
-            float _DarkenThreshold;
-            float _ShadowSoftness;
+            float4 _WoodColor, _BarkColor, _BarkEdgeColor;
+            float _BarkWidth, _BarkEdgeWidth, _InnerDarkenAmount, _InnerDarkenStart;
+            float _Smoothness, _Metallic;
             CBUFFER_END
 
-            TEXTURE2D(_BarkTex);
-            SAMPLER(sampler_BarkTex);
-
-            Varyings vert(Attributes IN)
+            struct appdata
             {
-                Varyings OUT;
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float2 uv : TEXCOORD0;
+                float2 lightmapUV : TEXCOORD1;
+            };
 
-                OUT.positionCS = TransformObjectToHClip(IN.positionOS);
-                OUT.normalWS = normalize(TransformObjectToWorldNormal(IN.normalOS));
-                VertexPositionInputs vpos = GetVertexPositionInputs(IN.positionOS.xyz);
-                OUT.shadowCoords = GetShadowCoord(vpos);
-                OUT.uv = TRANSFORM_TEX(IN.uv, _BarkTex);
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                float3 posWS : TEXCOORD1;
+                float3 normal : TEXCOORD2;
+                float4 shadowCoord : TEXCOORD3;
+                DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 4);
+            };
 
-                return OUT;
+            v2f vert (appdata v)
+            {
+                v2f o;
+
+                VertexPositionInputs posInput = GetVertexPositionInputs(v.vertex.xyz);
+                VertexNormalInputs nrmInput = GetVertexNormalInputs(v.normal);
+
+                o.pos = posInput.positionCS;
+                o.posWS = posInput.positionWS;
+                o.normal = nrmInput.normalWS;
+                o.uv = v.uv;
+
+                o.shadowCoord = GetShadowCoord(posInput);
+                OUTPUT_LIGHTMAP_UV(v.lightmapUV, unity_LightmapST, o.lightmapUV);
+                OUTPUT_SH(o.normal, o.vertexSH);
+
+                return o;
             }
 
-            half4 frag(Varyings IN) : SV_Target
+            half4 frag (v2f i) : SV_Target
             {
-                float depthPct = IN.uv.x;
-                float fullBarkThreshold = _BarkThreshold + _BarkEdgeWidth;
-
-                // == Bark to wood colour with darkening ==
-                float3 baseColor;
-                if (depthPct < _BarkThreshold)
-                {
-                    baseColor = _BarkColor.rgb;
-                }
-                else if (depthPct < fullBarkThreshold)
-                {
-                    baseColor = _BarkEdgeColor.rgb;
-                }
+                // Calculate colour based on the depth from the UV
+                float depth = i.uv.x;
+                float barkFullWidth = _BarkWidth + _BarkEdgeWidth;
+                half3 albedo;
+                if (depth < _BarkWidth) albedo = _BarkColor.rgb;
+                else if (depth < barkFullWidth) albedo = _BarkEdgeColor.rgb;
                 else
                 {
-                    float darkenPct = saturate((depthPct - fullBarkThreshold) / (_DarkenThreshold - fullBarkThreshold));
-                    float depthDarken = 1.0 - _DarkenAmount * darkenPct;
-                    baseColor = _WoodColor.rgb * depthDarken;
+                    float t = saturate((depth - barkFullWidth) / (_InnerDarkenStart - barkFullWidth + 0.0001));
+                    albedo = _WoodColor.rgb * lerp(1.0, 1.0 - _InnerDarkenAmount, t);
                 }
 
-                // == Lighting & Shadow ==
-                Light mainLight = GetMainLight(IN.shadowCoords);
-                float NdotL = saturate(dot(IN.normalWS, mainLight.direction));
-                float shadowDarken = mainLight.distanceAttenuation * mainLight.shadowAttenuation * NdotL;
-                shadowDarken = lerp(1.0, shadowDarken, _ShadowSoftness);
+                // Standard URP PBR lighting setup
+                InputData inputData = (InputData)0;
+                inputData.positionWS = i.posWS;
+                inputData.normalWS = NormalizeNormalPerPixel(i.normal);
+                inputData.viewDirectionWS = SafeNormalize(GetWorldSpaceViewDir(i.posWS));
+                inputData.shadowCoord = i.shadowCoord;
+                inputData.fogCoord = ComputeFogFactor(i.pos.z);
+                inputData.bakedGI = SAMPLE_GI(i.lightmapUV, i.vertexSH, inputData.normalWS);
 
-                float3 finalCol = baseColor * mainLight.color * shadowDarken;
-                return float4(finalCol, 1);
+                SurfaceData surfaceData = (SurfaceData)0;
+                surfaceData.albedo = albedo;
+                surfaceData.metallic = _Metallic;
+                surfaceData.smoothness = _Smoothness;
+                surfaceData.normalTS = half3(0, 0, 1);
+                surfaceData.emission = 0;
+                surfaceData.occlusion = 1;
+                surfaceData.alpha = 1;
+
+                return UniversalFragmentPBR(inputData, surfaceData);
             }
-
             ENDHLSL
         }
 
-        Pass
-        {
-            Name "ShadowCaster"
-            Tags { "LightMode" = "ShadowCaster" }
-
-            HLSLPROGRAM
-            #pragma vertex vert
-            #pragma fragment frag_shadow
-
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-            };
-
-            struct Varyings
-            {
-                float4 positionCS : SV_POSITION;
-            };
-
-            Varyings vert(Attributes IN)
-            {
-                Varyings OUT;
-                OUT.positionCS = TransformObjectToHClip(IN.positionOS);
-                return OUT;
-            }
-
-            half4 frag_shadow(Varyings IN) : SV_Target
-            {
-                return 0;
-            }
-
-            ENDHLSL
-        }
+        UsePass "Universal Render Pipeline/Lit/ShadowCaster"
+        UsePass "Universal Render Pipeline/Lit/DepthNormals"
     }
+
+    FallBack "Universal Render Pipeline/Lit"
 }

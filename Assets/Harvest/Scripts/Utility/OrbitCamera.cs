@@ -3,15 +3,15 @@ using UnityEngine;
 public class OrbitCamera : MonoBehaviour
 {
     public Transform target;
-    public float distance = 5f;
     public float zoomSpeed = 2f;
     public float orbitSpeed = 50f;
     public float moveSpeed = 2f;
-    public Vector2 distanceLimits = new Vector2(2f, 15f);
+    public Vector2 distanceLimits = new(2f, 15f);
 
+    private float distance;
+    private Vector3 offset;
     private float yaw;
     private float pitch;
-    private Vector3 offset;
 
     private void Start()
     {
@@ -22,12 +22,13 @@ public class OrbitCamera : MonoBehaviour
             return;
         }
 
-        Vector3 dir = (transform.position - target.position).normalized;
-        distance = Vector3.Distance(transform.position, target.position);
-        offset = dir * distance;
+        Vector3 dir = target.position - transform.position;
+        distance = Mathf.Clamp(dir.magnitude, distanceLimits.x, distanceLimits.y);
 
-        yaw = Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg;
-        pitch = -Mathf.Asin(offset.y / distance) * Mathf.Rad2Deg;
+        Quaternion currentRotation = Quaternion.LookRotation(dir);
+        Vector3 eulerAngles = currentRotation.eulerAngles;
+        pitch = eulerAngles.x > 180f ? eulerAngles.x - 360f : eulerAngles.x;
+        yaw = eulerAngles.y;
     }
 
     private void Update()

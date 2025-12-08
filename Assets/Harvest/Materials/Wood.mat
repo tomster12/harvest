@@ -11,11 +11,11 @@ Material:
   m_Shader: {fileID: 4800000, guid: 717a789f9f8e6384abf6c93279907193, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords:
+  m_ValidKeywords:
   - _ENVIRONMENTREFLECTIONS_OFF
   - _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
   - _SPECULARHIGHLIGHTS_OFF
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -33,11 +33,20 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BarkEdgeWidth: 0.04
+    - _BarkEdgeWidth: 0.0187
+    - _BarkThickness: 0.02
     - _BarkThreshold: 0.02
+    - _BarkWidth: 0.012
+    - _Darken: 0.35
     - _DarkenAmount: 0.35
+    - _DarkenStart: 0.35
     - _DarkenThreshold: 0.35
+    - _EdgeWidth: 0.04
+    - _InnerDarkenAmount: 0.387
+    - _InnerDarkenStart: 0.207
+    - _Metallic: 0
     - _ShadowSoftness: 0.64
+    - _Smoothness: 0
     m_Colors:
     - _BarkColor: {r: 0.41999996, g: 0.36999997, b: 0.30999997, a: 1}
     - _BarkEdgeColor: {r: 0.49, g: 0.41999996, b: 0.34999996, a: 1}
