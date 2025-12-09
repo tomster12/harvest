@@ -3,16 +3,10 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Unity.Mathematics;
 using System;
+using static ChoppableTree;
 
 public class ChopTreeAction : PlayerAction
 {
-    public ChopTreeAction(Player player) : base(player)
-    { }
-
-    protected override async Task RunAsync(CancellationToken ct)
-    { }
-
-    /*
     public ChopTreeAction(Player player, ChoppableTree tree, ChopTarget chopPoint, Vector3 chopStandPos, GameObject axeMesh, GameObject chopPreview) : base(player)
     {
         this.tree = tree;
@@ -21,7 +15,7 @@ public class ChopTreeAction : PlayerAction
         this.axeMesh = axeMesh;
         this.chopPreview = chopPreview;
 
-        AddPlayerRestriction(PlayerRestrictionFlag.DoMovement);
+        AddPlayerRestriction(Player.ActionRestriction.Movement);
         AddCancelCondition(new CancelOnMovementInput());
         AddCancelCondition(new CancelOnMouseRelease());
         SetCancellable(true);
@@ -182,9 +176,9 @@ public class ChopTreeAction : PlayerAction
     private void OnHitTree()
     {
         float accuracy = Mathf.Clamp01(1f - Mathf.Abs(offset));
-        float strength = 0.01f + accuracy * 0.03f;
+        float depth = 0.01f + accuracy * 0.03f;
+        float width = 1.0f + accuracy * 2.0f;
         float height = 0.04f + accuracy * 0.04f;
-        tree.Hit(chopPoint, strength, 0.5f, height);
+        tree.Hit(chopPoint.pos, depth, width, height);
     }
-    */
 }

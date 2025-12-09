@@ -5,7 +5,7 @@ using UnityEngine;
 [Serializable]
 public class PlayerInteractor
 {
-    public bool IsHoveringUI { get; private set; }
+    public bool IsHoveringContainerUI => hoveredContainerUI != null;
     public ItemUI HeldItemUI { get; private set; }
 
     public void Init(Player player)
@@ -21,44 +21,51 @@ public class PlayerInteractor
         HeldItemUI.SetItem(null);
     }
 
-    public void HandleInteractingItemContainers()
+    public void HandleInteractingContainers()
     {
-        // Find what container UIs and item UIs are being hovered
-        var hoveredContainerUI = UIUtil.GetEventSystemRaycastResults()
+        // Update hovered container UI
+        var newHoveredContainerUI = UIUtil.GetEventSystemRaycastResults()
             .Select(r => r.gameObject.GetComponent<IItemContainerUI>())
             .FirstOrDefault(c => c != null);
-        IsHoveringUI = hoveredContainerUI != null;
 
-        // Remove preview when unhovering a container
-        if (lastHoveredContainerUI != hoveredContainerUI && lastHoveredContainerUI != null) lastHoveredContainerUI.DisablePreview();
-        lastHoveredContainerUI = hoveredContainerUI;
+        if (hoveredContainerUI != newHoveredContainerUI) hoveredContainerUI?.DisablePreview();
+        hoveredContainerUI = newHoveredContainerUI;
 
-        // Click inside or outside a container
-        if (player.Input.IsMousePressed && !player.IsRestricted(PlayerRestrictionFlag.InteractInventory))
+        if (!player.IsRestricted(Player.ActionRestriction.InteractContainers))
         {
-            player.Input.IsMousePressed = false;
-            if (hoveredContainerUI != null) hoveredContainerUI.Click(HeldItemUI, Input.mousePosition);
-            else if (IsHoldingItemUI) DropHeldItem();
-            else player.Input.IsMousePressed = true;
-        }
+            // Click inside or outside a container
+            if (player.Input.IsMousePressed)
+            {
+                if (hoveredContainerUI != null)
+                {
+                    hoveredContainerUI.Click(HeldItemUI, Input.mousePosition);
+                    player.Input.IsMousePressed = false;
+                }
+                else if (IsHoldingItemUI)
+                {
+                    DropHeldItem();
+                    player.Input.IsMousePressed = false;
+                }
+            }
 
-        // Preview a click otherwise
-        else hoveredContainerUI?.PreviewClick(HeldItemUI, Input.mousePosition);
+            // Otherwise preview a click
+            else hoveredContainerUI?.PreviewClick(HeldItemUI, Input.mousePosition);
+        }
     }
 
     public void HandleInteractingWorld()
     {
-        // Only interact with world if not interacting with inventory
-        if (IsHoldingItemUI || IsHoveringUI) return;
+        // Only interact with world if not interacting with containers and are allowed
+        if (IsHoldingItemUI || IsHoveringContainerUI || player.IsRestricted(Player.ActionRestriction.InteractWorld)) return;
 
-        // Only update if not already picking up an item
-        if (pickupAction != null)
+        // If we are already picking up an item check if its done
+        if (looseItemPickupAction != null)
         {
-            if (pickupAction.IsRunning) return;
-            pickupAction = null;
+            if (looseItemPickupAction.IsRunning) return;
+            looseItemPickupAction = null;
         }
 
-        // Get first hit that is a loose item
+        // Get first hovered transform that is a loose item
         LooseItem newHoveredLooseItem = null;
         foreach (RaycastHit hit in player.Input.RaycastHits)
         {
@@ -69,7 +76,7 @@ public class PlayerInteractor
             }
         }
 
-        // Hovering a new item so update and preview
+        // Hovering a new loose item so update and preview
         if (newHoveredLooseItem != hoveredLooseItem)
         {
             if (hoveredLooseItem != null) hoveredLooseItem.OnHoverExit();
@@ -82,8 +89,8 @@ public class PlayerInteractor
         {
             player.Input.IsMousePressed = false;
             Vector3 targetPosition = hoveredLooseItem.transform.position - (hoveredLooseItem.transform.position - player.transform.position).normalized * 0.1f;
-            pickupAction = new PickupLooseItemAction(player, hoveredLooseItem, targetPosition);
-            player.Actions.StartAction(pickupAction);
+            looseItemPickupAction = new PickupLooseItemAction(player, hoveredLooseItem, targetPosition);
+            player.Actions.StartAction(looseItemPickupAction);
         }
     }
 
@@ -95,9 +102,9 @@ public class PlayerInteractor
     private Player player;
     private GridInventoryUI inventoryUI;
     private GearInventoryUI gearUI;
-    private IItemContainerUI lastHoveredContainerUI;
+    private IItemContainerUI hoveredContainerUI;
     private LooseItem hoveredLooseItem;
-    private PickupLooseItemAction pickupAction;
+    private PickupLooseItemAction looseItemPickupAction;
 
     private bool IsHoldingItemUI => HeldItemUI.State != ItemUI.StateType.Empty;
 

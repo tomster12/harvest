@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class PlayerAxeTool : PlayerTool
 {
@@ -52,27 +53,24 @@ public class PlayerAxeTool : PlayerTool
 
     public override void UpdateTool()
     {
-        /*
         // Dont update preview during chop
         if (isChopping)
         {
-            if (currentAction.IsRunning) return;
+            if (chopAction.IsRunning) return;
             isChopping = false;
-            currentAction = null;
+            chopAction = null;
         }
 
         chopPreview.SetActive(false);
 
-        if (player.IsRestricted(PlayerRestrictionFlag.DoMovement | PlayerRestrictionFlag.DoAction)) return;
+        if (player.IsRestricted(Player.ActionRestriction.Movement | Player.ActionRestriction.Action)) return;
 
         // Find a hovered valid target to chop
-        (RaycastHit, ChoppableTree)? maybeTree = GetFirstRaycastChoppableTree();
-        if (!maybeTree.HasValue) return;
-        RaycastHit hit = maybeTree.Value.Item1;
-        ChoppableTree tree = maybeTree.Value.Item2;
+        RaycastTreeHit treeHit = GetFirstRaycastChoppableTree();
+        if (treeHit == null) return;
 
         // Get the exact chop position from the tree
-        //ChopTarget target = tree.GetChopTarget(hit);
+        var target = treeHit.Tree.GetChopTarget(treeHit.Hit);
 
         // Check the hovered pos has a position in front it can be chopped from
         Vector3 aboveChopFromPos = target.pos + target.normal * CHOP_BACK_OFFSET;
@@ -88,12 +86,11 @@ public class PlayerAxeTool : PlayerTool
         // Perform chop on click
         if (player.Input.IsMousePressed)
         {
-            currentAction = new ChopTreeAction(player, tree, target, chopFromPos, toolMesh, chopPreview);
-            player.Actions.StartAction(currentAction);
+            chopAction = new ChopTreeAction(player, treeHit.Tree, target, chopFromPos, toolMesh, chopPreview);
+            player.Actions.StartAction(chopAction);
             isChopping = true;
             player.Input.IsMousePressed = false;
         }
-        */
     }
 
     public override void DebugGizmos()
@@ -102,20 +99,26 @@ public class PlayerAxeTool : PlayerTool
         Gizmos.DrawWireSphere(chopFromPos, 0.1f);
     }
 
+    private class RaycastTreeHit
+    {
+        public RaycastHit Hit;
+        public ChoppableTree Tree;
+    }
+
     private GameObject toolMesh;
     private GameObject chopPreview;
-    private ChopTreeAction currentAction;
+    private ChopTreeAction chopAction;
     private Vector3 chopFromPos;
     private bool isChopping = false;
 
-    private (RaycastHit, ChoppableTree)? GetFirstRaycastChoppableTree()
+    private RaycastTreeHit GetFirstRaycastChoppableTree()
     {
         foreach (var hit in player.Input.RaycastHits)
         {
             if (hit.transform.gameObject.TryGetComponent(out ChoppableTree tree))
             {
                 float dist = Vector3.Distance(player.transform.position, hit.point);
-                if (dist <= MAX_PLAYER_TARGET_DISTANCE) return (hit, tree);
+                if (dist <= MAX_PLAYER_TARGET_DISTANCE) return new() { Hit = hit, Tree = tree };
             }
         }
         return null;

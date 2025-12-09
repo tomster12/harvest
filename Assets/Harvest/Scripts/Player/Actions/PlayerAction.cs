@@ -37,7 +37,7 @@ public abstract class PlayerAction
 
     public event Action<PlayerAction> OnCancelled;
 
-    public PlayerRestrictionFlag PlayerRestrictions { get; private set; } = PlayerRestrictionFlag.None;
+    public Player.ActionRestriction PlayerRestrictions { get; private set; } = Player.ActionRestriction.None;
     public List<PlayerActionCancelCondition> CancelConditions { get; private set; } = new();
     public bool Cancellable { get; private set; } = true;
     public bool IsRunning { get; private set; }
@@ -47,7 +47,7 @@ public abstract class PlayerAction
         this.player = player;
     }
 
-    public PlayerAction AddPlayerRestriction(PlayerRestrictionFlag flags)
+    public PlayerAction AddPlayerRestriction(Player.ActionRestriction flags)
     {
         PlayerRestrictions |= flags;
         return this;

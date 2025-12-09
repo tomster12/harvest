@@ -69,12 +69,12 @@ public class PlayerActionHandler
 
         isRunning = true;
         currentAction = action;
-        player.Restrict(action.PlayerRestrictions);
+        player.RestrictActions(action.PlayerRestrictions);
 
         cts = new CancellationTokenSource();
         await currentAction.FullRunAsync(cts.Token);
 
-        player.Unrestrict(currentAction.PlayerRestrictions);
+        player.UnrestrictActions(currentAction.PlayerRestrictions);
         cts.Dispose();
         cts = null;
         currentAction = null;

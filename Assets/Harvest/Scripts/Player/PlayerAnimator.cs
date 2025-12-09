@@ -94,14 +94,14 @@ public class PlayerAnimator
             animator.Release();
         }
 
-        public void PlayAnimation(PlayerAnimation animation)
+        public void StartAnimation(PlayerAnimation animation)
         {
             if (!IsActive)
             {
                 Debug.LogWarning("Attempted to play an animation with an invalid handle.");
                 return;
             }
-            animator.PlayAnimation(animation);
+            animator.StartAnimation(animation);
         }
 
         public void CancelAnimation()
@@ -124,7 +124,7 @@ public class PlayerAnimator
     private ControlHandle currentHandle;
     private PlayerAnimation currentAnimation;
 
-    private void PlayAnimation(PlayerAnimation animation)
+    private void StartAnimation(PlayerAnimation animation)
     {
         currentAnimation?.Cancel();
         currentAnimation = animation;

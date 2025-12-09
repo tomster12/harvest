@@ -12,7 +12,7 @@ public class PickupLooseItemAction : PlayerAction
         this.item = item;
         this.pickupPosition = position;
 
-        AddPlayerRestriction(PlayerRestrictionFlag.InteractInventory | PlayerRestrictionFlag.DoMovement);
+        AddPlayerRestriction(Player.ActionRestriction.InteractContainers | Player.ActionRestriction.Movement);
         AddCancelCondition(new CancelOnMovementInput());
         SetCancellable(true);
     }

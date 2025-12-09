@@ -1,17 +1,19 @@
 using System;
 using UnityEngine;
 
-[Flags]
-public enum PlayerRestrictionFlag
-{
-    None = 0,
-    DoMovement = 1 << 0,
-    InteractInventory = 1 << 1,
-    DoAction = 1 << 2
-}
 
 public class Player : MonoBehaviour
 {
+    [Flags]
+    public enum ActionRestriction
+    {
+        None = 0,
+        Movement = 1 << 0,
+        InteractContainers = 1 << 1,
+        InteractWorld = 1 << 3,
+        Action = 1 << 4
+    }
+
     public PlayerPersistent Persistent;
     public PlayerInput Input;
     public PlayerCamera Camera;
@@ -21,7 +23,7 @@ public class Player : MonoBehaviour
     public PlayerActionHandler Actions;
     public PlayerAnimator Animator;
 
-    public PlayerRestrictionFlag ActionBlocks = PlayerRestrictionFlag.None;
+    public ActionRestriction ActionRestrictions = ActionRestriction.None;
 
     public void Init(PlayerPersistent persistent)
     {
@@ -39,17 +41,17 @@ public class Player : MonoBehaviour
         walkingAnimation = new WalkingAnimation(Animator);
     }
 
-    public void Restrict(PlayerRestrictionFlag flags)
+    public void RestrictActions(ActionRestriction flags)
     {
-        ActionBlocks |= flags;
+        ActionRestrictions |= flags;
     }
 
-    public void Unrestrict(PlayerRestrictionFlag flags)
+    public void UnrestrictActions(ActionRestriction flags)
     {
-        ActionBlocks &= ~flags;
+        ActionRestrictions &= ~flags;
     }
 
-    public bool IsRestricted(PlayerRestrictionFlag flags) => (ActionBlocks & flags) != PlayerRestrictionFlag.None;
+    public bool IsRestricted(ActionRestriction flags) => (ActionRestrictions & flags) != ActionRestriction.None;
 
     private PlayerAnimator.ControlHandle animatorControl;
     private IdleAnimation idleAnimation;
@@ -63,7 +65,7 @@ public class Player : MonoBehaviour
 
         ToolHandler.UpdateTool();
 
-        Interactor.HandleInteractingItemContainers();
+        Interactor.HandleInteractingContainers();
         Interactor.HandleInteractingWorld();
 
         Actions.UpdateActions();
@@ -84,14 +86,14 @@ public class Player : MonoBehaviour
         // We have control so idle or walk
         if (animatorControl != null)
         {
-            if (Movement.IsMoving && Animator.CurrentAnimation != walkingAnimation) animatorControl.PlayAnimation(walkingAnimation);
-            else if (!Movement.IsMoving && Animator.CurrentAnimation != idleAnimation) animatorControl.PlayAnimation(idleAnimation);
+            if (Movement.IsMoving && Animator.CurrentAnimation != walkingAnimation) animatorControl.StartAnimation(walkingAnimation);
+            else if (!Movement.IsMoving && Animator.CurrentAnimation != idleAnimation) animatorControl.StartAnimation(idleAnimation);
         }
     }
 
     private void FixedUpdate()
     {
-        if (!IsRestricted(PlayerRestrictionFlag.DoMovement) && Input.IsInputtingMovement)
+        if (!IsRestricted(ActionRestriction.Movement) && Input.IsInputtingMovement)
         {
             Movement.MoveInDirection(Input.InputMovement);
         }

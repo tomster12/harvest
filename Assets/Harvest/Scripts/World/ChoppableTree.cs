@@ -2,6 +2,31 @@ using UnityEngine;
 
 public class ChoppableTree : MonoBehaviour
 {
+    public struct ChopTarget
+    {
+        public Vector3 pos;
+        public Vector3 normal;
+        public int ti;
+        public int hi;
+    }
+
+    public ChopTarget GetChopTarget(RaycastHit hitWorld)
+    {
+        Vector3 hitLocal = transform.InverseTransformPoint(hitWorld.point);
+        Vector2Int hitGrid = LocalToGrid(hitLocal);
+
+        Vector3 adjustedLocal = GridToLocal(hitGrid.x, hitGrid.y);
+        Vector3 adjustedNormal = new Vector3(adjustedLocal.x, 0f, adjustedLocal.z).normalized;
+
+        return new ChopTarget
+        {
+            pos = transform.TransformPoint(adjustedLocal),
+            normal = transform.TransformDirection(adjustedNormal),
+            ti = hitGrid.x,
+            hi = hitGrid.y
+        };
+    }
+
     public void Hit(Vector3 hitWorld, float depth, float width, float height)
     {
         Vector3 local = transform.InverseTransformPoint(hitWorld);
