@@ -50,6 +50,9 @@ public static class AnimationUtil
         else tfm.localRotation = targetRotation;
     }
 
+    public static async Task MoveAndRotateTo(CancellationToken ct, Transform tfm, Transform target, float duration, Axis axis = Axis.Global, Func<float, float> easingFunction = null)
+            => await MoveAndRotateTo(ct, tfm, axis == Axis.Global ? target.position : target.localPosition, axis == Axis.Global ? target.rotation : target.localRotation, duration, axis, easingFunction);
+
     public static async Task MoveAndRotateTo(CancellationToken ct, Transform tfm, Vector3 targetPosition, Quaternion targetRotation, float duration, Axis axis = Axis.Global, Func<float, float> easingFunction = null)
     {
         Vector3 startPosition = axis == Axis.Global ? tfm.position : tfm.localPosition;

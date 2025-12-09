@@ -1,8 +1,8 @@
 using UnityEngine;
 
-public class WalkingAnimation : PlayerAnimation
+public class PlayerWalkingAnimation : PlayerAnimation
 {
-    public WalkingAnimation(PlayerAnimator animator) : base(animator)
+    public PlayerWalkingAnimation(PlayerAnimator animator) : base(animator)
     {
         leftHandTransform = animator.GetAnimationTransform("Left Hand");
         rightHandTransform = animator.GetAnimationTransform("Right Hand");

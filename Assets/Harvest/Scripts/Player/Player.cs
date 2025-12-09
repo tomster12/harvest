@@ -37,8 +37,8 @@ public class Player : MonoBehaviour
         Actions.Init(this);
         Animator.Init(this);
 
-        idleAnimation = new IdleAnimation(Animator);
-        walkingAnimation = new WalkingAnimation(Animator);
+        idleAnimation = new PlayerIdleAnimation(Animator);
+        walkingAnimation = new PlayerWalkingAnimation(Animator);
     }
 
     public void RestrictActions(ActionRestriction flags)
@@ -54,8 +54,8 @@ public class Player : MonoBehaviour
     public bool IsRestricted(ActionRestriction flags) => (ActionRestrictions & flags) != ActionRestriction.None;
 
     private PlayerAnimator.ControlHandle animatorControl;
-    private IdleAnimation idleAnimation;
-    private WalkingAnimation walkingAnimation;
+    private PlayerIdleAnimation idleAnimation;
+    private PlayerWalkingAnimation walkingAnimation;
 
     private void Update()
     {

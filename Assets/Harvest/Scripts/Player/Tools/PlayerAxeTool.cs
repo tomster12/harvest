@@ -14,7 +14,7 @@ public class PlayerAxeTool : PlayerTool
     public static float CHOP_SWAY_SCREEN_MAX = 0.03f;
     public static float CHOP_SWAY_WORLD_MAX = 0.15f;
     public static float CHOP_SWAY_NOISE_CLAMP = 0.1f;
-    public static float CHOP_SWAY_NOISE_MAGNITUDE = 0.0025f;
+    public static float CHOP_SWAY_NOISE_MAGNITUDE = 0.004f;
     public static float CHOP_SWAY_NOISE_FREQUENCY_MIN = 0.4f;
     public static float CHOP_SWAY_NOISE_FREQUENCY = 0.4f;
     public static float CHOP_SWAY_SHAKE_MAGNITUDE = 0.02f;
@@ -66,27 +66,25 @@ public class PlayerAxeTool : PlayerTool
         if (player.IsRestricted(Player.ActionRestriction.Movement | Player.ActionRestriction.Action)) return;
 
         // Find a hovered valid target to chop
-        RaycastTreeHit treeHit = GetFirstRaycastChoppableTree();
-        if (treeHit == null) return;
+        TreeTarget target = FindTreeTarget();
+        if (target == null) return;
 
-        // Get the exact chop position from the tree
-        var target = treeHit.Tree.GetChopTarget(treeHit.Hit);
-
-        // Check the hovered pos has a position in front it can be chopped from
-        Vector3 aboveChopFromPos = target.pos + target.normal * CHOP_BACK_OFFSET;
-        aboveChopFromPos += Vector3.Cross(target.normal, Vector3.up) * CHOP_SIDE_OFFSET;
-        if (!Physics.Raycast(aboveChopFromPos, Vector3.down, out RaycastHit groundHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
-        if (groundHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
-        chopFromPos = groundHit.point;
+        // Raycast out, to the side, and down to find a valid chop from position
+        Vector3 outFromChopPos = target.Hit.point + target.Hit.normal * CHOP_BACK_OFFSET;
+        outFromChopPos += Vector3.Cross(target.Hit.normal, Vector3.up) * CHOP_SIDE_OFFSET;
+        
+        if (!Physics.Raycast(outFromChopPos, Vector3.down, out RaycastHit chopFromHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
+        if (chopFromHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
+        chopFromPos = chopFromHit.point;
 
         // Show chop preview on valid position
-        chopPreview.transform.SetPositionAndRotation(target.pos, Quaternion.LookRotation(-Vector3.up, target.normal));
+        chopPreview.transform.SetPositionAndRotation(target.Hit.point, Quaternion.LookRotation(-Vector3.up, target.Hit.normal));
         chopPreview.SetActive(true);
 
         // Perform chop on click
         if (player.Input.IsMousePressed)
         {
-            chopAction = new ChopTreeAction(player, treeHit.Tree, target, chopFromPos, toolMesh, chopPreview);
+            chopAction = new PlayerAxeChopAction(player, target.Tree, target, chopFromPos, toolMesh, chopPreview);
             player.Actions.StartAction(chopAction);
             isChopping = true;
             player.Input.IsMousePressed = false;
@@ -99,28 +97,38 @@ public class PlayerAxeTool : PlayerTool
         Gizmos.DrawWireSphere(chopFromPos, 0.1f);
     }
 
-    private class RaycastTreeHit
-    {
-        public RaycastHit Hit;
-        public ChoppableTree Tree;
-    }
-
     private GameObject toolMesh;
     private GameObject chopPreview;
-    private ChopTreeAction chopAction;
+    private PlayerAxeChopAction chopAction;
     private Vector3 chopFromPos;
     private bool isChopping = false;
 
-    private RaycastTreeHit GetFirstRaycastChoppableTree()
+    private TreeTarget FindTreeTarget()
     {
         foreach (var hit in player.Input.RaycastHits)
         {
             if (hit.transform.gameObject.TryGetComponent(out ChoppableTree tree))
             {
                 float dist = Vector3.Distance(player.transform.position, hit.point);
-                if (dist <= MAX_PLAYER_TARGET_DISTANCE) return new() { Hit = hit, Tree = tree };
+                if (dist <= MAX_PLAYER_TARGET_DISTANCE)
+                {
+                    Vector3 hitLocal = tree.transform.InverseTransformPoint(hit.point);
+                    return new TreeTarget()
+                    {
+                        Hit = hit,
+                        HitPointLocal = hitLocal,
+                        Tree = tree
+                    };
+                }
             }
         }
         return null;
+    }
+
+    public class TreeTarget
+    {
+        public RaycastHit Hit;
+        public Vector3 HitPointLocal;
+        public ChoppableTree Tree;
     }
 }

@@ -1,8 +1,8 @@
 using UnityEngine;
 
-public class IdleAnimation : PlayerAnimation
+public class PlayerIdleAnimation : PlayerAnimation
 {
-    public IdleAnimation(PlayerAnimator animator) : base(animator)
+    public PlayerIdleAnimation(PlayerAnimator animator) : base(animator)
     {
         leftHandTransform = animator.GetAnimationTransform("Left Hand");
         rightHandTransform = animator.GetAnimationTransform("Right Hand");

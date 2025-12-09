@@ -89,7 +89,7 @@ public class PlayerInteractor
         {
             player.Input.IsMousePressed = false;
             Vector3 targetPosition = hoveredLooseItem.transform.position - (hoveredLooseItem.transform.position - player.transform.position).normalized * 0.1f;
-            looseItemPickupAction = new PickupLooseItemAction(player, hoveredLooseItem, targetPosition);
+            looseItemPickupAction = new PlayerPickupItemAction(player, hoveredLooseItem, targetPosition);
             player.Actions.StartAction(looseItemPickupAction);
         }
     }
@@ -104,7 +104,7 @@ public class PlayerInteractor
     private GearInventoryUI gearUI;
     private IItemContainerUI hoveredContainerUI;
     private LooseItem hoveredLooseItem;
-    private PickupLooseItemAction looseItemPickupAction;
+    private PlayerPickupItemAction looseItemPickupAction;
 
     private bool IsHoldingItemUI => HeldItemUI.State != ItemUI.StateType.Empty;
 

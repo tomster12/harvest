@@ -2,12 +2,12 @@ using UnityEngine;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class PickupLooseItemAction : PlayerAction
+public class PlayerPickupItemAction : PlayerAction
 {
     private readonly LooseItem item;
     private readonly Vector3 pickupPosition;
 
-    public PickupLooseItemAction(Player player, LooseItem item, Vector3 position) : base(player)
+    public PlayerPickupItemAction(Player player, LooseItem item, Vector3 position) : base(player)
     {
         this.item = item;
         this.pickupPosition = position;
