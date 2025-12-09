@@ -8,32 +8,33 @@ using static PlayerAxeTool;
 
 public class PlayerAxeChopAction : PlayerAction
 {
-    public PlayerAxeChopAction(Player player, ChoppableTree tree, TreeTarget target, Vector3 chopStandPos, GameObject axeMesh, GameObject chopPreview) : base(player)
+    public PlayerAxeChopAction(Player player, ChoppableTree tree, TreeTarget target, Vector3 chopStandPos, GameObject axeMesh, GameObject targetChopPreview) : base(player)
     {
         this.tree = tree;
         this.target = target;
         this.chopStandPos = chopStandPos;
         this.axeMesh = axeMesh;
-        this.chopPreview = chopPreview;
+        this.targetChopPreview = targetChopPreview;
 
         AddPlayerRestriction(Player.ActionRestriction.Movement);
         AddCancelCondition(new CancelOnMovementInput());
         AddCancelCondition(new CancelOnMouseRelease());
         SetCancellable(true);
 
-        leftHandTransform = player.Animator.GetAnimationTransform("Left Hand");
-        rightHandTransform = player.Animator.GetAnimationTransform("Right Hand");
-        leftHandChopBaseTransform = player.Animator.GetAnimationPoint("Left Hand - Chop - Base Point");
-        leftHandChopFromTransform = player.Animator.GetAnimationPoint("Left Hand - Chop - Back Point");
+        leftHand = player.Animator.GetAnimationTransform("Left Hand");
+        rightHand = player.Animator.GetAnimationTransform("Right Hand");
+        leftHandChopBase = player.Animator.GetAnimationPoint("Left Hand - Chop - Base Point");
+        leftHandChopFrom = player.Animator.GetAnimationPoint("Left Hand - Chop - Back Point");
 
         // Create current mouse preview
-        currentChopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        currentChopPreview.transform.position = chopPreview.transform.position;
-        currentChopPreview.transform.localScale = new Vector3(0.25f, 0.4f, 1f);
-        currentChopPreview.transform.rotation = Quaternion.LookRotation(-Vector3.up, this.target.Hit.normal);
-        currentChopPreviewRenderer = currentChopPreview.GetComponent<Renderer>();
-        currentChopPreviewRenderer.sharedMaterial = new(AssetDatabase.GetMaterial("Chop Preview"));
-        currentChopPreviewRenderer.sharedMaterial.color = CHOP_GOOD_COLOR;
+        chopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        chopPreview.transform.position = targetChopPreview.transform.position;
+        chopPreview.transform.localScale = new Vector3(0.25f, 0.4f, 1f);
+        chopPreview.transform.rotation = Quaternion.LookRotation(-Vector3.up, this.target.Hit.normal);
+
+        chopPreviewRenderer = chopPreview.GetComponent<Renderer>();
+        chopPreviewRenderer.sharedMaterial = new(AssetDatabase.GetMaterial("Chop Preview"));
+        chopPreviewRenderer.sharedMaterial.color = CHOP_GOOD_COLOR;
     }
 
     protected override async Task RunAsync(CancellationToken ct)
@@ -45,24 +46,27 @@ public class PlayerAxeChopAction : PlayerAction
         handleMouseTask = HandleMouseInput(ct);
         player.Input.HideMouse();
 
-        // Move hand in front and move towards target
-        rightHandTransform.SetParent(leftHandTransform, true);
+        // Put right hand locally forward of the left, and left in base position
+        rightHand.SetParent(leftHand, true);
         player.Movement.MoveTowardsPosition(chopStandPos, 0.02f);
 
         await Task.WhenAll(
             AsyncUtil.WaitUntil(() => player.Movement.HasReachedTarget, ct),
 
             AnimationUtil.MoveAndRotateTo(ct,
-                leftHandTransform, leftHandChopBaseTransform,
-                0.3f, Axis.Local, Easing.EaseInQuad),
-
+                leftHand, leftHandChopBase, Axis.Local,
+                0.3f, Easing.EaseInQuad
+            ),
             AnimationUtil.MoveTo(ct,
-                rightHandTransform, Vector3.forward * 0.15f,
-                0.3f, Axis.Local)
+                rightHand, Vector3.forward * 0.15f, Axis.Local,
+                0.3f, Easing.Linear
+            )
         );
 
         // Start facing towards the hit point
-        Vector3 facePosition = player.transform.position + HitRight * CHOP_LOOK_OFFSET.x + target.Hit.normal * CHOP_LOOK_OFFSET.y;
+        Vector3 facePosition = player.transform.position
+            + HitRight * CHOP_LOOK_OFFSET.x
+            + target.Hit.normal * CHOP_LOOK_OFFSET.y;
         player.Movement.FaceTowardsPosition(facePosition, 0.5f);
 
         // Start the chopping animation loop
@@ -73,34 +77,40 @@ public class PlayerAxeChopAction : PlayerAction
             if (state == State.Setup)
             {
                 await AnimationUtil.MoveAndRotateTo(ct,
-                    leftHandTransform, leftHandChopFromTransform,
-                    1.2f, Axis.Local, Easing.EaseInQuad);
+                    leftHand, leftHandChopFrom, Axis.Local,
+                    1.0f, Easing.EaseInQuad
+                );
 
+                await Task.Delay(200, ct);
                 state = State.Swing;
             }
+
             else if (state == State.Swing)
             {
+                // Sample the preview pose and calculate the target hand pose
                 var (previewPos, previewNormal) = GetPreviewHitPose();
-
                 Transform axeHitPoint = axeMesh.transform.Find("Hit Point");
-                var hitPoseMatrix = Matrix4x4.TRS(previewPos, Quaternion.LookRotation(previewNormal, Vector3.up), Vector3.one);
-                var chopToMatrix = hitPoseMatrix * (leftHandTransform.worldToLocalMatrix * axeHitPoint.localToWorldMatrix).inverse;
-                Vector3 dynamicChopPos = chopToMatrix.GetColumn(3);
-                Quaternion dynamicChopRot = chopToMatrix.rotation;
+                var previewPoseMatrix = Matrix4x4.TRS(previewPos, Quaternion.LookRotation(previewNormal, Vector3.up), Vector3.one);
+                var chopToMatrix = previewPoseMatrix * (leftHand.worldToLocalMatrix * axeHitPoint.localToWorldMatrix).inverse;
+                Vector3 leftHandChopToPos = chopToMatrix.GetColumn(3);
+                Quaternion leftHandChopToRot = chopToMatrix.rotation;
 
                 await AnimationUtil.MoveAndRotateTo(ct,
-                    leftHandTransform, dynamicChopPos, dynamicChopRot,
-                    0.1f, Axis.Global);
+                    leftHand, leftHandChopToPos, leftHandChopToRot,
+                    Axis.Global, 0.1f, Easing.Linear
+                );
 
                 OnHitTree();
-                await Task.Delay(300, ct);
+                await Task.Delay(600, ct);
                 state = State.Pull;
             }
+
             else if (state == State.Pull)
             {
                 await AnimationUtil.MoveAndRotateTo(ct,
-                    leftHandTransform, leftHandChopFromTransform,
-                    0.65f, Axis.Local, Easing.EaseOutQuad);
+                    leftHand, leftHandChopFrom,
+                    Axis.Local, 0.7f, Easing.EaseOutQuad
+                );
 
                 state = State.Swing;
             }
@@ -110,8 +120,8 @@ public class PlayerAxeChopAction : PlayerAction
     protected override async Task FinishAsync(CancellationToken ct)
     {
         player.Input.ShowMouse();
-        GameObject.Destroy(currentChopPreview);
-        rightHandTransform.SetParent(player.transform, true);
+        GameObject.Destroy(chopPreview);
+        rightHand.SetParent(player.transform, true);
 
         // Wait for the mouse task to finish and ignore cancels
         if (handleMouseTask != null)
@@ -129,17 +139,17 @@ public class PlayerAxeChopAction : PlayerAction
     { Setup, Swing, Pull };
 
     private readonly GameObject axeMesh;
-    private readonly GameObject chopPreview;
+    private readonly GameObject targetChopPreview;
     private readonly TreeTarget target;
     private readonly ChoppableTree tree;
     private readonly Vector3 chopStandPos;
 
-    private readonly Transform leftHandTransform;
-    private readonly Transform rightHandTransform;
-    private readonly Transform leftHandChopBaseTransform;
-    private readonly Transform leftHandChopFromTransform;
-    private readonly GameObject currentChopPreview;
-    private readonly Renderer currentChopPreviewRenderer;
+    private readonly Transform leftHand;
+    private readonly Transform rightHand;
+    private readonly Transform leftHandChopBase;
+    private readonly Transform leftHandChopFrom;
+    private readonly GameObject chopPreview;
+    private readonly Renderer chopPreviewRenderer;
 
     private State state = State.Setup;
     private PlayerAnimator.ControlHandle handle;
@@ -206,8 +216,9 @@ public class PlayerAxeChopAction : PlayerAction
             worldOffset = ((CHOP_SWAY_WORLD_MAX * offset.x + shakeX) * right) +
                           ((CHOP_SWAY_WORLD_MAX * offset.y + shakeY) * up);
 
-            currentChopPreview.transform.position = chopPreview.transform.position + worldOffset;
-            currentChopPreviewRenderer.sharedMaterial.color = Color.Lerp(CHOP_GOOD_COLOR, CHOP_BAD_COLOR, shakeOffsetMult);
+
+            chopPreview.transform.position = targetChopPreview.transform.position + worldOffset;
+            chopPreviewRenderer.sharedMaterial.color = Color.Lerp(CHOP_GOOD_COLOR, CHOP_BAD_COLOR, shakeOffsetMult);
 
             await Task.Yield();
         }
@@ -215,7 +226,7 @@ public class PlayerAxeChopAction : PlayerAction
 
     private (Vector3 pos, Vector3 normal) GetPreviewHitPose()
     {
-        Vector3 pos = currentChopPreview.transform.position;
+        Vector3 pos = chopPreview.transform.position;
         return (pos, target.Hit.normal);
     }
 

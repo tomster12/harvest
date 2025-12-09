@@ -2,6 +2,8 @@ using UnityEngine;
 
 public static class Easing
 {
+    public static float Linear(float t) => t;
+
     public static float EaseInSine(float t) => 1 - Mathf.Cos(t * Mathf.PI / 2);
 
     public static float EaseOutSine(float t) => Mathf.Sin(t * Mathf.PI / 2);
