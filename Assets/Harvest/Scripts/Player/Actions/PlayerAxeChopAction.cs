@@ -3,16 +3,15 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Unity.Mathematics;
 using System;
-using static ChoppableTree;
 using static PlayerAxeTool;
 
 public class PlayerAxeChopAction : PlayerAction
 {
-    public PlayerAxeChopAction(Player player, ChoppableTree tree, TreeTarget target, Vector3 chopStandPos, GameObject axeMesh, GameObject targetChopPreview) : base(player)
+    public PlayerAxeChopAction(Player player, ChoppableTree tree, TreeTarget target, Vector3 playerChopFromPos, GameObject axeMesh, GameObject targetChopPreview) : base(player)
     {
         this.tree = tree;
         this.target = target;
-        this.chopStandPos = chopStandPos;
+        this.playerChopFromPos = playerChopFromPos;
         this.axeMesh = axeMesh;
         this.targetChopPreview = targetChopPreview;
 
@@ -48,7 +47,7 @@ public class PlayerAxeChopAction : PlayerAction
 
         // Put right hand locally forward of the left, and left in base position
         rightHand.SetParent(leftHand, true);
-        player.Movement.MoveTowardsPosition(chopStandPos, 0.02f);
+        player.Movement.MoveTowardsPosition(playerChopFromPos, 0.02f);
 
         await Task.WhenAll(
             AsyncUtil.WaitUntil(() => player.Movement.HasReachedTarget, ct),
@@ -101,7 +100,7 @@ public class PlayerAxeChopAction : PlayerAction
                 );
 
                 OnHitTree();
-                await Task.Delay(600, ct);
+                await Task.Delay(400, ct);
                 state = State.Pull;
             }
 
@@ -142,7 +141,7 @@ public class PlayerAxeChopAction : PlayerAction
     private readonly GameObject targetChopPreview;
     private readonly TreeTarget target;
     private readonly ChoppableTree tree;
-    private readonly Vector3 chopStandPos;
+    private readonly Vector3 playerChopFromPos;
 
     private readonly Transform leftHand;
     private readonly Transform rightHand;
@@ -233,9 +232,9 @@ public class PlayerAxeChopAction : PlayerAction
     private void OnHitTree()
     {
         float accuracy = Mathf.Clamp01(1f - Mathf.Abs(offset));
-        float depth = 0.01f + accuracy * 0.03f;
-        float width = 1.0f + accuracy * 2.0f;
-        float height = 0.04f + accuracy * 0.04f;
+        float depth = 0.06f + accuracy * 0.02f;
+        float width = 0.3f + accuracy * 0.2f;
+        float height = 0.06f + accuracy * 0.04f;
 
         var (previewPos, _) = GetPreviewHitPose();
         tree.Hit(previewPos, depth, width, height);

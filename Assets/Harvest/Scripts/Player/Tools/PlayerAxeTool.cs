@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Rendering;
 
 public class PlayerAxeTool : PlayerTool
 {
@@ -20,10 +19,11 @@ public class PlayerAxeTool : PlayerTool
     public static float CHOP_SWAY_SHAKE_MAGNITUDE = 0.02f;
     public static float CHOP_SWAY_SHAKE_FREQUENCY = 8f;
 
-    public override void Equip(Player player, ItemInstance itemInstance)
-    {
-        base.Equip(player, itemInstance);
+    public PlayerAxeTool(Player player, ItemInstance itemInstance) : base(player, itemInstance)
+    { }
 
+    public override void Equip()
+    {
         // Create tool mesh attached to the left hand
         var leftHandSlot = player.Animator.GetAttachmentSlot("Left Hand");
         toolMesh = GameObject.Instantiate(itemInstance.Data.MeshPrefab, leftHandSlot);
@@ -51,7 +51,7 @@ public class PlayerAxeTool : PlayerTool
         if (chopPreview != null) GameObject.Destroy(chopPreview);
     }
 
-    public override void UpdateTool()
+    public override void Update()
     {
         // Dont update preview during chop
         if (isChopping)
@@ -70,12 +70,12 @@ public class PlayerAxeTool : PlayerTool
         if (target == null) return;
 
         // Raycast out, to the side, and down to find a valid chop from position
-        Vector3 outFromChopPos = target.Hit.point + target.Hit.normal * CHOP_BACK_OFFSET;
-        outFromChopPos += Vector3.Cross(target.Hit.normal, Vector3.up) * CHOP_SIDE_OFFSET;
+        Vector3 awayFromChopPos = target.Hit.point + target.Hit.normal * CHOP_BACK_OFFSET;
+        awayFromChopPos += Vector3.Cross(target.Hit.normal, Vector3.up) * CHOP_SIDE_OFFSET;
         
-        if (!Physics.Raycast(outFromChopPos, Vector3.down, out RaycastHit chopFromHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
-        if (chopFromHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
-        chopFromPos = chopFromHit.point;
+        if (!Physics.Raycast(awayFromChopPos, Vector3.down, out RaycastHit playerChopFromHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
+        if (playerChopFromHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
+        playerChopFromPos = playerChopFromHit.point;
 
         // Show chop preview on valid position
         chopPreview.transform.SetPositionAndRotation(target.Hit.point, Quaternion.LookRotation(-Vector3.up, target.Hit.normal));
@@ -84,7 +84,7 @@ public class PlayerAxeTool : PlayerTool
         // Perform chop on click
         if (player.Input.IsMousePressed)
         {
-            chopAction = new PlayerAxeChopAction(player, target.Tree, target, chopFromPos, toolMesh, chopPreview);
+            chopAction = new PlayerAxeChopAction(player, target.Tree, target, playerChopFromPos, toolMesh, chopPreview);
             player.Actions.StartAction(chopAction);
             isChopping = true;
             player.Input.IsMousePressed = false;
@@ -94,13 +94,13 @@ public class PlayerAxeTool : PlayerTool
     public override void DebugGizmos()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(chopFromPos, 0.1f);
+        Gizmos.DrawWireSphere(playerChopFromPos, 0.1f);
     }
 
     private GameObject toolMesh;
     private GameObject chopPreview;
     private PlayerAxeChopAction chopAction;
-    private Vector3 chopFromPos;
+    private Vector3 playerChopFromPos;
     private bool isChopping = false;
 
     private TreeTarget FindTreeTarget()
@@ -110,7 +110,7 @@ public class PlayerAxeTool : PlayerTool
             if (hit.transform.gameObject.TryGetComponent(out ChoppableTree tree))
             {
                 float dist = Vector3.Distance(player.transform.position, hit.point);
-                if (dist <= MAX_PLAYER_TARGET_DISTANCE)
+                if (dist <= MAX_PLAYER_TARGET_DISTANCE && tree.CanChop)
                 {
                     Vector3 hitLocal = tree.transform.InverseTransformPoint(hit.point);
                     return new TreeTarget()

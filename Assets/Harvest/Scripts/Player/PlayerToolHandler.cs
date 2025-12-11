@@ -15,7 +15,7 @@ public class PlayerToolHandler
 
     public void UpdateTool()
     {
-        CurrentTool?.UpdateTool();
+        CurrentTool?.Update();
     }
 
     public void OnItemEquipped(ItemInstance itemInstance)
@@ -25,7 +25,7 @@ public class PlayerToolHandler
             switch (itemInstance.Data.ToolData.Type)
             {
                 case ToolType.Axe:
-                    CurrentTool = new PlayerAxeTool();
+                    CurrentTool = new PlayerAxeTool(player, itemInstance);
                     break;
 
                 default:
@@ -33,7 +33,7 @@ public class PlayerToolHandler
                     break;
             }
 
-            CurrentTool?.Equip(player, itemInstance);
+            CurrentTool?.Equip();
         }
     }
 

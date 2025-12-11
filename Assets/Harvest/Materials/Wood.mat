@@ -42,8 +42,8 @@ Material:
     - _DarkenStart: 0.35
     - _DarkenThreshold: 0.35
     - _EdgeWidth: 0.04
-    - _InnerDarkenAmount: 0.387
-    - _InnerDarkenStart: 0.207
+    - _InnerDarkenAmount: 0.429
+    - _InnerDarkenStart: 0.514
     - _Metallic: 0
     - _ShadowSoftness: 0.64
     - _Smoothness: 0
