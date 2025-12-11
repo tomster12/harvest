@@ -1,41 +1,182 @@
 using UnityEngine;
 
+public sealed class TreeGrid
+{
+    public int Cols;
+    public int Rows;
+    public float ColDensity;
+    public float RowDensity;
+    public float Height;
+    public float MinRadius;
+    public float SplitWidthRequirement;
+    public int SplitColRequirement;
+    public float[,] Radius;
+    public float[,] BaseRadius;
+    public Vector3[,] Offsets;
+
+    public static TreeGrid FromDensity(float colDensity, float rowDensity, float radius, float height, float minRadius, float splitWidthRequired)
+    {
+        var cols = Mathf.Max(8, Mathf.CeilToInt((2f * Mathf.PI * radius) * colDensity));
+        var rows = Mathf.Max(4, Mathf.CeilToInt(height * rowDensity));
+
+        return new(cols, rows, colDensity, rowDensity, height, minRadius, splitWidthRequired);
+    }
+
+    public TreeGrid(int cols, int rows, float colDensity, float rowDensity, float height, float minRadius, float splitWidthRequired)
+    {
+        Cols = cols;
+        Rows = rows;
+        ColDensity = colDensity;
+        RowDensity = rowDensity;
+        Height = height;
+        MinRadius = minRadius;
+        SplitWidthRequirement = splitWidthRequired;
+        SplitColRequirement = Mathf.CeilToInt(splitWidthRequired * colDensity);
+        Radius = new float[Cols, Rows];
+        BaseRadius = new float[Cols, Rows];
+        Offsets = new Vector3[Cols, Rows];
+    }
+
+    public void GenerateBaseRadius(float baseRadius, float noiseScale, float noiseStrength, int seed)
+    {
+        for (int c = 0; c < Cols; c++)
+        {
+            for (int r = 0; r < Rows; r++)
+            {
+                float angle = (c / (float)Cols) * Mathf.PI * 2f;
+                float nx = Mathf.Cos(angle);
+                float nz = Mathf.Sin(angle) + (r / (float)(Rows - 1));
+                float radiusNoise = Mathf.PerlinNoise(nx * noiseScale + seed, nz * noiseScale + seed);
+                radiusNoise = (radiusNoise - 0.5f) * noiseStrength;
+
+                float rad = baseRadius + radiusNoise;
+                BaseRadius[c, r] = rad;
+                Radius[c, r] = rad;
+            }
+        }
+    }
+
+    public void GeneratePerVertexOffsets(float horzScale, float horzStrength, float vertScale, float vertStrength)
+    {
+        for (int c = 0; c < Cols; c++)
+        {
+            for (int r = 0; r < Rows; r++)
+            {
+                float angle = (c / (float)Cols) * Mathf.PI * 2f;
+                float nx = Mathf.Cos(angle);
+                float nz = Mathf.Sin(angle) + (r / (float)(Rows - 1));
+                float p = Mathf.PerlinNoise(nx * horzScale + 500f, nz * horzScale + 600f);
+                float v = Mathf.PerlinNoise(nx * vertScale + 700f, nz * vertScale + 800f);
+                float perpOffset = (p - 0.5f) * horzStrength;
+                float vertOffset = (v - 0.5f) * vertStrength;
+
+                Offsets[c, r] = new(perpOffset, vertOffset, 0f);
+            }
+        }
+    }
+
+    public bool ApplyHit(Vector2Int hitGrid, float depth, float width, float height)
+    {
+        int hitCols = Mathf.CeilToInt(width * ColDensity);
+        int hitRows = Mathf.CeilToInt(height * RowDensity);
+
+        for (int dc = -hitCols; dc <= hitCols; dc++)
+        {
+            int c = (hitGrid.x + dc + Cols) % Cols;
+
+            for (int dr = -hitRows; dr <= hitRows; dr++)
+            {
+                int r = hitGrid.y + dr;
+                if (r < 0 || r >= Rows) continue;
+
+                float colDist = Mathf.Abs(dc) / (float)hitCols;
+                float rowDist = Mathf.Abs(dr) / (float)hitRows;
+                float dist = Mathf.Sqrt(colDist * colDist + rowDist * rowDist);
+                if (dist > 1f) continue;
+
+                float falloff = 1f - dist;
+                Radius[c, r] = Mathf.Max(MinRadius, Radius[c, r] - depth * falloff);
+            }
+        }
+
+        return CheckSplit(hitGrid.y - hitRows, hitGrid.y + hitRows);
+    }
+
+    public bool CheckSplit(int lowRow, int highRow)
+    {
+        lowRow = Mathf.Clamp(lowRow, 0, Rows - 1);
+        highRow = Mathf.Clamp(highRow, 0, Rows - 1);
+
+        for (int r = lowRow; r <= highRow; r++)
+        {
+            if (CheckRowSplitRequirement(r)) return true;
+        }
+
+        return false;
+    }
+
+    private bool CheckRowSplitRequirement(int r)
+    {
+        const float eps = 0.0001f;
+        int runCount = 0;
+        for (int c = 0; c < Cols * 2; c++)
+        {
+            if (Radius[c % Cols, r] <= MinRadius + eps) runCount++;
+            else runCount = 0;
+            if (runCount >= SplitColRequirement) return true;
+        }
+        return false;
+    }
+
+    public (TreeGrid bottom, TreeGrid top) SplitAtRow(int splitRow)
+    {
+        int bottomRows = splitRow + 1;
+        int topRows = Rows - bottomRows + 1;
+        if (topRows <= 0) return (this, null);
+
+        float heightPerRow = Height / Rows;
+        var bottom = Slice(0, bottomRows, bottomRows * heightPerRow);
+        var top = Slice(bottomRows - 1, topRows, topRows * heightPerRow);
+        return (bottom, top);
+    }
+
+    private TreeGrid Slice(int rowStart, int rowCount, float newHeight)
+    {
+        var newGrid = new TreeGrid(Cols, rowCount, ColDensity, RowDensity, newHeight, MinRadius, SplitWidthRequirement);
+        for (int c = 0; c < Cols; c++)
+        {
+            for (int r = 0; r < rowCount; r++)
+            {
+                newGrid.Radius[c, r] = Radius[c, rowStart + r];
+                newGrid.BaseRadius[c, r] = BaseRadius[c, rowStart + r];
+                newGrid.Offsets[c, r] = Offsets[c, rowStart + r];
+            }
+        }
+        return newGrid;
+    }
+}
+
 public class ChoppableTree : MonoBehaviour
 {
     public bool CanChop { get; private set; } = true;
 
-    public void Hit(Vector3 hitWorld, float depth, float width, float height)
+    public void Hit(Vector3 posWorld, float depth, float width, float height)
     {
-        Vector2Int hitGrid = WorldToGrid(hitWorld);
+        Vector2Int hit = WorldToGrid(posWorld);
 
-        int widthGrid = Mathf.CeilToInt(width * gridColDensity);
-        int heightGrid = Mathf.CeilToInt(height * gridRowDensity);
+        bool causesSplit = grid.ApplyHit(hit, depth, width, height);
 
-        for (int dCol = -widthGrid; dCol <= widthGrid; dCol++)
+        if (causesSplit)
         {
-            int col = (hitGrid.x + dCol + gridCols) % gridCols;
-
-            for (int dRow = -heightGrid; dRow <= heightGrid; dRow++)
-            {
-                int row = hitGrid.y + dRow;
-                if (row < 0 || row >= gridRows) continue;
-
-                float colDist = Mathf.Abs(dCol) / (float)widthGrid;
-                float rowDist = Mathf.Abs(dRow) / (float)heightGrid;
-                float dist = Mathf.Sqrt(colDist * colDist + rowDist * rowDist);
-                if (dist > 1f) continue;
-
-                float fallOff = 1f - dist;
-                currentGrid[col, row] = Mathf.Max(meshMinRadius, currentGrid[col, row] - depth * fallOff);
-            }
+            var (bottomGrid, topGrid) = grid.SplitAtRow(hit.y);
+            grid = bottomGrid;
+            CanChop = false;
+            RebuildMesh();
+            if (topGrid != null) SpawnTop(topGrid);
+            return;
         }
 
-        if (CheckForSplitCondition(hitGrid.y - heightGrid, hitGrid.y + heightGrid))
-        {
-            PerformSplit(hitGrid.y);
-        }
-
-        RegenerateMeshFromGrid();
+        RebuildMesh();
     }
 
     [Header("References")]
@@ -43,226 +184,194 @@ public class ChoppableTree : MonoBehaviour
     [SerializeField] private MeshCollider mc;
     [SerializeField] private Rigidbody rb;
 
-    [Header("Grid")]
-    [SerializeField] private float gridColDensity = 20f;
-    [SerializeField] private float gridRowDensity = 20f;
-    [SerializeField] private float radiusNoiseScale = 1f;
-    [SerializeField] private float radiusNoiseStrength = 0.25f;
-    [SerializeField] private int radiusNoiseSeed = 0;
+    [Header("Config")]
+    [SerializeField] private float genColDensity = 20f;
+    [SerializeField] private float genRowDensity = 20f;
+    [SerializeField] private float genRadiusNoiseScale = 1f;
+    [SerializeField] private float genRadiusNoiseStrength = 0.25f;
+    [SerializeField] private int genRadiusNoiseSeed = 0;
+    [SerializeField] private float genRadius = 0.35f;
+    [SerializeField] private float genMinRadius = 0.05f;
+    [SerializeField] private float genHeight = 4f;
+    [SerializeField] private float genHorzNoiseScale = 10.0f;
+    [SerializeField] private float genVertNoiseScale = 10.0f;
+    [SerializeField] private float genHorzNoiseStrength = 0.04f;
+    [SerializeField] private float genVertNoiseStrength = 0.04f;
+    [SerializeField] private float splitWidthRequirement = 0.25f;
 
-    [Header("Mesh Generation")]
-    [SerializeField] private float meshBaseRadius = 0.35f;
-    [SerializeField] private float meshMinRadius = 0.05f;
-    [SerializeField] private float meshGenHeight = 4f;
-    [SerializeField] private float meshGenHorzNoiseScale = 10.0f;
-    [SerializeField] private float meshGenVertNoiseScale = 10.0f;
-    [SerializeField] private float meshGenHorzNoiseStrength = 0.04f;
-    [SerializeField] private float meshGenVertNoiseStrength = 0.04f;
-
-    [Header("Splitting")]
-    [SerializeField] private float splitWidthRequired = 0.25f;
-
-    private int gridCols;
-    private int gridRows;
-    private float meshHeight;
-    private float[,] currentGrid;
-    private float[,] baseGrid;
+    private TreeGrid grid;
     private Mesh mesh;
-
-    private float MeshBaseCircumference => 2f * Mathf.PI * meshBaseRadius;
-    private int SplitColRequired => Mathf.CeilToInt(splitWidthRequired * gridColDensity);
 
     private void Awake()
     {
+        GenerateNewTree();
         rb.isKinematic = true;
         CanChop = true;
-        GenerateTree();
     }
 
-    [ContextMenu("Generate Tree")]
-    public void GenerateTree()
+    public void InitFromGrid(TreeGrid grid)
     {
-        GenerateTreeGrid();
-        RegenerateMeshFromGrid();
+        this.grid = grid;
+        RebuildMesh();
+        rb.isKinematic = false;
+        CanChop = false;
     }
 
-    private void GenerateTreeGrid()
+    [ContextMenu("Generate New Tree")]
+    private void GenerateNewTree()
     {
-        meshHeight = meshGenHeight;
-        gridCols = Mathf.Max(8, Mathf.CeilToInt(MeshBaseCircumference * gridColDensity));
-        gridRows = Mathf.Max(4, Mathf.CeilToInt(meshHeight * gridRowDensity));
+        grid = TreeGrid.FromDensity(genColDensity, genRowDensity, genRadius, genHeight, genMinRadius, splitWidthRequirement);
+        grid.GenerateBaseRadius(genRadius, genRadiusNoiseScale, genRadiusNoiseStrength, genRadiusNoiseSeed);
+        grid.GeneratePerVertexOffsets(genHorzNoiseScale, genHorzNoiseStrength, genVertNoiseScale, genVertNoiseStrength);
 
-        baseGrid = new float[gridCols, gridRows];
-        currentGrid = new float[gridCols, gridRows];
-
-        for (int c = 0; c < gridCols; c++)
-        {
-            for (int r = 0; r < gridRows; r++)
-            {
-                float angle = (c / (float)gridCols) * Mathf.PI * 2f;
-                float nx = Mathf.Cos(angle);
-                float nz = Mathf.Sin(angle) + ((float)r / (gridRows - 1));
-
-                float noise = Mathf.PerlinNoise(nx * radiusNoiseScale + radiusNoiseSeed, nz * radiusNoiseScale + radiusNoiseSeed);
-                noise = (noise - 0.5f) * radiusNoiseStrength;
-
-                baseGrid[c, r] = meshBaseRadius + noise;
-                currentGrid[c, r] = baseGrid[c, r];
-            }
-        }
+        RebuildMesh();
     }
 
-    private void RegenerateMeshFromGrid()
+    private void SpawnTop(TreeGrid top)
     {
-        if (mesh == null)
-        {
-            mesh = new Mesh();
-            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        }
+        Vector3 pos = transform.position + Vector3.up * (grid.Rows - 1) * (grid.Height / grid.Rows) + Vector3.up * 0.01f;
+        var go = Instantiate(gameObject, pos, transform.rotation);
+        var tree = go.GetComponent<ChoppableTree>();
+        tree.InitFromGrid(top);
+    }
+
+    private void RebuildMesh()
+    {
+        if (mesh == null) mesh = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
         else mesh.Clear();
 
-        int capVertCount = gridCols + 1;
-        int capTriCount = gridCols * 3;
-        int trunkVertCount = gridCols * gridRows;
-        int trunkTriCount = gridCols * (gridRows - 1) * 6;
+        int trunkVerts = grid.Cols * grid.Rows;
+        int trunkTris = grid.Cols * (grid.Rows - 1) * 6;
+        int capVerts = grid.Cols + 1;
+        int capTris = grid.Cols * 3;
+        int totalVerts = trunkVerts + capVerts * 2;
+        int totalTris = trunkTris + capTris * 2;
 
-        int totalVertCount = trunkVertCount + capVertCount * 2;
-        int totalTriCount = trunkTriCount + capTriCount * 2;
+        Vector3[] verts = new Vector3[totalVerts];
+        Vector3[] norms = new Vector3[totalVerts];
+        Vector2[] uvs = new Vector2[totalVerts];
+        int[] tris = new int[totalTris];
 
-        Vector3[] vertices = new Vector3[totalVertCount];
-        Vector3[] normals = new Vector3[totalVertCount];
-        Vector2[] uvs = new Vector2[totalVertCount];
-        int[] tris = new int[totalTriCount];
+        int v = 0;
+        int t = 0;
 
-        int vertIndex = 0;
-        int triIndex = 0;
-
-        Vector2 GetUV(int c, int r)
+        (Vector3 point, Vector3 normal) SamplePoint(int c, int r)
         {
-            return new Vector2(1.0f - currentGrid[c, r] / baseGrid[c, r], 0);
+            float angle = (c / (float)grid.Cols) * Mathf.PI * 2f;
+            float radius = grid.Radius[c, r];
+            float y = (r / (float)(grid.Rows - 1)) * grid.Height;
+
+            Vector3 p = new Vector3(Mathf.Cos(angle) * radius, y, Mathf.Sin(angle) * radius);
+            Vector3 n = new Vector3(p.x, 0f, p.z).normalized;
+
+            var off = grid.Offsets[c, r];
+            Vector3 tangent = new(-n.z, 0f, n.x);
+
+            p += tangent * off.x;
+            p += Vector3.up * off.y;
+
+            return (p, n);
         }
 
-        (Vector3 vertex, Vector3 normal) GetTrunkPoint(int c, int r)
+        Vector2 UV(int c, int r) => new(1.0f - grid.Radius[c, r] / grid.BaseRadius[c, r], 0);
+
+        // ---------------------------- Trunk ----------------------------
+
+        for (int r = 0; r < grid.Rows; r++)
         {
-            Vector3 vertex = GridToLocal(c, r);
-            Vector3 normal = new Vector3(vertex.x, 0f, vertex.z).normalized;
-            Vector3 tangent = new Vector3(-normal.z, 0f, normal.x);
-
-            // Noise is cyclic around the trunk and offset along height
-            float angle = ((float)c / (float)gridCols) * (Mathf.PI * 2f);
-            float nx = Mathf.Cos(angle);
-            float nz = Mathf.Sin(angle) + ((float)r / (gridRows - 1));
-
-            float perpNoise = Mathf.PerlinNoise(nx * meshGenHorzNoiseScale + 500f, nz * meshGenHorzNoiseScale + 600f);
-            float vertNoise = Mathf.PerlinNoise(nx * meshGenVertNoiseScale + 700f, nz * meshGenVertNoiseScale + 800f);
-
-            float perpOffset = (perpNoise - 0.5f) * meshGenHorzNoiseStrength;
-            float vertOffset = (vertNoise - 0.5f) * meshGenVertNoiseStrength;
-            vertex += perpOffset * tangent + vertOffset * Vector3.up;
-
-            return (vertex, normal);
-        }
-
-        // -------------------------- Trunk --------------------------
-
-        for (int r = 0; r < gridRows; r++)
-        {
-            for (int c = 0; c < gridCols; c++)
+            for (int c = 0; c < grid.Cols; c++)
             {
-                (Vector3 vertex, Vector3 normal) = GetTrunkPoint(c, r);
-
-                vertices[vertIndex] = vertex;
-                normals[vertIndex] = normal;
-                uvs[vertIndex] = GetUV(c, r);
-
-                vertIndex++;
+                var (p, n) = SamplePoint(c, r);
+                verts[v] = p;
+                norms[v] = n;
+                uvs[v] = UV(c, r);
+                v++;
             }
         }
 
-        for (int r = 0; r < gridRows - 1; r++)
+        for (int r = 0; r < grid.Rows - 1; r++)
         {
-            for (int c = 0; c < gridCols; c++)
+            for (int c = 0; c < grid.Cols; c++)
             {
-                int cn = (c + 1) % gridCols;
+                int cn = (c + 1) % grid.Cols;
 
-                int A = c + r * gridCols;
-                int B = cn + r * gridCols;
-                int C = c + (r + 1) * gridCols;
-                int D = cn + (r + 1) * gridCols;
+                int A = c + r * grid.Cols;
+                int B = cn + r * grid.Cols;
+                int C = c + (r + 1) * grid.Cols;
+                int D = cn + (r + 1) * grid.Cols;
 
-                tris[triIndex++] = A;
-                tris[triIndex++] = C;
-                tris[triIndex++] = B;
+                tris[t++] = A;
+                tris[t++] = C;
+                tris[t++] = B;
 
-                tris[triIndex++] = B;
-                tris[triIndex++] = C;
-                tris[triIndex++] = D;
+                tris[t++] = B;
+                tris[t++] = C;
+                tris[t++] = D;
             }
         }
 
-        // -------------------------- Caps --------------------------
+        // ---------------------------- Bottom Cap ----------------------------
 
-        // Bottom Cap
-        int bottomCenterIndex = vertIndex;
-        vertices[vertIndex] = new Vector3(0, 0, 0);
-        normals[vertIndex] = Vector3.down;
-        uvs[vertIndex] = new Vector2(1f, 0f);
-        vertIndex++;
+        int bottomCenter = v;
+        verts[v] = new Vector3(0f, 0f, 0f);
+        norms[v] = Vector3.down;
+        uvs[v] = new Vector2(0.5f, 0f);
+        v++;
 
-        for (int c = 0; c < gridCols; c++)
+        for (int c = 0; c < grid.Cols; c++)
         {
-            (Vector3 vertex, Vector3 _) = GetTrunkPoint(c, 0);
-
-            vertices[vertIndex] = vertex;
-            normals[vertIndex] = Vector3.down;
-            uvs[vertIndex] = GetUV(c, 0);
-            vertIndex++;
+            var (p, _) = SamplePoint(c, 0);
+            verts[v] = p;
+            norms[v] = Vector3.down;
+            uvs[v] = UV(c, 0);
+            v++;
         }
 
-        for (int c = 0; c < gridCols; c++)
+        for (int c = 0; c < grid.Cols; c++)
         {
-            int ringA = bottomCenterIndex + 1 + c;
-            int ringB = bottomCenterIndex + 1 + ((c + 1) % gridCols);
+            int A = bottomCenter;
+            int B = bottomCenter + 1 + c;
+            int C = bottomCenter + 1 + ((c + 1) % grid.Cols);
 
-            tris[triIndex++] = bottomCenterIndex;
-            tris[triIndex++] = ringA;
-            tris[triIndex++] = ringB;
+            tris[t++] = A;
+            tris[t++] = B;
+            tris[t++] = C;
         }
 
-        // Top Cap
-        int topCenterIndex = vertIndex;
-        float yTop = meshHeight;
-        vertices[vertIndex] = new Vector3(0, yTop, 0);
-        normals[vertIndex] = Vector3.up;
-        uvs[vertIndex] = new Vector2(1f, 0f);
-        vertIndex++;
+        // ---------------------------- Top Cap ----------------------------
 
-        for (int c = 0; c < gridCols; c++)
+        int topCenter = v;
+        verts[v] = new Vector3(0f, grid.Height, 0f);
+        norms[v] = Vector3.up;
+        uvs[v] = new Vector2(0.5f, 1f);
+        v++;
+
+        for (int c = 0; c < grid.Cols; c++)
         {
-            (Vector3 vertex, Vector3 _) = GetTrunkPoint(c, gridRows - 1);
-
-            vertices[vertIndex] = vertex;
-            normals[vertIndex] = Vector3.up;
-            uvs[vertIndex] = GetUV(c, gridRows - 1);
-            vertIndex++;
+            var (p, _) = SamplePoint(c, grid.Rows - 1);
+            verts[v] = p;
+            norms[v] = Vector3.up;
+            uvs[v] = UV(c, grid.Rows - 1);
+            v++;
         }
 
-        for (int c = 0; c < gridCols; c++)
+        for (int c = 0; c < grid.Cols; c++)
         {
-            int ringA = topCenterIndex + 1 + c;
-            int ringB = topCenterIndex + 1 + ((c + 1) % gridCols);
+            int A = topCenter;
+            int B = topCenter + 1 + ((c + 1) % grid.Cols);
+            int C = topCenter + 1 + c;
 
-            tris[triIndex++] = topCenterIndex;
-            tris[triIndex++] = ringB;
-            tris[triIndex++] = ringA;
+            tris[t++] = A;
+            tris[t++] = B;
+            tris[t++] = C;
         }
 
-        // -------------------------- Finish --------------------------
+        // ---------------------------- Build ----------------------------
 
-        mesh.vertices = vertices;
-        mesh.normals = normals;
-        mesh.triangles = tris;
+        mesh.vertices = verts;
+        mesh.normals = norms;
         mesh.uv = uvs;
+        mesh.triangles = tris;
 
         mesh.RecalculateBounds();
 
@@ -277,115 +386,9 @@ public class ChoppableTree : MonoBehaviour
         float angle = Mathf.Atan2(local.z, local.x);
         if (angle < 0) angle += Mathf.PI * 2f;
 
-        int col = Mathf.FloorToInt(angle / (2f * Mathf.PI) * gridCols);
-        int row = Mathf.FloorToInt(Mathf.Clamp01(local.y / meshHeight) * (gridRows - 1));
+        int col = Mathf.FloorToInt(angle / (Mathf.PI * 2f) * grid.Cols);
+        int row = Mathf.Clamp(Mathf.RoundToInt((local.y / grid.Height) * (grid.Rows - 1)), 0, grid.Rows - 1);
 
         return new Vector2Int(col, row);
-    }
-
-    private Vector3 GridToLocal(int col, int row)
-    {
-        float angle = ((float)col / (float)gridCols) * Mathf.PI * 2f;
-        float radius = currentGrid[col, row];
-        float y = ((float)row / (float)(gridRows - 1)) * meshHeight;
-        float x = Mathf.Cos(angle) * radius;
-        float z = Mathf.Sin(angle) * radius;
-        return new Vector3(x, y, z);
-    }
-
-    private bool CheckForSplitCondition(int minRow, int rowMax)
-    {
-        minRow = Mathf.Clamp(minRow, 0, gridRows - 1);
-        rowMax = Mathf.Clamp(rowMax, 0, gridRows - 1);
-
-        for (int row = minRow; row <= rowMax; row++)
-        {
-            if (CheckRowForSplit(row)) return true;
-        }
-        return false;
-    }
-
-    private bool CheckRowForSplit(int row)
-    {
-        const float epsilon = 0.0001f;
-        int runCount = 0;
-
-        // Loop round the grid columns twice to ensure we check all wrap-around cases
-        for (int c = 0; c < gridCols * 2; c++)
-        {
-            if (currentGrid[c % gridCols, row] <= meshMinRadius + epsilon) runCount++;
-            else runCount = 0;
-            if (runCount >= SplitColRequired) return true;
-        }
-
-        return false;
-    }
-
-    private void PerformSplit(int splitRow)
-    {
-        int bottomRowCount = splitRow + 1;
-        int topRowCount = gridRows - bottomRowCount + 1;
-        if (topRowCount <= 0) return;
-
-        // Slice current + base grids
-        float[,] bottomCurrentGrid = SliceGrid(currentGrid, 0, bottomRowCount);
-        float[,] bottomBaseGrid = SliceGrid(baseGrid, 0, bottomRowCount);
-        float[,] topCurrentGrid = SliceGrid(currentGrid, bottomRowCount - 1, topRowCount);
-        float[,] topBaseGrid = SliceGrid(baseGrid, bottomRowCount - 1, topRowCount);
-
-        float heightPerRow = meshHeight / gridRows;
-
-        // Update this instance to bottom half
-        currentGrid = bottomCurrentGrid;
-        baseGrid = bottomBaseGrid;
-        gridRows = bottomRowCount;
-        meshHeight = heightPerRow * bottomRowCount;
-        CanChop = false;
-        RegenerateMeshFromGrid();
-
-        // Spawn a new instance for the top half
-        Vector3 spawnPos = transform.position + (bottomRowCount - 1) * heightPerRow * Vector3.up;
-        GameObject go = Instantiate(gameObject, spawnPos, transform.rotation);
-        ChoppableTree topTree = go.GetComponent<ChoppableTree>();
-        topTree.InitFromSplit(
-            topCurrentGrid,
-            topBaseGrid,
-            gridCols,
-            topRowCount,
-            heightPerRow * topRowCount
-        );
-
-        // Slight upward nudge to avoid collider intersection
-        go.transform.position += Vector3.up * 0.001f;
-    }
-
-    public void InitFromSplit(float[,] currentGrid, float[,] baseGrid, int gridCols, int gridRows, float meshHeight)
-    {
-        this.gridCols = gridCols;
-        this.gridRows = gridRows;
-        this.meshHeight = meshHeight;
-        this.currentGrid = currentGrid;
-        this.baseGrid = baseGrid;
-
-        RegenerateMeshFromGrid();
-
-        // Enable physics
-        rb.isKinematic = false;
-        CanChop = false;
-    }
-
-    private float[,] SliceGrid(float[,] src, int startRow, int rowCount)
-    {
-        int cols = src.GetLength(0);
-        float[,] output = new float[cols, rowCount];
-
-        for (int r = 0; r < cols; r++)
-        {
-            for (int c = 0; c < rowCount; c++)
-            {
-                output[r, c] = src[r, startRow + c];
-            }
-        }
-        return output;
     }
 }
