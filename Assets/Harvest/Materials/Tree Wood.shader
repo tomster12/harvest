@@ -1,4 +1,4 @@
-Shader "Custom/Super Simple Bark Cut Lit"
+Shader "Custom/Tree Wood"
 {
     Properties
     {

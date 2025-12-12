@@ -232,9 +232,9 @@ public class PlayerAxeChopAction : PlayerAction
     private void OnHitTree()
     {
         float accuracy = Mathf.Clamp01(1f - Mathf.Abs(offset));
-        float depth = 0.06f + accuracy * 0.02f;
-        float width = 0.3f + accuracy * 0.2f;
-        float height = 0.06f + accuracy * 0.04f;
+        float depth = 0.01f + accuracy * 0.05f;
+        float width = 0.1f + accuracy * 0.25f;
+        float height = 0.02f + accuracy * 0.05f;
 
         var (previewPos, _) = GetPreviewHitPose();
         tree.Hit(previewPos, depth, width, height);

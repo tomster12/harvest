@@ -1,43 +1,97 @@
 using UnityEngine;
 
-public sealed class TreeGrid
+public struct TreeGridGenConfig
 {
-    public int Cols;
-    public int Rows;
+    public float Radius;
+    public float Height;
     public float ColDensity;
     public float RowDensity;
-    public float Height;
     public float MinRadius;
     public float SplitWidthRequirement;
-    public int SplitColRequirement;
-    public float[,] Radius;
-    public float[,] BaseRadius;
-    public Vector3[,] Offsets;
+    public float RadiusNoiseScale;
+    public float RadiusNoiseStrength;
+    public int RadiusNoiseSeed;
+    public float HorzNoiseScale;
+    public float HorzNoiseStrength;
+    public float VertNoiseScale;
+    public float VertNoiseStrength;
+}
 
-    public static TreeGrid FromDensity(float colDensity, float rowDensity, float radius, float height, float minRadius, float splitWidthRequired)
+public sealed class TreeGridConstants
+{
+    public readonly float ColDensity;
+    public readonly float RowDensity;
+    public readonly float MinRadius;
+    public readonly float SplitWidthRequirement;
+    public readonly int SplitColRequirement;
+    public readonly float HeightPerRow;
+
+    public TreeGridConstants(float colDensity, float rowDensity, float minRadius, float splitWidthRequired, float heightPerRow)
     {
-        var cols = Mathf.Max(8, Mathf.CeilToInt((2f * Mathf.PI * radius) * colDensity));
-        var rows = Mathf.Max(4, Mathf.CeilToInt(height * rowDensity));
-
-        return new(cols, rows, colDensity, rowDensity, height, minRadius, splitWidthRequired);
-    }
-
-    public TreeGrid(int cols, int rows, float colDensity, float rowDensity, float height, float minRadius, float splitWidthRequired)
-    {
-        Cols = cols;
-        Rows = rows;
         ColDensity = colDensity;
         RowDensity = rowDensity;
-        Height = height;
         MinRadius = minRadius;
         SplitWidthRequirement = splitWidthRequired;
         SplitColRequirement = Mathf.CeilToInt(splitWidthRequired * colDensity);
-        Radius = new float[Cols, Rows];
-        BaseRadius = new float[Cols, Rows];
-        Offsets = new Vector3[Cols, Rows];
+        HeightPerRow = heightPerRow;
+    }
+}
+
+public sealed class TreeGrid
+{
+    public readonly TreeGridConstants Constants;
+    public readonly int Cols;
+    public readonly int Rows;
+    public readonly float[,] Radius;
+    public readonly float[,] BaseRadius;
+    public readonly Vector3[,] Offsets;
+
+    public float Height => Rows * Constants.HeightPerRow;
+
+    public static TreeGrid Generate(TreeGridGenConfig config)
+    {
+        int cols = Mathf.Max(8, Mathf.CeilToInt(2f * Mathf.PI * config.Radius * config.ColDensity));
+        int rows = Mathf.Max(4, Mathf.CeilToInt(config.Height * config.RowDensity));
+        float heightPerRow = config.Height / rows;
+
+        var constants = new TreeGridConstants(
+            config.ColDensity,
+            config.RowDensity,
+            config.MinRadius,
+            config.SplitWidthRequirement,
+            heightPerRow
+        );
+
+        var grid = new TreeGrid(cols, rows, constants);
+
+        grid.GenerateBaseRadius(
+            config.Radius,
+            config.RadiusNoiseScale,
+            config.RadiusNoiseStrength,
+            config.RadiusNoiseSeed
+        );
+
+        grid.GeneratePerVertexOffsets(
+            config.HorzNoiseScale,
+            config.HorzNoiseStrength,
+            config.VertNoiseScale,
+            config.VertNoiseStrength
+        );
+
+        return grid;
     }
 
-    public void GenerateBaseRadius(float baseRadius, float noiseScale, float noiseStrength, int seed)
+    public TreeGrid(int cols, int rows, TreeGridConstants constants)
+    {
+        Constants = constants;
+        Cols = cols;
+        Rows = rows;
+        Radius = new float[cols, rows];
+        BaseRadius = new float[cols, rows];
+        Offsets = new Vector3[cols, rows];
+    }
+
+    private void GenerateBaseRadius(float baseRadius, float noiseScale, float noiseStrength, int seed)
     {
         for (int c = 0; c < Cols; c++)
         {
@@ -49,14 +103,14 @@ public sealed class TreeGrid
                 float radiusNoise = Mathf.PerlinNoise(nx * noiseScale + seed, nz * noiseScale + seed);
                 radiusNoise = (radiusNoise - 0.5f) * noiseStrength;
 
-                float rad = baseRadius + radiusNoise;
-                BaseRadius[c, r] = rad;
-                Radius[c, r] = rad;
+                float radius = baseRadius + radiusNoise;
+                BaseRadius[c, r] = radius;
+                Radius[c, r] = radius;
             }
         }
     }
 
-    public void GeneratePerVertexOffsets(float horzScale, float horzStrength, float vertScale, float vertStrength)
+    private void GeneratePerVertexOffsets(float horzScale, float horzStrength, float vertScale, float vertStrength)
     {
         for (int c = 0; c < Cols; c++)
         {
@@ -77,8 +131,8 @@ public sealed class TreeGrid
 
     public bool ApplyHit(Vector2Int hitGrid, float depth, float width, float height)
     {
-        int hitCols = Mathf.CeilToInt(width * ColDensity);
-        int hitRows = Mathf.CeilToInt(height * RowDensity);
+        int hitCols = Mathf.CeilToInt(width * Constants.ColDensity);
+        int hitRows = Mathf.CeilToInt(height * Constants.RowDensity);
 
         for (int dc = -hitCols; dc <= hitCols; dc++)
         {
@@ -95,7 +149,7 @@ public sealed class TreeGrid
                 if (dist > 1f) continue;
 
                 float falloff = 1f - dist;
-                Radius[c, r] = Mathf.Max(MinRadius, Radius[c, r] - depth * falloff);
+                Radius[c, r] = Mathf.Max(Constants.MinRadius, Radius[c, r] - depth * falloff);
             }
         }
 
@@ -121,9 +175,9 @@ public sealed class TreeGrid
         int runCount = 0;
         for (int c = 0; c < Cols * 2; c++)
         {
-            if (Radius[c % Cols, r] <= MinRadius + eps) runCount++;
+            if (Radius[c % Cols, r] <= Constants.MinRadius + eps) runCount++;
             else runCount = 0;
-            if (runCount >= SplitColRequirement) return true;
+            if (runCount >= Constants.SplitColRequirement) return true;
         }
         return false;
     }
@@ -131,28 +185,59 @@ public sealed class TreeGrid
     public (TreeGrid bottom, TreeGrid top) SplitAtRow(int splitRow)
     {
         int bottomRows = splitRow + 1;
-        int topRows = Rows - bottomRows + 1;
+        int topRows = Rows - bottomRows;
         if (topRows <= 0) return (this, null);
 
-        float heightPerRow = Height / Rows;
-        var bottom = Slice(0, bottomRows, bottomRows * heightPerRow);
-        var top = Slice(bottomRows - 1, topRows, topRows * heightPerRow);
+        var bottom = Slice(0, bottomRows);
+        var top = Slice(bottomRows, topRows);
         return (bottom, top);
     }
 
-    private TreeGrid Slice(int rowStart, int rowCount, float newHeight)
+    private TreeGrid Slice(int startRow, int rows)
     {
-        var newGrid = new TreeGrid(Cols, rowCount, ColDensity, RowDensity, newHeight, MinRadius, SplitWidthRequirement);
+        var grid = new TreeGrid(Cols, rows, Constants);
+
         for (int c = 0; c < Cols; c++)
         {
-            for (int r = 0; r < rowCount; r++)
+            for (int r = 0; r < rows; r++)
             {
-                newGrid.Radius[c, r] = Radius[c, rowStart + r];
-                newGrid.BaseRadius[c, r] = BaseRadius[c, rowStart + r];
-                newGrid.Offsets[c, r] = Offsets[c, rowStart + r];
+                int sourceRow = startRow + r;
+                grid.Radius[c, r] = Radius[c, sourceRow];
+                grid.BaseRadius[c, r] = BaseRadius[c, sourceRow];
+                grid.Offsets[c, r] = Offsets[c, sourceRow];
             }
         }
-        return newGrid;
+
+        return grid;
+    }
+
+    public Vector3 GridToLocal(int c, int r)
+    {
+        float angle = (c / (float)Cols) * Mathf.PI * 2f;
+        float radius = Radius[c, r];
+        float y = (r / (float)(Rows - 1)) * Height;
+
+        Vector3 p = new Vector3(Mathf.Cos(angle) * radius, y, Mathf.Sin(angle) * radius);
+
+        var off = Offsets[c, r];
+        Vector3 n = new Vector3(p.x, 0f, p.z).normalized;
+        Vector3 tangent = new(-n.z, 0f, n.x);
+
+        p += tangent * off.x;
+        p += Vector3.up * off.y;
+
+        return p;
+    }
+
+    public Vector2Int LocalToGrid(Vector3 localPos)
+    {
+        float angle = Mathf.Atan2(localPos.z, localPos.x);
+        if (angle < 0) angle += Mathf.PI * 2f;
+
+        int col = Mathf.FloorToInt(angle / (Mathf.PI * 2f) * Cols);
+        int row = Mathf.Clamp(Mathf.RoundToInt((localPos.y / Height) * (Rows - 1)), 0, Rows - 1);
+
+        return new Vector2Int(col, row);
     }
 }
 
@@ -184,7 +269,7 @@ public class ChoppableTree : MonoBehaviour
     [SerializeField] private MeshCollider mc;
     [SerializeField] private Rigidbody rb;
 
-    [Header("Config")]
+    [Header("Generation Config")]
     [SerializeField] private float genColDensity = 20f;
     [SerializeField] private float genRowDensity = 20f;
     [SerializeField] private float genRadiusNoiseScale = 1f;
@@ -204,35 +289,32 @@ public class ChoppableTree : MonoBehaviour
 
     private void Awake()
     {
-        GenerateNewTree();
+        RegenerateTree();
         rb.isKinematic = true;
         CanChop = true;
     }
 
-    public void InitFromGrid(TreeGrid grid)
+    [ContextMenu("Regenerate Tree")]
+    private void RegenerateTree()
     {
-        this.grid = grid;
+        grid = TreeGrid.Generate(new()
+        {
+            Radius = genRadius,
+            Height = genHeight,
+            ColDensity = genColDensity,
+            RowDensity = genRowDensity,
+            MinRadius = genMinRadius,
+            SplitWidthRequirement = splitWidthRequirement,
+            RadiusNoiseScale = genRadiusNoiseScale,
+            RadiusNoiseStrength = genRadiusNoiseStrength,
+            RadiusNoiseSeed = genRadiusNoiseSeed,
+            HorzNoiseScale = genHorzNoiseScale,
+            HorzNoiseStrength = genHorzNoiseStrength,
+            VertNoiseScale = genVertNoiseScale,
+            VertNoiseStrength = genVertNoiseStrength
+        });
+
         RebuildMesh();
-        rb.isKinematic = false;
-        CanChop = false;
-    }
-
-    [ContextMenu("Generate New Tree")]
-    private void GenerateNewTree()
-    {
-        grid = TreeGrid.FromDensity(genColDensity, genRowDensity, genRadius, genHeight, genMinRadius, splitWidthRequirement);
-        grid.GenerateBaseRadius(genRadius, genRadiusNoiseScale, genRadiusNoiseStrength, genRadiusNoiseSeed);
-        grid.GeneratePerVertexOffsets(genHorzNoiseScale, genHorzNoiseStrength, genVertNoiseScale, genVertNoiseStrength);
-
-        RebuildMesh();
-    }
-
-    private void SpawnTop(TreeGrid top)
-    {
-        Vector3 pos = transform.position + Vector3.up * (grid.Rows - 1) * (grid.Height / grid.Rows) + Vector3.up * 0.01f;
-        var go = Instantiate(gameObject, pos, transform.rotation);
-        var tree = go.GetComponent<ChoppableTree>();
-        tree.InitFromGrid(top);
     }
 
     private void RebuildMesh()
@@ -257,18 +339,12 @@ public class ChoppableTree : MonoBehaviour
 
         (Vector3 point, Vector3 normal) SamplePoint(int c, int r)
         {
-            float angle = (c / (float)grid.Cols) * Mathf.PI * 2f;
-            float radius = grid.Radius[c, r];
-            float y = (r / (float)(grid.Rows - 1)) * grid.Height;
-
-            Vector3 p = new Vector3(Mathf.Cos(angle) * radius, y, Mathf.Sin(angle) * radius);
+            Vector3 p = grid.GridToLocal(c, r);
             Vector3 n = new Vector3(p.x, 0f, p.z).normalized;
-
-            var off = grid.Offsets[c, r];
             Vector3 tangent = new(-n.z, 0f, n.x);
 
-            p += tangent * off.x;
-            p += Vector3.up * off.y;
+            p += tangent * grid.Offsets[c, r].x;
+            p += Vector3.up * grid.Offsets[c, r].y;
 
             return (p, n);
         }
@@ -379,16 +455,21 @@ public class ChoppableTree : MonoBehaviour
         mc.sharedMesh = mesh;
     }
 
+    private void SpawnTop(TreeGrid topGrid)
+    {
+        Vector3 topPos = transform.position + Vector3.up * (grid.Rows - 1) * (grid.Height / grid.Rows) + Vector3.up * 0.01f;
+        var go = Instantiate(gameObject, topPos, transform.rotation);
+        var tree = go.GetComponent<ChoppableTree>();
+
+        tree.grid = topGrid;
+        tree.RebuildMesh();
+        tree.rb.isKinematic = false;
+        tree.CanChop = false;
+    }
+
     private Vector2Int WorldToGrid(Vector3 posWorld)
     {
         Vector3 local = transform.InverseTransformPoint(posWorld);
-
-        float angle = Mathf.Atan2(local.z, local.x);
-        if (angle < 0) angle += Mathf.PI * 2f;
-
-        int col = Mathf.FloorToInt(angle / (Mathf.PI * 2f) * grid.Cols);
-        int row = Mathf.Clamp(Mathf.RoundToInt((local.y / grid.Height) * (grid.Rows - 1)), 0, grid.Rows - 1);
-
-        return new Vector2Int(col, row);
+        return grid.LocalToGrid(local);
     }
 }
