@@ -13,7 +13,7 @@ public class PlayerToolHandler
         this.player.Persistent.Gear.OnItemRemoved += OnItemUnequipped;
     }
 
-    public void UpdateTool()
+    public void UpdateCurrentTool()
     {
         CurrentTool?.Update();
     }
@@ -46,7 +46,7 @@ public class PlayerToolHandler
         }
     }
 
-    public void DebugGizmos()
+    public void DebugCurrentToolGizmos()
     {
         CurrentTool?.DebugGizmos();
     }

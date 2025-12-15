@@ -16,12 +16,12 @@ public class CancelOnMovementInput : PlayerActionCancelCondition
 
 public class CancelOnUnequip : PlayerActionCancelCondition
 {
-    public override bool Evaluate(Player player) => player.ToolHandler.CurrentTool == null;
+    public override bool Evaluate(Player player) => player.Tools.CurrentTool == null;
 }
 
 public class CancelOnPickupItem : PlayerActionCancelCondition
 {
-    public override bool Evaluate(Player player) => player.Interactor.HeldItemUI != null;
+    public override bool Evaluate(Player player) => player.Interaction.HeldItemUI != null;
 }
 
 public class CancelOnMouseRelease : PlayerActionCancelCondition

@@ -257,7 +257,7 @@ public class ChoppableTree : MonoBehaviour
             grid = bottomGrid;
             CanChop = false;
             RebuildMesh();
-            if (topGrid != null) SpawnTop(topGrid);
+            if (topGrid != null) SpawnTopLog(topGrid);
             return;
         }
 
@@ -455,7 +455,7 @@ public class ChoppableTree : MonoBehaviour
         mc.sharedMesh = mesh;
     }
 
-    private void SpawnTop(TreeGrid topGrid)
+    private void SpawnTopLog(TreeGrid topGrid)
     {
         Vector3 topPos = transform.position + Vector3.up * (grid.Rows - 1) * (grid.Height / grid.Rows) + Vector3.up * 0.01f;
         var go = Instantiate(gameObject, topPos, transform.rotation);

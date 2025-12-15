@@ -44,29 +44,6 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
         }
     }
 
-    public GridInventoryDTO Serialize()
-    {
-        (Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs = new (Vector2Int, ItemInstanceDTO)[itemInstances.Count];
-        for (int i = 0; i < itemInstances.Count; i++) itemInstanceDTOs[i] = (itemPositions[itemInstances[i]], itemInstances[i].Serialize());
-        return new(itemInstanceDTOs, slots);
-    }
-
-    public void Deserialize(GridInventoryDTO inventoryDTO)
-    {
-        slots = inventoryDTO.slots;
-        sizeX = inventoryDTO.slots.GetLength(0);
-        sizeY = inventoryDTO.slots.GetLength(1);
-        itemInstances.Clear();
-        for (int i = 0; i < inventoryDTO.itemInstanceDTOs.Length; i++)
-        {
-            var (itemPos, itemInstanceDTO) = inventoryDTO.itemInstanceDTOs[i];
-            ItemInstance itemInstance = ItemInstance.DeserializeNew(itemInstanceDTO);
-            itemInstance.SetContainer(this);
-            itemInstances.Add(itemInstance);
-            itemPositions[itemInstance] = itemPos;
-        }
-    }
-
     public ItemContainerInteractResponse PlaceItem(ItemInstance itemInstance, int x, int y, bool preview = false)
     {
         // Check position is in bounds
@@ -190,6 +167,29 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
         if (itemPositions.TryGetValue(itemInstance, out gridPos)) return true;
         gridPos = default;
         return false;
+    }
+
+    public GridInventoryDTO Serialize()
+    {
+        (Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs = new (Vector2Int, ItemInstanceDTO)[itemInstances.Count];
+        for (int i = 0; i < itemInstances.Count; i++) itemInstanceDTOs[i] = (itemPositions[itemInstances[i]], itemInstances[i].Serialize());
+        return new(itemInstanceDTOs, slots);
+    }
+
+    public void Deserialize(GridInventoryDTO inventoryDTO)
+    {
+        slots = inventoryDTO.slots;
+        sizeX = inventoryDTO.slots.GetLength(0);
+        sizeY = inventoryDTO.slots.GetLength(1);
+        itemInstances.Clear();
+        for (int i = 0; i < inventoryDTO.itemInstanceDTOs.Length; i++)
+        {
+            var (itemPos, itemInstanceDTO) = inventoryDTO.itemInstanceDTOs[i];
+            ItemInstance itemInstance = ItemInstance.DeserializeNew(itemInstanceDTO);
+            itemInstance.SetContainer(this);
+            itemInstances.Add(itemInstance);
+            itemPositions[itemInstance] = itemPos;
+        }
     }
 
     private readonly List<ItemInstance> itemInstances = new();

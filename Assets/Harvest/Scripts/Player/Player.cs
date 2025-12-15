@@ -10,16 +10,17 @@ public class Player : MonoBehaviour
         None = 0,
         Movement = 1 << 0,
         InteractContainers = 1 << 1,
-        InteractWorld = 1 << 3,
+        InteractLooseItems = 1 << 2,
+        InteractLargeObjects = 1 << 3,
         Action = 1 << 4
     }
 
     public PlayerPersistent Persistent;
-    public PlayerInput Input;
     public PlayerCamera Camera;
-    public PlayerToolHandler ToolHandler;
-    public PlayerInteractor Interactor;
+    public PlayerInput Input;
     public PlayerMovement Movement;
+    public PlayerInteraction Interaction;
+    public PlayerToolHandler Tools;
     public PlayerActionHandler Actions;
     public PlayerAnimator Animator;
 
@@ -31,8 +32,8 @@ public class Player : MonoBehaviour
 
         Input.Init(this);
         Camera.Init(this);
-        ToolHandler.Init(this);
-        Interactor.Init(this);
+        Tools.Init(this);
+        Interaction.Init(this);
         Movement.Init(this);
         Actions.Init(this);
         Animator.Init(this);
@@ -53,7 +54,7 @@ public class Player : MonoBehaviour
 
     public bool IsRestricted(ActionRestriction flags) => (ActionRestrictions & flags) != ActionRestriction.None;
 
-    private PlayerAnimator.ControlHandle animatorControl;
+    private PlayerAnimator.ControlHandle animatorControlHandle;
     private PlayerIdleAnimation idleAnimation;
     private PlayerWalkingAnimation walkingAnimation;
 
@@ -63,32 +64,17 @@ public class Player : MonoBehaviour
 
         Camera.UpdateCamera();
 
-        ToolHandler.UpdateTool();
+        Tools.UpdateCurrentTool();
 
-        Interactor.HandleInteractingContainers();
-        Interactor.HandleInteractingWorld();
+        Interaction.HandleInteractingContainers();
+
+        Interaction.HandleInteractingWorld();
 
         Actions.UpdateActions();
 
-        UpdateBaseAnimations();
+        ApplyBaseAnimations();
+
         Animator.UpdateAnimations();
-    }
-
-    private void UpdateBaseAnimations()
-    {
-        // Always try and take control if possible
-        if (!Animator.IsControlled)
-        {
-            animatorControl = Animator.TakeControl(-1);
-            animatorControl.OnCancelled = () => animatorControl = null;
-        }
-
-        // We have control so idle or walk
-        if (animatorControl != null)
-        {
-            if (Movement.IsMoving && Animator.CurrentAnimation != walkingAnimation) animatorControl.StartAnimation(walkingAnimation);
-            else if (!Movement.IsMoving && Animator.CurrentAnimation != idleAnimation) animatorControl.StartAnimation(idleAnimation);
-        }
     }
 
     private void FixedUpdate()
@@ -97,17 +83,42 @@ public class Player : MonoBehaviour
         {
             Movement.MoveInDirection(Input.InputMovement);
         }
-        Movement.FixedUpdate();
+
+        Movement.FixedUpdateMovement();
+
         Camera.FollowPlayerPosition();
     }
 
     private void LateUpdate()
     {
-        Movement.LateUpdate();
+        Movement.LateUpdateMovement();
     }
 
     private void OnDrawGizmos()
     {
-        ToolHandler.DebugGizmos();
+        Tools.DebugCurrentToolGizmos();
+    }
+
+    private void ApplyBaseAnimations()
+    {
+        // Always try and take control if possible
+        if (!Animator.IsControlled)
+        {
+            animatorControlHandle = Animator.TakeControl(-1);
+            animatorControlHandle.OnCancelled = () => animatorControlHandle = null;
+        }
+
+        // We have control so idle or walk
+        if (animatorControlHandle != null)
+        {
+            if (Movement.IsMoving && Animator.CurrentAnimation != walkingAnimation)
+            {
+                animatorControlHandle.StartAnimation(walkingAnimation);
+            }
+            else if (!Movement.IsMoving && Animator.CurrentAnimation != idleAnimation)
+            {
+                animatorControlHandle.StartAnimation(idleAnimation);
+            }
+        }
     }
 }

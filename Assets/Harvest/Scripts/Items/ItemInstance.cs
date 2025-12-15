@@ -28,6 +28,17 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
         this.amount = amount;
     }
 
+    public void SetAmount(int amount)
+    {
+        this.amount = amount;
+        OnAmountChanged?.Invoke();
+    }
+
+    public void SetContainer(IItemContainer container)
+    {
+        Container = container;
+    }
+
     public ItemInstanceDTO Serialize()
     {
         return new(data.ID, amount);
@@ -44,17 +55,6 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
         ItemInstance instance = new();
         instance.Deserialize(itemDTO);
         return instance;
-    }
-
-    public void SetAmount(int amount)
-    {
-        this.amount = amount;
-        OnAmountChanged?.Invoke();
-    }
-
-    public void SetContainer(IItemContainer container)
-    {
-        Container = container;
     }
 
     [Header("Variables")]

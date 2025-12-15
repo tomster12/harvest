@@ -17,15 +17,6 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
     public Dictionary<EquipmentType, ItemInstance> EquipmentItems => equipmentItems;
     public ItemInstance ToolItem => toolItem;
 
-    public GearInventoryDTO Serialize()
-    {
-        return new GearInventoryDTO();
-    }
-
-    public void Deserialize(GearInventoryDTO inventoryDTO)
-    {
-    }
-
     public ItemContainerInteractResponse PlaceItem(ItemInstance itemInstance, bool preview = false)
     {
         // Place a new equipment
@@ -135,6 +126,15 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
 
         // If the item is not found, return blocked
         return new ItemContainerInteractResponse(ItemContainerInteractType.Blocked, itemInstance);
+    }
+
+    public GearInventoryDTO Serialize()
+    {
+        return new GearInventoryDTO();
+    }
+
+    public void Deserialize(GearInventoryDTO inventoryDTO)
+    {
     }
 
     private Dictionary<EquipmentType, ItemInstance> equipmentItems = new();

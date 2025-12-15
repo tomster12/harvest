@@ -40,7 +40,7 @@ public class PlayerMovement
         TargetFacingDir = flatDir.normalized;
     }
 
-    public void FixedUpdate()
+    public void FixedUpdateMovement()
     {
         // Reset target position if reached
         if (targetPosition.HasValue && HasReachedTarget) targetPosition = null;
@@ -86,7 +86,7 @@ public class PlayerMovement
         }
     }
 
-    public void LateUpdate()
+    public void LateUpdateMovement()
     {
         inputDirection = null;
     }

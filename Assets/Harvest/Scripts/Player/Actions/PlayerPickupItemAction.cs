@@ -23,9 +23,9 @@ public class PlayerPickupItemAction : PlayerAction
         await AsyncUtil.WaitUntil(() => player.Movement.HasReachedTarget, ct);
 
         ItemInstance itemInstance = item.Pickup();
-        player.Interactor.HeldItemUI.SetItem(itemInstance);
-        Vector2 offset = player.Interactor.HeldItemUI.Rect.sizeDelta / 2;
+        player.Interaction.HeldItemUI.SetItem(itemInstance);
+        Vector2 offset = player.Interaction.HeldItemUI.Rect.sizeDelta / 2;
         offset = new(offset.x, -offset.y);
-        player.Interactor.HeldItemUI.SetStateToMouse(offset);
+        player.Interaction.HeldItemUI.SetStateToMouse(offset);
     }
 }
