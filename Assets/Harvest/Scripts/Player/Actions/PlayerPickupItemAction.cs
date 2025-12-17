@@ -12,12 +12,12 @@ public class PlayerPickupItemAction : PlayerAction
         this.item = item;
         this.pickupPosition = position;
 
-        AddPlayerRestriction(Player.ActionRestriction.InteractContainers | Player.ActionRestriction.Movement);
+        AddPlayerRestriction(Player.Restriction.InteractContainers | Player.Restriction.Movement);
         AddCancelCondition(new CancelOnMovementInput());
         SetCancellable(true);
     }
 
-    protected override async Task RunAsync(CancellationToken ct)
+    protected override async Task Start(CancellationToken ct)
     {
         player.Movement.MoveTowardsPosition(pickupPosition, 0.5f);
         await AsyncUtil.WaitUntil(() => player.Movement.HasReachedTarget, ct);

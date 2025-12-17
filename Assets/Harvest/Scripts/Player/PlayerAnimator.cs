@@ -19,9 +19,15 @@ public class PlayerAnimator
         });
     }
 
-    public void UpdateAnimations()
+    public void UpdateCurrentAnimation()
     {
         currentAnimation?.Update();
+    }
+
+    public bool CanTakeControl(int priority = 0)
+    {
+        if (currentHandle == null) return true;
+        else return priority > currentHandle.Priority;
     }
 
     public ControlHandle TakeControl(int priority = 0)

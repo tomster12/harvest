@@ -6,7 +6,9 @@ using UnityEngine;
 [Serializable]
 public class PlayerActionHandler
 {
-    public bool IsBusy => currentAction != null;
+    public bool CanAct => !isRunning || IsCancellable;
+    public bool IsRunning => isRunning;
+    public bool IsCancellable => currentAction?.Cancellable ?? true;
 
     public void Init(Player player)
     {
@@ -24,10 +26,11 @@ public class PlayerActionHandler
                 Debug.LogWarning($"Action '{currentAction.GetType().Name}' is currently running and cannot be cancelled.");
                 return;
             }
+
             await CancelCurrentAction();
         }
 
-        currentActionTask = RunActionTask(action);
+        currentRunActionTask = RunAction(action);
     }
 
     public void UpdateActions()
@@ -52,29 +55,29 @@ public class PlayerActionHandler
 
         isCancelling = true;
         cts?.Cancel();
-        await currentActionTask;
+        await currentRunActionTask;
         isCancelling = false;
     }
 
     private Player player;
     private CancellationTokenSource cts;
     private PlayerAction currentAction;
-    private Task currentActionTask;
+    private Task currentRunActionTask;
     private bool isRunning;
     private bool isCancelling;
 
-    private async Task RunActionTask(PlayerAction action)
+    private async Task RunAction(PlayerAction action)
     {
         Debug.Assert(currentAction == null, "Cannot run action task with non null currentAction");
 
         isRunning = true;
         currentAction = action;
-        player.RestrictActions(action.PlayerRestrictions);
+        player.Restrict(action.PlayerRestrictions);
 
         cts = new CancellationTokenSource();
-        await currentAction.FullRunAsync(cts.Token);
+        await currentAction.FullRun(cts.Token);
 
-        player.UnrestrictActions(currentAction.PlayerRestrictions);
+        player.Unrestrict(currentAction.PlayerRestrictions);
         cts.Dispose();
         cts = null;
         currentAction = null;

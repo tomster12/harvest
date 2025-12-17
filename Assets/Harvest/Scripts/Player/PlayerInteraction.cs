@@ -22,7 +22,7 @@ public class PlayerInteraction
 
     public void HandleInteractingContainers()
     {
-        if (!player.IsRestricted(Player.ActionRestriction.InteractContainers))
+        if (!player.IsRestricted(Player.Restriction.InteractContainers))
         {
             // Update hovered container UI
             var newHoveredContainerUI = UIUtil.GetEventSystemRaycastResults()
@@ -60,7 +60,7 @@ public class PlayerInteraction
 
     public void HandleInteractingWorld()
     {
-        if (IsHoveringContainer && !IsHoldingItem && !player.IsRestricted(Player.ActionRestriction.InteractLooseItems))
+        if (!IsHoveringContainer && !IsHoldingItem && !player.IsRestricted(Player.Restriction.InteractLooseItems))
         {
             // If we are already picking up an item check if its done
             if (IsPickingUpItem)
@@ -98,7 +98,7 @@ public class PlayerInteraction
             }
         }
 
-        if (!IsHoveringContainer && !IsHoldingItem && !IsPickingUpItem && !player.IsRestricted(Player.ActionRestriction.InteractLargeObjects))
+        if (!IsHoveringContainer && !IsHoldingItem && !IsPickingUpItem && !player.IsRestricted(Player.Restriction.InteractLargeObjects))
         {
         }
     }

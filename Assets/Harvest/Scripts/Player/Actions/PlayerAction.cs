@@ -37,7 +37,7 @@ public abstract class PlayerAction
 
     public event Action<PlayerAction> OnCancelled;
 
-    public Player.ActionRestriction PlayerRestrictions { get; private set; } = Player.ActionRestriction.None;
+    public Player.Restriction PlayerRestrictions { get; private set; } = Player.Restriction.None;
     public List<PlayerActionCancelCondition> CancelConditions { get; private set; } = new();
     public bool Cancellable { get; private set; } = true;
     public bool IsRunning { get; private set; }
@@ -47,7 +47,7 @@ public abstract class PlayerAction
         this.player = player;
     }
 
-    public PlayerAction AddPlayerRestriction(Player.ActionRestriction flags)
+    public PlayerAction AddPlayerRestriction(Player.Restriction flags)
     {
         PlayerRestrictions |= flags;
         return this;
@@ -65,7 +65,7 @@ public abstract class PlayerAction
         return this;
     }
 
-    public async Task FullRunAsync(CancellationToken ct)
+    public async Task FullRun(CancellationToken ct)
     {
         if (IsRunning) throw new InvalidOperationException("Action already running");
         IsRunning = true;
@@ -73,12 +73,12 @@ public abstract class PlayerAction
 
         try
         {
-            await RunAsync(ct);
+            await Start(ct);
             OnCompleted?.Invoke(this);
         }
         catch (OperationCanceledException)
         {
-            await CancelAsync(ct);
+            await Cancel(ct);
             OnCancelled?.Invoke(this);
         }
         catch (Exception e)
@@ -88,22 +88,16 @@ public abstract class PlayerAction
         }
         finally
         {
-            await FinishAsync(ct);
+            await Stop(ct);
             IsRunning = false;
         }
     }
 
     protected Player player;
 
-    protected abstract Task RunAsync(CancellationToken ct);
+    protected abstract Task Start(CancellationToken ct);
 
-    protected virtual Task CancelAsync(CancellationToken ct)
-    {
-        return Task.CompletedTask;
-    }
+    protected virtual Task Cancel(CancellationToken ct) => Task.CompletedTask;
 
-    protected virtual Task FinishAsync(CancellationToken ct)
-    {
-        return Task.CompletedTask;
-    }
+    protected virtual Task Stop(CancellationToken ct) => Task.CompletedTask;
 }

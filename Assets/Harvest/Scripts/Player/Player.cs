@@ -5,14 +5,13 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     [Flags]
-    public enum ActionRestriction
+    public enum Restriction
     {
         None = 0,
         Movement = 1 << 0,
         InteractContainers = 1 << 1,
         InteractLooseItems = 1 << 2,
-        InteractLargeObjects = 1 << 3,
-        Action = 1 << 4
+        InteractLargeObjects = 1 << 3
     }
 
     public PlayerPersistent Persistent;
@@ -23,8 +22,7 @@ public class Player : MonoBehaviour
     public PlayerToolHandler Tools;
     public PlayerActionHandler Actions;
     public PlayerAnimator Animator;
-
-    public ActionRestriction ActionRestrictions = ActionRestriction.None;
+    public Restriction Restrictions = Restriction.None;
 
     public void Init(PlayerPersistent persistent)
     {
@@ -42,17 +40,17 @@ public class Player : MonoBehaviour
         walkingAnimation = new PlayerWalkingAnimation(Animator);
     }
 
-    public void RestrictActions(ActionRestriction flags)
+    public void Restrict(Restriction flags)
     {
-        ActionRestrictions |= flags;
+        Restrictions |= flags;
     }
 
-    public void UnrestrictActions(ActionRestriction flags)
+    public void Unrestrict(Restriction flags)
     {
-        ActionRestrictions &= ~flags;
+        Restrictions &= ~flags;
     }
 
-    public bool IsRestricted(ActionRestriction flags) => (ActionRestrictions & flags) != ActionRestriction.None;
+    public bool IsRestricted(Restriction flags) => (Restrictions & flags) != Restriction.None;
 
     private PlayerAnimator.ControlHandle animatorControlHandle;
     private PlayerIdleAnimation idleAnimation;
@@ -74,12 +72,12 @@ public class Player : MonoBehaviour
 
         ApplyBaseAnimations();
 
-        Animator.UpdateAnimations();
+        Animator.UpdateCurrentAnimation();
     }
 
     private void FixedUpdate()
     {
-        if (!IsRestricted(ActionRestriction.Movement) && Input.IsInputtingMovement)
+        if (!IsRestricted(Restriction.Movement) && Input.IsInputtingMovement)
         {
             Movement.MoveInDirection(Input.InputMovement);
         }

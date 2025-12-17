@@ -3,46 +3,92 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Unity.Mathematics;
 using System;
-using static PlayerAxeTool;
 
 public class PlayerAxeChopAction : PlayerAction
 {
-    public PlayerAxeChopAction(Player player, ChoppableTree tree, TreeTarget target, Vector3 playerChopFromPos, GameObject axeMesh, GameObject targetChopPreview) : base(player)
+    public PlayerAxeChopAction(Player player, GameObject axeMesh) : base(player)
     {
-        this.tree = tree;
-        this.target = target;
-        this.playerChopFromPos = playerChopFromPos;
+        this.player = player;
         this.axeMesh = axeMesh;
-        this.targetChopPreview = targetChopPreview;
 
-        AddPlayerRestriction(Player.ActionRestriction.Movement);
+        AddPlayerRestriction(Player.Restriction.Movement);
         AddCancelCondition(new CancelOnMovementInput());
         AddCancelCondition(new CancelOnMouseRelease());
         SetCancellable(true);
 
+        // Grab animation transforms
         leftHand = player.Animator.GetAnimationTransform("Left Hand");
         rightHand = player.Animator.GetAnimationTransform("Right Hand");
         leftHandChopBase = player.Animator.GetAnimationPoint("Left Hand - Chop - Base Point");
         leftHandChopFrom = player.Animator.GetAnimationPoint("Left Hand - Chop - Back Point");
 
+        // Create mouse preview
+        targetChopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        targetChopPreview.transform.localScale = new Vector3(0.3f, 0.4f, 1f);
+        Renderer renderer = targetChopPreview.GetComponent<Renderer>();
+        renderer.sharedMaterial = AssetDatabase.GetMaterial("Chop Preview");
+        targetChopPreview.SetActive(false);
+    }
+
+    public void Dispose()
+    {
+        GameObject.Destroy(targetChopPreview);
+    }
+
+    public void Preview()
+    {
+        if (!CanAct || IsRunning) return;
+
+        targetChopPreview.SetActive(false);
+
+        // Find hovered tree and exit early if not hovering any
+        target = FindTreeTarget();
+        if (target == null) return;
+
+        // Raycast out, to the side, and down to find a valid chop from position
+        Vector3 awayFromChopPos = target.Hit.point + target.Hit.normal * CHOP_BACK_OFFSET;
+        awayFromChopPos += Vector3.Cross(target.Hit.normal, Vector3.up) * CHOP_SIDE_OFFSET;
+
+        // If there is nowhere to chop from just stop early
+        if (!Physics.Raycast(awayFromChopPos, Vector3.down, out RaycastHit playerChopFromHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
+        if (playerChopFromHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
+
+        playerChopFromPos = playerChopFromHit.point;
+        targetChopPreview.transform.SetPositionAndRotation(target.Hit.point, Quaternion.LookRotation(-Vector3.up, target.Hit.normal));
+        targetChopPreview.SetActive(true);
+
+        // Perform chop on click
+        if (player.Input.IsMousePressed)
+        {
+            player.Actions.StartAction(this);
+            player.Input.IsMousePressed = false;
+        }
+    }
+
+    public void DebugGizmos()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(playerChopFromPos, 0.1f);
+    }
+
+    protected override async Task Start(CancellationToken ct)
+    {
+        animationState = State.Setup;
+        animationHandle = player.Animator.TakeControl(ANIMATION_PRIORITY);
+        if (animationHandle == null) throw new OperationCanceledException("Failed to take control of animator.");
+
         // Create current mouse preview
         chopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
         chopPreview.transform.position = targetChopPreview.transform.position;
         chopPreview.transform.localScale = new Vector3(0.25f, 0.4f, 1f);
-        chopPreview.transform.rotation = Quaternion.LookRotation(-Vector3.up, this.target.Hit.normal);
+        chopPreview.transform.rotation = Quaternion.LookRotation(-Vector3.up, target.Hit.normal);
 
         chopPreviewRenderer = chopPreview.GetComponent<Renderer>();
         chopPreviewRenderer.sharedMaterial = new(AssetDatabase.GetMaterial("Chop Preview"));
         chopPreviewRenderer.sharedMaterial.color = CHOP_GOOD_COLOR;
-    }
-
-    protected override async Task RunAsync(CancellationToken ct)
-    {
-        handle = player.Animator.TakeControl();
-        if (handle == null) throw new OperationCanceledException("Failed to take control of animator.");
 
         // Start the player input reaction task
-        handleMouseTask = HandleMouseInput(ct);
+        handleMouseInputTask = HandleMouseInput(ct);
         player.Input.HideMouse();
 
         // Put right hand locally forward of the left, and left in base position
@@ -73,7 +119,7 @@ public class PlayerAxeChopAction : PlayerAction
         {
             ct.ThrowIfCancellationRequested();
 
-            if (state == State.Setup)
+            if (animationState == State.Setup)
             {
                 await AnimationUtil.MoveAndRotateTo(ct,
                     leftHand, leftHandChopFrom, Axis.Local,
@@ -81,10 +127,10 @@ public class PlayerAxeChopAction : PlayerAction
                 );
 
                 await Task.Delay(200, ct);
-                state = State.Swing;
+                animationState = State.Swing;
             }
 
-            else if (state == State.Swing)
+            else if (animationState == State.Swing)
             {
                 // Sample the preview pose and calculate the target hand pose
                 var (previewPos, previewNormal) = GetPreviewHitPose();
@@ -101,60 +147,74 @@ public class PlayerAxeChopAction : PlayerAction
 
                 OnHitTree();
                 await Task.Delay(400, ct);
-                state = State.Pull;
+                animationState = State.Pull;
             }
 
-            else if (state == State.Pull)
+            else if (animationState == State.Pull)
             {
                 await AnimationUtil.MoveAndRotateTo(ct,
                     leftHand, leftHandChopFrom,
                     Axis.Local, 0.7f, Easing.EaseOutQuad
                 );
 
-                state = State.Swing;
+                animationState = State.Swing;
             }
         }
     }
 
-    protected override async Task FinishAsync(CancellationToken ct)
+    protected override async Task Stop(CancellationToken ct)
     {
         player.Input.ShowMouse();
         GameObject.Destroy(chopPreview);
         rightHand.SetParent(player.transform, true);
 
         // Wait for the mouse task to finish and ignore cancels
-        if (handleMouseTask != null)
+        if (handleMouseInputTask != null)
         {
-            try { await handleMouseTask; }
+            try { await handleMouseInputTask; }
             catch (OperationCanceledException) { }
             catch (Exception e) { Debug.LogError($"Error in HandleMouseInputAsync: {e}"); }
-            handleMouseTask.Dispose();
+            handleMouseInputTask.Dispose();
         }
 
-        handle?.Release();
+        animationHandle?.Release();
     }
 
-    private enum State
-    { Setup, Swing, Pull };
+    private static float MAX_PLAYER_TARGET_DISTANCE = 10f;
+    private static float CHOP_BACK_OFFSET = 0.4f;
+    private static float CHOP_SIDE_OFFSET = 0.5f;
+    private static Vector2 CHOP_LOOK_OFFSET = new(-0.5f, -0.2f);
+    private static float MAX_CHOP_GROUND_DISTANCE = 0.8f;
+    private static float MIN_CHOP_GROUND_DISTANCE = 0.15f;
+    private static Color CHOP_GOOD_COLOR = new(0.2f, 1f, 0.2f, 0.5f);
+    private static Color CHOP_BAD_COLOR = new(1f, 0.2f, 0.2f, 0.5f);
+    private static float CHOP_SWAY_SCREEN_MAX = 0.03f;
+    private static float CHOP_SWAY_WORLD_MAX = 0.15f;
+    private static float CHOP_SWAY_NOISE_CLAMP = 0.1f;
+    private static float CHOP_SWAY_NOISE_MAGNITUDE = 0.004f;
+    private static float CHOP_SWAY_NOISE_FREQUENCY_MIN = 0.4f;
+    private static float CHOP_SWAY_NOISE_FREQUENCY = 0.4f;
+    private static float CHOP_SWAY_SHAKE_MAGNITUDE = 0.02f;
+    private static float CHOP_SWAY_SHAKE_FREQUENCY = 8f;
+    private static int ANIMATION_PRIORITY = 0;
 
-    private readonly GameObject axeMesh;
-    private readonly GameObject targetChopPreview;
-    private readonly TreeTarget target;
-    private readonly ChoppableTree tree;
-    private readonly Vector3 playerChopFromPos;
+    private GameObject axeMesh;
+    private GameObject targetChopPreview;
+    private GameObject chopPreview;
+    private Renderer chopPreviewRenderer;
+    private Transform leftHand;
+    private Transform rightHand;
+    private Transform leftHandChopBase;
+    private Transform leftHandChopFrom;
 
-    private readonly Transform leftHand;
-    private readonly Transform rightHand;
-    private readonly Transform leftHandChopBase;
-    private readonly Transform leftHandChopFrom;
-    private readonly GameObject chopPreview;
-    private readonly Renderer chopPreviewRenderer;
+    private TreeTarget target;
+    private Vector3 playerChopFromPos;
+    private State animationState = State.Setup;
+    private PlayerAnimator.ControlHandle animationHandle;
+    private Task handleMouseInputTask;
+    private float currentOffsetAmount = 0f;
 
-    private State state = State.Setup;
-    private PlayerAnimator.ControlHandle handle;
-    private Task handleMouseTask;
-    private float offset = 0f;
-
+    private bool CanAct => !player.IsRestricted(Player.Restriction.Movement) && player.Actions.CanAct && player.Animator.CanTakeControl(ANIMATION_PRIORITY);
     private Vector3 HitRight => Vector3.Cross(target.Hit.normal, Vector3.up).normalized;
 
     private async Task HandleMouseInput(CancellationToken ct)
@@ -164,9 +224,9 @@ public class PlayerAxeChopAction : PlayerAction
         float shakeNoiseTime = Time.time;
         float lastTime = Time.time;
 
-        Vector2 offset = Vector2.zero;
-        Vector3 worldOffset = Vector3.zero;
-        const float clamp = 1f;
+        currentOffsetAmount = 0;
+        Vector2 offsetDir = Vector2.zero;
+        const float offsetDirClamp = 1f;
 
         while (true)
         {
@@ -184,8 +244,8 @@ public class PlayerAxeChopAction : PlayerAction
             Vector2 swayMouse = new(mouseX, mouseY);
 
             // Calculate noise sway based on existing offset over time
-            float offsetAmount = Mathf.Clamp01(offset.magnitude);
-            float swayOffsetMult = Easing.EaseOutQuad(offsetAmount);
+            currentOffsetAmount = Mathf.Clamp01(offsetDir.magnitude);
+            float swayOffsetMult = Easing.EaseOutQuad(currentOffsetAmount);
             float swayNoiseFreq = CHOP_SWAY_NOISE_FREQUENCY_MIN + CHOP_SWAY_NOISE_FREQUENCY * swayOffsetMult;
 
             swayNoiseTimeX += dt * swayNoiseFreq;
@@ -199,12 +259,12 @@ public class PlayerAxeChopAction : PlayerAction
             Vector2 swayNoise = new(swayNoiseX, swayNoiseY);
 
             // Update 2D offset with mouse and noise sway
-            offset += swayMouse + swayNoise;
-            offset.x = Mathf.Clamp(offset.x, -clamp, clamp);
-            offset.y = Mathf.Clamp(offset.y, -clamp, clamp);
+            offsetDir += swayMouse + swayNoise;
+            offsetDir.x = Mathf.Clamp(offsetDir.x, -offsetDirClamp, offsetDirClamp);
+            offsetDir.y = Mathf.Clamp(offsetDir.y, -offsetDirClamp, offsetDirClamp);
 
             // Calculate small shake based on existing offset
-            float shakeOffsetMult = Easing.EaseInQuad(offsetAmount);
+            float shakeOffsetMult = Easing.EaseInQuad(currentOffsetAmount);
             shakeNoiseTime += dt * CHOP_SWAY_SHAKE_FREQUENCY * shakeOffsetMult;
             float shakeAmount = CHOP_SWAY_SHAKE_MAGNITUDE * shakeOffsetMult;
 
@@ -212,11 +272,10 @@ public class PlayerAxeChopAction : PlayerAction
             float shakeY = Mathf.Cos(shakeNoiseTime * Mathf.PI * 2f) * shakeAmount;
 
             // Map sway and shake to world offset and apply to preview
-            worldOffset = ((CHOP_SWAY_WORLD_MAX * offset.x + shakeX) * right) +
-                          ((CHOP_SWAY_WORLD_MAX * offset.y + shakeY) * up);
+            Vector3 worldOffsetDir = ((CHOP_SWAY_WORLD_MAX * offsetDir.x + shakeX) * right) +
+                                     ((CHOP_SWAY_WORLD_MAX * offsetDir.y + shakeY) * up);
 
-
-            chopPreview.transform.position = targetChopPreview.transform.position + worldOffset;
+            chopPreview.transform.position = targetChopPreview.transform.position + worldOffsetDir;
             chopPreviewRenderer.sharedMaterial.color = Color.Lerp(CHOP_GOOD_COLOR, CHOP_BAD_COLOR, shakeOffsetMult);
 
             await Task.Yield();
@@ -231,12 +290,44 @@ public class PlayerAxeChopAction : PlayerAction
 
     private void OnHitTree()
     {
-        float accuracy = Mathf.Clamp01(1f - Mathf.Abs(offset));
+        float accuracy = Mathf.Clamp01(1f - Mathf.Abs(currentOffsetAmount));
         float depth = 0.01f + accuracy * 0.05f;
         float width = 0.1f + accuracy * 0.25f;
         float height = 0.02f + accuracy * 0.05f;
 
         var (previewPos, _) = GetPreviewHitPose();
-        tree.Hit(previewPos, depth, width, height);
+        target.Tree.Hit(previewPos, depth, width, height);
+    }
+
+    private TreeTarget FindTreeTarget()
+    {
+        foreach (var hit in player.Input.RaycastHits)
+        {
+            if (hit.transform.gameObject.TryGetComponent(out ChoppableTree tree))
+            {
+                float dist = Vector3.Distance(player.transform.position, hit.point);
+                if (dist <= MAX_PLAYER_TARGET_DISTANCE && tree.CanChop)
+                {
+                    Vector3 hitLocal = tree.transform.InverseTransformPoint(hit.point);
+                    return new TreeTarget()
+                    {
+                        Hit = hit,
+                        HitPointLocal = hitLocal,
+                        Tree = tree
+                    };
+                }
+            }
+        }
+        return null;
+    }
+
+    private enum State
+    { Setup, Swing, Pull };
+
+    private class TreeTarget
+    {
+        public RaycastHit Hit;
+        public Vector3 HitPointLocal;
+        public ChoppableTree Tree;
     }
 }

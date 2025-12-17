@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public struct TreeGridGenConfig
+public struct TreeGenConfig
 {
     public float Radius;
     public float Height;
@@ -17,7 +17,7 @@ public struct TreeGridGenConfig
     public float VertNoiseStrength;
 }
 
-public sealed class TreeGridConstants
+public sealed class TreeGridSettings
 {
     public readonly float ColDensity;
     public readonly float RowDensity;
@@ -26,7 +26,7 @@ public sealed class TreeGridConstants
     public readonly int SplitColRequirement;
     public readonly float HeightPerRow;
 
-    public TreeGridConstants(float colDensity, float rowDensity, float minRadius, float splitWidthRequired, float heightPerRow)
+    public TreeGridSettings(float colDensity, float rowDensity, float minRadius, float splitWidthRequired, float heightPerRow)
     {
         ColDensity = colDensity;
         RowDensity = rowDensity;
@@ -39,22 +39,22 @@ public sealed class TreeGridConstants
 
 public sealed class TreeGrid
 {
-    public readonly TreeGridConstants Constants;
+    public readonly TreeGridSettings Settings;
     public readonly int Cols;
     public readonly int Rows;
     public readonly float[,] Radius;
     public readonly float[,] BaseRadius;
     public readonly Vector3[,] Offsets;
 
-    public float Height => Rows * Constants.HeightPerRow;
+    public float Height => Rows * Settings.HeightPerRow;
 
-    public static TreeGrid Generate(TreeGridGenConfig config)
+    public static TreeGrid Generate(TreeGenConfig config)
     {
         int cols = Mathf.Max(8, Mathf.CeilToInt(2f * Mathf.PI * config.Radius * config.ColDensity));
         int rows = Mathf.Max(4, Mathf.CeilToInt(config.Height * config.RowDensity));
         float heightPerRow = config.Height / rows;
 
-        var constants = new TreeGridConstants(
+        var constants = new TreeGridSettings(
             config.ColDensity,
             config.RowDensity,
             config.MinRadius,
@@ -81,9 +81,9 @@ public sealed class TreeGrid
         return grid;
     }
 
-    public TreeGrid(int cols, int rows, TreeGridConstants constants)
+    public TreeGrid(int cols, int rows, TreeGridSettings constants)
     {
-        Constants = constants;
+        Settings = constants;
         Cols = cols;
         Rows = rows;
         Radius = new float[cols, rows];
@@ -131,8 +131,8 @@ public sealed class TreeGrid
 
     public bool ApplyHit(Vector2Int hitGrid, float depth, float width, float height)
     {
-        int hitCols = Mathf.CeilToInt(width * Constants.ColDensity);
-        int hitRows = Mathf.CeilToInt(height * Constants.RowDensity);
+        int hitCols = Mathf.CeilToInt(width * Settings.ColDensity);
+        int hitRows = Mathf.CeilToInt(height * Settings.RowDensity);
 
         for (int dc = -hitCols; dc <= hitCols; dc++)
         {
@@ -149,7 +149,7 @@ public sealed class TreeGrid
                 if (dist > 1f) continue;
 
                 float falloff = 1f - dist;
-                Radius[c, r] = Mathf.Max(Constants.MinRadius, Radius[c, r] - depth * falloff);
+                Radius[c, r] = Mathf.Max(Settings.MinRadius, Radius[c, r] - depth * falloff);
             }
         }
 
@@ -175,9 +175,9 @@ public sealed class TreeGrid
         int runCount = 0;
         for (int c = 0; c < Cols * 2; c++)
         {
-            if (Radius[c % Cols, r] <= Constants.MinRadius + eps) runCount++;
+            if (Radius[c % Cols, r] <= Settings.MinRadius + eps) runCount++;
             else runCount = 0;
-            if (runCount >= Constants.SplitColRequirement) return true;
+            if (runCount >= Settings.SplitColRequirement) return true;
         }
         return false;
     }
@@ -195,7 +195,7 @@ public sealed class TreeGrid
 
     private TreeGrid Slice(int startRow, int rows)
     {
-        var grid = new TreeGrid(Cols, rows, Constants);
+        var grid = new TreeGrid(Cols, rows, Settings);
 
         for (int c = 0; c < Cols; c++)
         {
