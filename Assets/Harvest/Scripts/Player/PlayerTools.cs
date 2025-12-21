@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [Serializable]
-public class PlayerToolHandler
+public class PlayerTools
 {
     public PlayerTool CurrentTool { get; private set; } = null;
 
@@ -11,11 +11,6 @@ public class PlayerToolHandler
         this.player = player;
         this.player.Persistent.Gear.OnItemAdded += OnItemEquipped;
         this.player.Persistent.Gear.OnItemRemoved += OnItemUnequipped;
-    }
-
-    public void UpdateCurrentTool()
-    {
-        CurrentTool?.Update();
     }
 
     public void OnItemEquipped(ItemInstance itemInstance)
@@ -44,11 +39,6 @@ public class PlayerToolHandler
             CurrentTool.Unequip();
             CurrentTool = null;
         }
-    }
-
-    public void DebugCurrentToolGizmos()
-    {
-        CurrentTool?.DebugGizmos();
     }
 
     private Player player;

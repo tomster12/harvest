@@ -184,12 +184,12 @@ public sealed class TreeGrid
 
     public (TreeGrid bottom, TreeGrid top) SplitAtRow(int splitRow)
     {
-        int bottomRows = splitRow + 1;
+        int bottomRows = splitRow;
         int topRows = Rows - bottomRows;
         if (topRows <= 0) return (this, null);
 
         var bottom = Slice(0, bottomRows);
-        var top = Slice(bottomRows, topRows);
+        var top = Slice(bottomRows + 1, topRows - 1);
         return (bottom, top);
     }
 

@@ -6,15 +6,24 @@ using System;
 
 public class PlayerAxeChopAction : PlayerAction
 {
-    public PlayerAxeChopAction(Player player, GameObject axeMesh) : base(player)
+    public override bool IsAvailable =>
+        !player.IsRestricted(Player.Restriction.Movement) &&
+        player.Animator.CanTakeControl(ANIMATION_PRIORITY);
+
+    public override bool IsRunnable =>
+        IsAvailable
+        && chopTarget != null
+        && chopFromPos != null;
+
+    public PlayerAxeChopAction(Player player, GameObject axeMesh)
     {
         this.player = player;
         this.axeMesh = axeMesh;
 
-        AddPlayerRestriction(Player.Restriction.Movement);
-        AddCancelCondition(new CancelOnMovementInput());
-        AddCancelCondition(new CancelOnMouseRelease());
-        SetCancellable(true);
+        ConfigActionPlayerRestriction(Player.Restriction.Movement);
+        ConfigActionCancelCondition(new CancelOnMovementInput());
+        ConfigActionCancelCondition(new CancelOnMouseRelease());
+        ConfigActionCancellable(true);
 
         // Grab animation transforms
         leftHand = player.Animator.GetAnimationTransform("Left Hand");
@@ -35,40 +44,26 @@ public class PlayerAxeChopAction : PlayerAction
         GameObject.Destroy(targetChopPreview);
     }
 
-    public void Preview()
+    public override void Preview()
     {
-        if (!CanAct || IsRunning) return;
-
         targetChopPreview.SetActive(false);
 
         // Find hovered tree and exit early if not hovering any
-        target = FindTreeTarget();
-        if (target == null) return;
+        chopTarget = FindTreeTarget();
+        if (chopTarget == null) return;
 
         // Raycast out, to the side, and down to find a valid chop from position
-        Vector3 awayFromChopPos = target.Hit.point + target.Hit.normal * CHOP_BACK_OFFSET;
-        awayFromChopPos += Vector3.Cross(target.Hit.normal, Vector3.up) * CHOP_SIDE_OFFSET;
+        Vector3 awayFromChopPos = chopTarget.Hit.point + chopTarget.Hit.normal * CHOP_BACK_OFFSET;
+        awayFromChopPos += Vector3.Cross(chopTarget.Hit.normal, Vector3.up) * CHOP_SIDE_OFFSET;
 
         // If there is nowhere to chop from just stop early
         if (!Physics.Raycast(awayFromChopPos, Vector3.down, out RaycastHit playerChopFromHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
         if (playerChopFromHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
+        chopFromPos = playerChopFromHit.point;
 
-        playerChopFromPos = playerChopFromHit.point;
-        targetChopPreview.transform.SetPositionAndRotation(target.Hit.point, Quaternion.LookRotation(-Vector3.up, target.Hit.normal));
+        // Update preview to current hovered position
+        targetChopPreview.transform.SetPositionAndRotation(chopTarget.Hit.point, Quaternion.LookRotation(-Vector3.up, chopTarget.Hit.normal));
         targetChopPreview.SetActive(true);
-
-        // Perform chop on click
-        if (player.Input.IsMousePressed)
-        {
-            player.Actions.StartAction(this);
-            player.Input.IsMousePressed = false;
-        }
-    }
-
-    public void DebugGizmos()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(playerChopFromPos, 0.1f);
     }
 
     protected override async Task Start(CancellationToken ct)
@@ -81,7 +76,7 @@ public class PlayerAxeChopAction : PlayerAction
         chopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
         chopPreview.transform.position = targetChopPreview.transform.position;
         chopPreview.transform.localScale = new Vector3(0.25f, 0.4f, 1f);
-        chopPreview.transform.rotation = Quaternion.LookRotation(-Vector3.up, target.Hit.normal);
+        chopPreview.transform.rotation = Quaternion.LookRotation(-Vector3.up, chopTarget.Hit.normal);
 
         chopPreviewRenderer = chopPreview.GetComponent<Renderer>();
         chopPreviewRenderer.sharedMaterial = new(AssetDatabase.GetMaterial("Chop Preview"));
@@ -93,7 +88,7 @@ public class PlayerAxeChopAction : PlayerAction
 
         // Put right hand locally forward of the left, and left in base position
         rightHand.SetParent(leftHand, true);
-        player.Movement.MoveTowardsPosition(playerChopFromPos, 0.02f);
+        player.Movement.MoveTowardsPosition(chopFromPos, 0.02f);
 
         await Task.WhenAll(
             AsyncUtil.WaitUntil(() => player.Movement.HasReachedTarget, ct),
@@ -111,7 +106,7 @@ public class PlayerAxeChopAction : PlayerAction
         // Start facing towards the hit point
         Vector3 facePosition = player.transform.position
             + HitRight * CHOP_LOOK_OFFSET.x
-            + target.Hit.normal * CHOP_LOOK_OFFSET.y;
+            + chopTarget.Hit.normal * CHOP_LOOK_OFFSET.y;
         player.Movement.FaceTowardsPosition(facePosition, 0.5f);
 
         // Start the chopping animation loop
@@ -180,24 +175,7 @@ public class PlayerAxeChopAction : PlayerAction
         animationHandle?.Release();
     }
 
-    private static float MAX_PLAYER_TARGET_DISTANCE = 10f;
-    private static float CHOP_BACK_OFFSET = 0.4f;
-    private static float CHOP_SIDE_OFFSET = 0.5f;
-    private static Vector2 CHOP_LOOK_OFFSET = new(-0.5f, -0.2f);
-    private static float MAX_CHOP_GROUND_DISTANCE = 0.8f;
-    private static float MIN_CHOP_GROUND_DISTANCE = 0.15f;
-    private static Color CHOP_GOOD_COLOR = new(0.2f, 1f, 0.2f, 0.5f);
-    private static Color CHOP_BAD_COLOR = new(1f, 0.2f, 0.2f, 0.5f);
-    private static float CHOP_SWAY_SCREEN_MAX = 0.03f;
-    private static float CHOP_SWAY_WORLD_MAX = 0.15f;
-    private static float CHOP_SWAY_NOISE_CLAMP = 0.1f;
-    private static float CHOP_SWAY_NOISE_MAGNITUDE = 0.004f;
-    private static float CHOP_SWAY_NOISE_FREQUENCY_MIN = 0.4f;
-    private static float CHOP_SWAY_NOISE_FREQUENCY = 0.4f;
-    private static float CHOP_SWAY_SHAKE_MAGNITUDE = 0.02f;
-    private static float CHOP_SWAY_SHAKE_FREQUENCY = 8f;
-    private static int ANIMATION_PRIORITY = 0;
-
+    private Player player;
     private GameObject axeMesh;
     private GameObject targetChopPreview;
     private GameObject chopPreview;
@@ -206,16 +184,13 @@ public class PlayerAxeChopAction : PlayerAction
     private Transform rightHand;
     private Transform leftHandChopBase;
     private Transform leftHandChopFrom;
-
-    private TreeTarget target;
-    private Vector3 playerChopFromPos;
+    private TreeTarget chopTarget;
+    private Vector3 chopFromPos;
     private State animationState = State.Setup;
     private PlayerAnimator.ControlHandle animationHandle;
     private Task handleMouseInputTask;
     private float currentOffsetAmount = 0f;
-
-    private bool CanAct => !player.IsRestricted(Player.Restriction.Movement) && player.Actions.CanAct && player.Animator.CanTakeControl(ANIMATION_PRIORITY);
-    private Vector3 HitRight => Vector3.Cross(target.Hit.normal, Vector3.up).normalized;
+    private Vector3 HitRight => Vector3.Cross(chopTarget.Hit.normal, Vector3.up).normalized;
 
     private async Task HandleMouseInput(CancellationToken ct)
     {
@@ -285,7 +260,7 @@ public class PlayerAxeChopAction : PlayerAction
     private (Vector3 pos, Vector3 normal) GetPreviewHitPose()
     {
         Vector3 pos = chopPreview.transform.position;
-        return (pos, target.Hit.normal);
+        return (pos, chopTarget.Hit.normal);
     }
 
     private void OnHitTree()
@@ -296,7 +271,7 @@ public class PlayerAxeChopAction : PlayerAction
         float height = 0.02f + accuracy * 0.05f;
 
         var (previewPos, _) = GetPreviewHitPose();
-        target.Tree.Hit(previewPos, depth, width, height);
+        chopTarget.Tree.Hit(previewPos, depth, width, height);
     }
 
     private TreeTarget FindTreeTarget()
@@ -330,4 +305,22 @@ public class PlayerAxeChopAction : PlayerAction
         public Vector3 HitPointLocal;
         public ChoppableTree Tree;
     }
+
+    private static readonly float MAX_PLAYER_TARGET_DISTANCE = 10f;
+    private static readonly float CHOP_BACK_OFFSET = 0.4f;
+    private static readonly float CHOP_SIDE_OFFSET = 0.5f;
+    private static readonly Vector2 CHOP_LOOK_OFFSET = new(-0.5f, -0.2f);
+    private static readonly float MAX_CHOP_GROUND_DISTANCE = 0.8f;
+    private static readonly float MIN_CHOP_GROUND_DISTANCE = 0.15f;
+    private static readonly Color CHOP_GOOD_COLOR = new(0.2f, 1f, 0.2f, 0.5f);
+    private static readonly Color CHOP_BAD_COLOR = new(1f, 0.2f, 0.2f, 0.5f);
+    private static readonly float CHOP_SWAY_SCREEN_MAX = 0.03f;
+    private static readonly float CHOP_SWAY_WORLD_MAX = 0.15f;
+    private static readonly float CHOP_SWAY_NOISE_CLAMP = 0.1f;
+    private static readonly float CHOP_SWAY_NOISE_MAGNITUDE = 0.004f;
+    private static readonly float CHOP_SWAY_NOISE_FREQUENCY_MIN = 0.4f;
+    private static readonly float CHOP_SWAY_NOISE_FREQUENCY = 0.4f;
+    private static readonly float CHOP_SWAY_SHAKE_MAGNITUDE = 0.02f;
+    private static readonly float CHOP_SWAY_SHAKE_FREQUENCY = 8f;
+    private static readonly int ANIMATION_PRIORITY = 0;
 }

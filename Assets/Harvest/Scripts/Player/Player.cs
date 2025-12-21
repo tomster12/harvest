@@ -1,6 +1,6 @@
 using System;
+using System.Threading.Tasks;
 using UnityEngine;
-
 
 public class Player : MonoBehaviour
 {
@@ -19,8 +19,8 @@ public class Player : MonoBehaviour
     public PlayerInput Input;
     public PlayerMovement Movement;
     public PlayerInteraction Interaction;
-    public PlayerToolHandler Tools;
-    public PlayerActionHandler Actions;
+    public PlayerTools Tools;
+    public PlayerActions Actions;
     public PlayerAnimator Animator;
     public Restriction Restrictions = Restriction.None;
 
@@ -62,13 +62,9 @@ public class Player : MonoBehaviour
 
         Camera.UpdateCamera();
 
-        Tools.UpdateCurrentTool();
-
         Interaction.HandleInteractingContainers();
 
-        Interaction.HandleInteractingWorld();
-
-        Actions.UpdateActions();
+        Actions.Update();
 
         ApplyBaseAnimations();
 
@@ -90,11 +86,6 @@ public class Player : MonoBehaviour
     private void LateUpdate()
     {
         Movement.LateUpdateMovement();
-    }
-
-    private void OnDrawGizmos()
-    {
-        Tools.DebugCurrentToolGizmos();
     }
 
     private void ApplyBaseAnimations()

@@ -17,10 +17,4 @@ public abstract class PlayerTool
 
     public virtual void Unequip()
     { }
-
-    public virtual void Update()
-    { }
-    
-    public virtual void DebugGizmos()
-    { }
 }

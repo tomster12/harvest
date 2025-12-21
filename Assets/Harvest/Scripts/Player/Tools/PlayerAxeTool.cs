@@ -19,26 +19,18 @@ public class PlayerAxeTool : PlayerTool
         var colliders = axeMesh.GetComponentsInChildren<Collider>();
         foreach (var collider in colliders) collider.isTrigger = true;
 
+        // Finally we can add the actual action to chop
         chopAction = new PlayerAxeChopAction(player, axeMesh);
-    }
-
-    public override void Update()
-    {
-        chopAction.Preview();
+        player.Actions.Register(chopAction);
     }
 
     public override void Unequip()
     {
         GameObject.Destroy(axeMesh);
-
         chopAction.Dispose();
+        player.Actions.Unregister(chopAction);
     }
 
-    public override void DebugGizmos()
-    {
-        chopAction.DebugGizmos();
-    }
-
-    private PlayerAxeChopAction chopAction;
     private GameObject axeMesh;
+    private PlayerAxeChopAction chopAction;
 }

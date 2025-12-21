@@ -6,6 +6,8 @@ using UnityEngine;
 public class PlayerInteraction
 {
     public ItemUI HeldItemUI { get; private set; }
+    public bool IsHoveringContainer => hoveredContainerUI != null;
+    public bool IsHoldingItem => HeldItemUI != null && HeldItemUI.State != ItemUI.StateType.Empty;
 
     public void Init(Player player)
     {
@@ -18,6 +20,10 @@ public class PlayerInteraction
         gearUI.SetInventory(player.Persistent.Gear);
         HeldItemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, "Player Held Inventory Item UI");
         HeldItemUI.SetItem(null);
+
+        // Setup actions
+        looseItemPickupAction = new PlayerPickupItemAction(player);
+        player.Actions.Register(looseItemPickupAction);
     }
 
     public void HandleInteractingContainers()
@@ -58,51 +64,6 @@ public class PlayerInteraction
         }
     }
 
-    public void HandleInteractingWorld()
-    {
-        if (!IsHoveringContainer && !IsHoldingItem && !player.IsRestricted(Player.Restriction.InteractLooseItems))
-        {
-            // If we are already picking up an item check if its done
-            if (IsPickingUpItem)
-            {
-                if (looseItemPickupAction.IsRunning) return;
-                looseItemPickupAction = null;
-            }
-
-            // Get first hovered transform that is a loose item
-            LooseItem newHoveredLooseItem = null;
-            foreach (RaycastHit hit in player.Input.RaycastHits)
-            {
-                if (hit.rigidbody != null)
-                {
-                    newHoveredLooseItem = hit.rigidbody.GetComponent<LooseItem>();
-                    if (newHoveredLooseItem != null) break;
-                }
-            }
-
-            // Hovering a new loose item so update and preview
-            if (newHoveredLooseItem != hoveredLooseItem)
-            {
-                if (hoveredLooseItem != null) hoveredLooseItem.OnHoverExit();
-                hoveredLooseItem = newHoveredLooseItem;
-                if (hoveredLooseItem != null) hoveredLooseItem.OnHoverEnter();
-            }
-
-            // Clicking on a hovered loose item so try pickup
-            if (hoveredLooseItem != null && player.Input.IsMousePressed)
-            {
-                player.Input.IsMousePressed = false;
-                Vector3 targetPosition = hoveredLooseItem.transform.position - (hoveredLooseItem.transform.position - player.transform.position).normalized * 0.1f;
-                looseItemPickupAction = new PlayerPickupItemAction(player, hoveredLooseItem, targetPosition);
-                player.Actions.StartAction(looseItemPickupAction);
-            }
-        }
-
-        if (!IsHoveringContainer && !IsHoldingItem && !IsPickingUpItem && !player.IsRestricted(Player.Restriction.InteractLargeObjects))
-        {
-        }
-    }
-
     [Header("Prefab")]
     [SerializeField] private GameObject gridInventoryUIPrefab;
     [SerializeField] private GameObject gearInventoryUIPrefab;
@@ -112,12 +73,7 @@ public class PlayerInteraction
     private GridInventoryUI inventoryUI;
     private GearInventoryUI gearUI;
     private IItemContainerUI hoveredContainerUI;
-    private LooseItem hoveredLooseItem;
     private PlayerPickupItemAction looseItemPickupAction;
-
-    private bool IsHoldingItem => HeldItemUI != null && HeldItemUI.State != ItemUI.StateType.Empty;
-    private bool IsPickingUpItem => looseItemPickupAction != null;
-    private bool IsHoveringContainer => hoveredContainerUI != null;
 
     private void DropHeldItem()
     {

@@ -32,40 +32,39 @@ public class CancelOnMouseRelease : PlayerActionCancelCondition
 public abstract class PlayerAction
 {
     public event Action<PlayerAction> OnStarted;
-
     public event Action<PlayerAction> OnCompleted;
-
     public event Action<PlayerAction> OnCancelled;
 
     public Player.Restriction PlayerRestrictions { get; private set; } = Player.Restriction.None;
     public List<PlayerActionCancelCondition> CancelConditions { get; private set; } = new();
-    public bool Cancellable { get; private set; } = true;
+
+    public bool IsCancellable { get; private set; } = true;
     public bool IsRunning { get; private set; }
+    public virtual bool IsAvailable => true;
+    public virtual bool IsRunnable => IsAvailable;
 
-    public PlayerAction(Player player)
-    {
-        this.player = player;
-    }
 
-    public PlayerAction AddPlayerRestriction(Player.Restriction flags)
+    public PlayerAction ConfigActionPlayerRestriction(Player.Restriction flags)
     {
         PlayerRestrictions |= flags;
         return this;
     }
 
-    public PlayerAction AddCancelCondition(PlayerActionCancelCondition condition)
+    public PlayerAction ConfigActionCancelCondition(PlayerActionCancelCondition condition)
     {
         CancelConditions.Add(condition);
         return this;
     }
 
-    public PlayerAction SetCancellable(bool cancellable)
+    public PlayerAction ConfigActionCancellable(bool cancellable)
     {
-        Cancellable = cancellable;
+        IsCancellable = cancellable;
         return this;
     }
 
-    public async Task FullRun(CancellationToken ct)
+    public virtual void Preview() { }
+
+    public async Task Run(CancellationToken ct)
     {
         if (IsRunning) throw new InvalidOperationException("Action already running");
         IsRunning = true;
@@ -92,8 +91,6 @@ public abstract class PlayerAction
             IsRunning = false;
         }
     }
-
-    protected Player player;
 
     protected abstract Task Start(CancellationToken ct);
 
