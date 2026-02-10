@@ -6,6 +6,8 @@ public class PlayerMovement
 {
     public Vector3 TargetFacingDir { get; private set; } = Vector3.zero;
     public bool IsMoving { get; private set; }
+    public bool HasReachedTarget => !targetPosition.HasValue || (targetPosition.Value - player.transform.position).sqrMagnitude <= targetThreshold;
+    public bool IsFacingTarget => Vector3.Angle(TargetFacingDir, player.transform.forward) <= rotationThreshold;
 
     public void Init(Player player)
     {
@@ -23,7 +25,7 @@ public class PlayerMovement
         targetPosition = null;
     }
 
-    public void MoveTowardsPosition(Vector3 position, float threshold = 0.1f)
+    public void SetMovementTarget(Vector3 position, float threshold = 0.1f)
     {
         // Overwrite and set to moving towards a position
         inputDirection = null;
@@ -31,7 +33,7 @@ public class PlayerMovement
         targetThreshold = threshold;
     }
 
-    public void FaceTowardsPosition(Vector3 position, float speedMult = 1.0f)
+    public void SetFacingTarget(Vector3 position, float speedMult = 1.0f)
     {
         // Set the target facing direction towards a position
         Vector3 directDir = position - player.transform.position;
@@ -46,6 +48,7 @@ public class PlayerMovement
         if (targetPosition.HasValue && HasReachedTarget) targetPosition = null;
 
         // Check if moving in direction or towards position
+        // Prioritise input but dont clear the target
         Vector3? finalDir = null;
         if (inputDirection.HasValue)
         {
@@ -66,9 +69,9 @@ public class PlayerMovement
             Vector3 movement = movementSpeed * Time.fixedDeltaTime * finalDir.Value;
             rb.MovePosition(rb.position + movement);
 
-            // Set target rotation based on the final direction
-            Vector3 finalDirFlat = new(finalDir.Value.x, 0f, finalDir.Value.z);
-            TargetFacingDir = finalDirFlat;
+            // Overwrite target rotation with on the movement direction
+            Vector3 movementFacingDir = new(finalDir.Value.x, 0f, finalDir.Value.z);
+            TargetFacingDir = movementFacingDir;
         }
         else IsMoving = false;
 
@@ -90,9 +93,6 @@ public class PlayerMovement
     {
         inputDirection = null;
     }
-
-    public bool HasReachedTarget => !targetPosition.HasValue || (targetPosition.Value - player.transform.position).sqrMagnitude <= targetThreshold;
-    public bool IsFacingTarget => Vector3.Angle(TargetFacingDir, player.transform.forward) <= rotationThreshold;
 
     [Header("References")]
     [SerializeField] private Rigidbody rb;

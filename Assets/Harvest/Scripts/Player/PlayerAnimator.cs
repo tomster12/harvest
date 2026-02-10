@@ -24,13 +24,13 @@ public class PlayerAnimator
         currentAnimation?.Update();
     }
 
-    public bool CanTakeControl(int priority = 0)
+    public bool CanControl(int priority = 0)
     {
         if (currentHandle == null) return true;
         else return priority > currentHandle.Priority;
     }
 
-    public ControlHandle TakeControl(int priority = 0)
+    public AcControlHandle TakeControl(int priority = 0)
     {
         if (currentHandle != null)
         {
@@ -41,7 +41,7 @@ public class PlayerAnimator
             }
             currentHandle.Cancel();
         }
-        currentHandle = new ControlHandle(this, priority);
+        currentHandle = new AcControlHandle(this, priority);
         return currentHandle;
     }
 
@@ -66,13 +66,13 @@ public class PlayerAnimator
         return point;
     }
 
-    public class ControlHandle
+    public class AcControlHandle
     {
         public Action OnCancelled;
         public int Priority { get; private set; }
         public bool IsActive => animator.currentHandle == this;
 
-        public ControlHandle(PlayerAnimator animator, int priority)
+        public AcControlHandle(PlayerAnimator animator, int priority)
         {
             this.animator = animator;
             Priority = priority;
@@ -127,7 +127,7 @@ public class PlayerAnimator
     private readonly Dictionary<string, Transform> animationTransforms = new();
     private readonly Dictionary<string, Transform> animationPoints = new();
 
-    private ControlHandle currentHandle;
+    private AcControlHandle currentHandle;
     private PlayerAnimation currentAnimation;
 
     private void StartAnimation(PlayerAnimation animation)

@@ -6,24 +6,24 @@ using System;
 
 public class PlayerAxeChopAction : PlayerAction
 {
+
     public override bool IsAvailable =>
-        !player.IsRestricted(Player.Restriction.Movement) &&
-        player.Animator.CanTakeControl(ANIMATION_PRIORITY);
+        player.Animator.CanControl(ANIMATION_PRIORITY);
 
     public override bool IsRunnable =>
-        IsAvailable
-        && chopTarget != null
-        && chopFromPos != null;
+        chopTarget != null &&
+        chopFromPos != null;
 
     public PlayerAxeChopAction(Player player, GameObject axeMesh)
     {
         this.player = player;
         this.axeMesh = axeMesh;
 
-        ConfigActionPlayerRestriction(Player.Restriction.Movement);
-        ConfigActionCancelCondition(new CancelOnMovementInput());
-        ConfigActionCancelCondition(new CancelOnMouseRelease());
-        ConfigActionCancellable(true);
+        Configure(new()
+        {
+            new CancelOnMovementInput(),
+            new CancelOnMouseRelease()
+        });
 
         // Grab animation transforms
         leftHand = player.Animator.GetAnimationTransform("Left Hand");
@@ -44,7 +44,7 @@ public class PlayerAxeChopAction : PlayerAction
         GameObject.Destroy(targetChopPreview);
     }
 
-    public override void Preview()
+    public override void UpdateAvailable()
     {
         targetChopPreview.SetActive(false);
 
@@ -66,11 +66,83 @@ public class PlayerAxeChopAction : PlayerAction
         targetChopPreview.SetActive(true);
     }
 
+    public override void UpdateActive()
+    {
+        float dt = Time.time - swayLastTime;
+        swayLastTime = Time.time;
+
+        Vector3 right = HitRight;
+        Vector3 up = Vector3.up;
+
+        // Calculate mouse sway with mouse screen delta
+        float mouseX = (player.Input.MouseDelta.x / Screen.width) / CHOP_SWAY_SCREEN_MAX;
+        float mouseY = (player.Input.MouseDelta.y / Screen.height) / CHOP_SWAY_SCREEN_MAX;
+        Vector2 swayMouse = new(mouseX, mouseY);
+
+        // Calculate noise sway based on existing offset over time
+        swayCurrentOffsetAmount = Mathf.Clamp01(swayOffsetDir.magnitude);
+        float swayOffsetMult = Easing.EaseOutQuad(swayCurrentOffsetAmount);
+        float swayNoiseFreq = CHOP_SWAY_NOISE_FREQUENCY_MIN + CHOP_SWAY_NOISE_FREQUENCY * swayOffsetMult;
+
+        swayNoiseTimeX += dt * swayNoiseFreq;
+        swayNoiseTimeY += dt * swayNoiseFreq;
+        float2 swayNoiseInputX = new(swayNoiseTimeX, 0f);
+        float2 swayNoiseInputY = new(swayNoiseTimeY, 0f);
+        float swayNoiseX = noise.cnoise(swayNoiseInputX) / CHOP_SWAY_NOISE_CLAMP;
+        float swayNoiseY = noise.cnoise(swayNoiseInputY) / CHOP_SWAY_NOISE_CLAMP;
+        swayNoiseX = Mathf.Clamp(swayNoiseX, -1f, 1f) * CHOP_SWAY_NOISE_MAGNITUDE;
+        swayNoiseY = Mathf.Clamp(swayNoiseY, -1f, 1f) * CHOP_SWAY_NOISE_MAGNITUDE;
+        Vector2 swayNoise = new(swayNoiseX, swayNoiseY);
+
+        // Update 2D offset with mouse and noise sway
+        swayOffsetDir += swayMouse + swayNoise;
+        swayOffsetDir.x = Mathf.Clamp(swayOffsetDir.x, -swayOffsetDirClamp, swayOffsetDirClamp);
+        swayOffsetDir.y = Mathf.Clamp(swayOffsetDir.y, -swayOffsetDirClamp, swayOffsetDirClamp);
+
+        // Calculate small shake based on existing offset
+        float shakeOffsetMult = Easing.EaseInQuad(swayCurrentOffsetAmount);
+        swayShakeNoiseTime += dt * CHOP_SWAY_SHAKE_FREQUENCY * shakeOffsetMult;
+        float shakeAmount = CHOP_SWAY_SHAKE_MAGNITUDE * shakeOffsetMult;
+
+        float shakeX = Mathf.Sin(swayShakeNoiseTime * Mathf.PI * 2f) * shakeAmount;
+        float shakeY = Mathf.Cos(swayShakeNoiseTime * Mathf.PI * 2f) * shakeAmount;
+
+        // Map sway and shake to world offset and apply to preview
+        Vector3 worldOffsetDir = ((CHOP_SWAY_WORLD_MAX * swayOffsetDir.x + shakeX) * right) +
+                                 ((CHOP_SWAY_WORLD_MAX * swayOffsetDir.y + shakeY) * up);
+
+        chopPreview.transform.position = targetChopPreview.transform.position + worldOffsetDir;
+        chopPreviewRenderer.sharedMaterial.color = Color.Lerp(CHOP_GOOD_COLOR, CHOP_BAD_COLOR, shakeOffsetMult);
+    }
+
+    private Player player;
+    private GameObject axeMesh;
+    private GameObject targetChopPreview;
+    private GameObject chopPreview;
+    private Renderer chopPreviewRenderer;
+    private Transform leftHand;
+    private Transform rightHand;
+    private Transform leftHandChopBase;
+    private Transform leftHandChopFrom;
+    private TreeTarget chopTarget;
+    private Vector3 chopFromPos;
+    private State animationState = State.Setup;
+    private PlayerAnimator.AcControlHandle acHandle;
+    private float swayCurrentOffsetAmount;
+    private float swayNoiseTimeX;
+    private float swayNoiseTimeY;
+    private float swayShakeNoiseTime;
+    private float swayLastTime;
+    private Vector2 swayOffsetDir;
+    private const float swayOffsetDirClamp = 1.0f;
+
+    private Vector3 HitRight => Vector3.Cross(chopTarget.Hit.normal, Vector3.up).normalized;
+
     protected override async Task Start(CancellationToken ct)
     {
         animationState = State.Setup;
-        animationHandle = player.Animator.TakeControl(ANIMATION_PRIORITY);
-        if (animationHandle == null) throw new OperationCanceledException("Failed to take control of animator.");
+        acHandle = player.Animator.TakeControl(ANIMATION_PRIORITY);
+        if (acHandle == null) throw new OperationCanceledException("Failed to take control of animator.");
 
         // Create current mouse preview
         chopPreview = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -83,15 +155,21 @@ public class PlayerAxeChopAction : PlayerAction
         chopPreviewRenderer.sharedMaterial.color = CHOP_GOOD_COLOR;
 
         // Start the player input reaction task
-        handleMouseInputTask = HandleMouseInput(ct);
+        swayNoiseTimeX = Time.time;
+        swayNoiseTimeY = Time.time + 100f;
+        swayShakeNoiseTime = Time.time;
+        swayLastTime = Time.time;
+        swayOffsetDir = Vector2.zero;
+        swayCurrentOffsetAmount = 0;
+
         player.Input.HideMouse();
 
         // Put right hand locally forward of the left, and left in base position
         rightHand.SetParent(leftHand, true);
-        player.Movement.MoveTowardsPosition(chopFromPos, 0.02f);
+        player.Movement.SetMovementTarget(chopFromPos, 0.02f);
 
         await Task.WhenAll(
-            AsyncUtil.WaitUntil(() => player.Movement.HasReachedTarget, ct),
+            AsyncUtil.While(() => player.Movement.HasReachedTarget, ct),
 
             AnimationUtil.MoveAndRotateTo(ct,
                 leftHand, leftHandChopBase, Axis.Local,
@@ -107,7 +185,7 @@ public class PlayerAxeChopAction : PlayerAction
         Vector3 facePosition = player.transform.position
             + HitRight * CHOP_LOOK_OFFSET.x
             + chopTarget.Hit.normal * CHOP_LOOK_OFFSET.y;
-        player.Movement.FaceTowardsPosition(facePosition, 0.5f);
+        player.Movement.SetFacingTarget(facePosition, 0.5f);
 
         // Start the chopping animation loop
         while (true)
@@ -162,99 +240,7 @@ public class PlayerAxeChopAction : PlayerAction
         player.Input.ShowMouse();
         GameObject.Destroy(chopPreview);
         rightHand.SetParent(player.transform, true);
-
-        // Wait for the mouse task to finish and ignore cancels
-        if (handleMouseInputTask != null)
-        {
-            try { await handleMouseInputTask; }
-            catch (OperationCanceledException) { }
-            catch (Exception e) { Debug.LogError($"Error in HandleMouseInputAsync: {e}"); }
-            handleMouseInputTask.Dispose();
-        }
-
-        animationHandle?.Release();
-    }
-
-    private Player player;
-    private GameObject axeMesh;
-    private GameObject targetChopPreview;
-    private GameObject chopPreview;
-    private Renderer chopPreviewRenderer;
-    private Transform leftHand;
-    private Transform rightHand;
-    private Transform leftHandChopBase;
-    private Transform leftHandChopFrom;
-    private TreeTarget chopTarget;
-    private Vector3 chopFromPos;
-    private State animationState = State.Setup;
-    private PlayerAnimator.ControlHandle animationHandle;
-    private Task handleMouseInputTask;
-    private float currentOffsetAmount = 0f;
-    private Vector3 HitRight => Vector3.Cross(chopTarget.Hit.normal, Vector3.up).normalized;
-
-    private async Task HandleMouseInput(CancellationToken ct)
-    {
-        float swayNoiseTimeX = Time.time;
-        float swayNoiseTimeY = Time.time + 100f;
-        float shakeNoiseTime = Time.time;
-        float lastTime = Time.time;
-
-        currentOffsetAmount = 0;
-        Vector2 offsetDir = Vector2.zero;
-        const float offsetDirClamp = 1f;
-
-        while (true)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            float dt = Time.time - lastTime;
-            lastTime = Time.time;
-
-            Vector3 right = HitRight;
-            Vector3 up = Vector3.up;
-
-            // Calculate mouse sway with mouse screen delta
-            float mouseX = (player.Input.MouseDelta.x / Screen.width) / CHOP_SWAY_SCREEN_MAX;
-            float mouseY = (player.Input.MouseDelta.y / Screen.height) / CHOP_SWAY_SCREEN_MAX;
-            Vector2 swayMouse = new(mouseX, mouseY);
-
-            // Calculate noise sway based on existing offset over time
-            currentOffsetAmount = Mathf.Clamp01(offsetDir.magnitude);
-            float swayOffsetMult = Easing.EaseOutQuad(currentOffsetAmount);
-            float swayNoiseFreq = CHOP_SWAY_NOISE_FREQUENCY_MIN + CHOP_SWAY_NOISE_FREQUENCY * swayOffsetMult;
-
-            swayNoiseTimeX += dt * swayNoiseFreq;
-            swayNoiseTimeY += dt * swayNoiseFreq;
-            float2 swayNoiseInputX = new(swayNoiseTimeX, 0f);
-            float2 swayNoiseInputY = new(swayNoiseTimeY, 0f);
-            float swayNoiseX = noise.cnoise(swayNoiseInputX) / CHOP_SWAY_NOISE_CLAMP;
-            float swayNoiseY = noise.cnoise(swayNoiseInputY) / CHOP_SWAY_NOISE_CLAMP;
-            swayNoiseX = Mathf.Clamp(swayNoiseX, -1f, 1f) * CHOP_SWAY_NOISE_MAGNITUDE;
-            swayNoiseY = Mathf.Clamp(swayNoiseY, -1f, 1f) * CHOP_SWAY_NOISE_MAGNITUDE;
-            Vector2 swayNoise = new(swayNoiseX, swayNoiseY);
-
-            // Update 2D offset with mouse and noise sway
-            offsetDir += swayMouse + swayNoise;
-            offsetDir.x = Mathf.Clamp(offsetDir.x, -offsetDirClamp, offsetDirClamp);
-            offsetDir.y = Mathf.Clamp(offsetDir.y, -offsetDirClamp, offsetDirClamp);
-
-            // Calculate small shake based on existing offset
-            float shakeOffsetMult = Easing.EaseInQuad(currentOffsetAmount);
-            shakeNoiseTime += dt * CHOP_SWAY_SHAKE_FREQUENCY * shakeOffsetMult;
-            float shakeAmount = CHOP_SWAY_SHAKE_MAGNITUDE * shakeOffsetMult;
-
-            float shakeX = Mathf.Sin(shakeNoiseTime * Mathf.PI * 2f) * shakeAmount;
-            float shakeY = Mathf.Cos(shakeNoiseTime * Mathf.PI * 2f) * shakeAmount;
-
-            // Map sway and shake to world offset and apply to preview
-            Vector3 worldOffsetDir = ((CHOP_SWAY_WORLD_MAX * offsetDir.x + shakeX) * right) +
-                                     ((CHOP_SWAY_WORLD_MAX * offsetDir.y + shakeY) * up);
-
-            chopPreview.transform.position = targetChopPreview.transform.position + worldOffsetDir;
-            chopPreviewRenderer.sharedMaterial.color = Color.Lerp(CHOP_GOOD_COLOR, CHOP_BAD_COLOR, shakeOffsetMult);
-
-            await Task.Yield();
-        }
+        acHandle?.Release();
     }
 
     private (Vector3 pos, Vector3 normal) GetPreviewHitPose()
@@ -265,7 +251,7 @@ public class PlayerAxeChopAction : PlayerAction
 
     private void OnHitTree()
     {
-        float accuracy = Mathf.Clamp01(1f - Mathf.Abs(currentOffsetAmount));
+        float accuracy = Mathf.Clamp01(1f - Mathf.Abs(swayCurrentOffsetAmount));
         float depth = 0.01f + accuracy * 0.05f;
         float width = 0.1f + accuracy * 0.25f;
         float height = 0.02f + accuracy * 0.05f;

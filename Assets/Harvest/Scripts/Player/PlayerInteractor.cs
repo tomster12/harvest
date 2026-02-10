@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 
 [Serializable]
-public class PlayerInteraction
+public class PlayerInteractor
 {
     public ItemUI HeldItemUI { get; private set; }
     public bool IsHoveringContainer => hoveredContainerUI != null;
@@ -23,12 +23,14 @@ public class PlayerInteraction
 
         // Setup actions
         looseItemPickupAction = new PlayerPickupItemAction(player);
+        dragAction = new PlayerDragAction(player);
         player.Actions.Register(looseItemPickupAction);
+        player.Actions.Register(dragAction);
     }
 
     public void HandleInteractingContainers()
     {
-        if (!player.IsRestricted(Player.Restriction.InteractContainers))
+        if (!player.Actions.IsActing)
         {
             // Update hovered container UI
             var newHoveredContainerUI = UIUtil.GetEventSystemRaycastResults()
@@ -74,6 +76,7 @@ public class PlayerInteraction
     private GearInventoryUI gearUI;
     private IItemContainerUI hoveredContainerUI;
     private PlayerPickupItemAction looseItemPickupAction;
+    private PlayerDragAction dragAction;
 
     private void DropHeldItem()
     {
@@ -85,5 +88,13 @@ public class PlayerInteraction
         LooseItem.Spawn(HeldItemUI.ItemInstance, droppedPosition, droppedRotation);
         HeldItemUI.SetItem(null);
         player.Input.IsMousePressed = false;
+    }
+
+    protected void OnDrawGizmos()
+    {
+        if (dragAction.IsRunning)
+        {
+            dragAction.OnDrawGizmos();
+        }
     }
 }

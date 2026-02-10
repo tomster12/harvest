@@ -5,27 +5,24 @@ using System.Threading.Tasks;
 public class PlayerPickupItemAction : PlayerAction
 {
     public override bool IsAvailable =>
-            !player.Interaction.IsHoveringContainer &&
-            !player.Interaction.IsHoldingItem &&
-            !player.IsRestricted(Player.Restriction.InteractLooseItems);
+        !player.Interactor.IsHoveringContainer &&
+        !player.Interactor.IsHoldingItem &&
+        player.Animator.CanControl(ANIMATION_PRIORITY);
 
-    public override bool IsRunnable => IsAvailable && hoveredLooseItem != null;
-
-    private readonly Player player;
-    private LooseItem hoveredLooseItem;
-    private LooseItem currentItem;
-    private Vector3 currentPickupPosition;
+    public override bool IsRunnable =>
+        hoveredLooseItem != null;
 
     public PlayerPickupItemAction(Player player)
     {
         this.player = player;
 
-        ConfigActionPlayerRestriction(Player.Restriction.InteractContainers | Player.Restriction.Movement);
-        ConfigActionCancelCondition(new CancelOnMovementInput());
-        ConfigActionCancellable(true);
+        Configure(new()
+        {
+            new CancelOnMovementInput()
+        });
     }
 
-    public override void Preview()
+    public override void UpdateAvailable()
     {
         // Get first hovered transform that is a loose item
         LooseItem newHoveredLooseItem = null;
@@ -47,19 +44,26 @@ public class PlayerPickupItemAction : PlayerAction
         }
     }
 
+    private readonly Player player;
+    private LooseItem hoveredLooseItem;
+    private LooseItem currentItem;
+    private Vector3 currentPickupPosition;
+
     protected override async Task Start(CancellationToken ct)
     {
         player.Input.IsMousePressed = false;
         currentItem = hoveredLooseItem;
         currentPickupPosition = hoveredLooseItem.transform.position - (hoveredLooseItem.transform.position - player.transform.position).normalized * 0.1f;
 
-        player.Movement.MoveTowardsPosition(currentPickupPosition, 0.5f);
-        await AsyncUtil.WaitUntil(() => player.Movement.HasReachedTarget, ct);
+        player.Movement.SetMovementTarget(currentPickupPosition, 0.5f);
+        await AsyncUtil.While(() => player.Movement.HasReachedTarget, ct);
 
         ItemInstance itemInstance = currentItem.Pickup();
-        player.Interaction.HeldItemUI.SetItem(itemInstance);
-        Vector2 offset = player.Interaction.HeldItemUI.Rect.sizeDelta / 2;
+        player.Interactor.HeldItemUI.SetItem(itemInstance);
+        Vector2 offset = player.Interactor.HeldItemUI.Rect.sizeDelta / 2;
         offset = new(offset.x, -offset.y);
-        player.Interaction.HeldItemUI.SetStateToMouse(offset);
+        player.Interactor.HeldItemUI.SetStateToMouse(offset);
     }
+
+    private static readonly int ANIMATION_PRIORITY = 0;
 }

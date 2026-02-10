@@ -137,7 +137,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0.5, z: 0}
-  m_LocalScale: {x: 0.3, y: 1, z: 0.3}
+  m_LocalScale: {x: 0.35, y: 0.8, z: 0.35}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 799884758945488176}
@@ -244,7 +244,7 @@ Transform:
   m_GameObject: {fileID: 1051335478084226570}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.2, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0.28, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -290,7 +290,7 @@ Transform:
   m_GameObject: {fileID: 1171567772117995321}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.2, y: 0.5, z: 0}
+  m_LocalPosition: {x: -0.28, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -380,7 +380,7 @@ Transform:
   m_GameObject: {fileID: 3782543939158244277}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.2, y: 0.5, z: 0}
+  m_LocalPosition: {x: 0.28, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -425,7 +425,7 @@ Transform:
   m_GameObject: {fileID: 7816943186917184246}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.2, y: 0.5, z: 0}
+  m_LocalPosition: {x: -0.28, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -654,11 +654,10 @@ MonoBehaviour:
     movementSpeed: 3.5
     rotationSpeed: 450
     rotationThreshold: 0.1
-  Interaction:
+  Interactor:
     gridInventoryUIPrefab: {fileID: 4015203399251158968, guid: b579e50e0c1d54941aef74dce7011cc2, type: 3}
     gearInventoryUIPrefab: {fileID: 2802936245369996191, guid: 3d1ecab094aebf04fb82e544e92fc109, type: 3}
     itemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
-  ActionRestrictions: 0
 --- !u!1 &8788784223064031010
 GameObject:
   m_ObjectHideFlags: 0

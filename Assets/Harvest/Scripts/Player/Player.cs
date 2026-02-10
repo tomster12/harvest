@@ -1,28 +1,15 @@
-using System;
-using System.Threading.Tasks;
 using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    [Flags]
-    public enum Restriction
-    {
-        None = 0,
-        Movement = 1 << 0,
-        InteractContainers = 1 << 1,
-        InteractLooseItems = 1 << 2,
-        InteractLargeObjects = 1 << 3
-    }
-
     public PlayerPersistent Persistent;
     public PlayerCamera Camera;
     public PlayerInput Input;
     public PlayerMovement Movement;
-    public PlayerInteraction Interaction;
+    public PlayerInteractor Interactor;
     public PlayerTools Tools;
-    public PlayerActions Actions;
+    public PlayerActionHandler Actions;
     public PlayerAnimator Animator;
-    public Restriction Restrictions = Restriction.None;
 
     public void Init(PlayerPersistent persistent)
     {
@@ -31,30 +18,19 @@ public class Player : MonoBehaviour
         Input.Init(this);
         Camera.Init(this);
         Tools.Init(this);
-        Interaction.Init(this);
+        Interactor.Init(this);
         Movement.Init(this);
         Actions.Init(this);
         Animator.Init(this);
 
-        idleAnimation = new PlayerIdleAnimation(Animator);
-        walkingAnimation = new PlayerWalkingAnimation(Animator);
+        defaultIdleAnimation = new PlayerIdleAnimation(Animator);
+        defaultWalkingAnimation = new PlayerWalkingAnimation(Animator);
     }
 
-    public void Restrict(Restriction flags)
-    {
-        Restrictions |= flags;
-    }
-
-    public void Unrestrict(Restriction flags)
-    {
-        Restrictions &= ~flags;
-    }
-
-    public bool IsRestricted(Restriction flags) => (Restrictions & flags) != Restriction.None;
-
-    private PlayerAnimator.ControlHandle animatorControlHandle;
-    private PlayerIdleAnimation idleAnimation;
-    private PlayerWalkingAnimation walkingAnimation;
+    private static int DEFAULT_ANIMATION_PRIORITY = -1;
+    private PlayerAnimator.AcControlHandle defaultAcHandle;
+    private PlayerIdleAnimation defaultIdleAnimation;
+    private PlayerWalkingAnimation defaultWalkingAnimation;
 
     private void Update()
     {
@@ -62,21 +38,23 @@ public class Player : MonoBehaviour
 
         Camera.UpdateCamera();
 
-        Interaction.HandleInteractingContainers();
+        Interactor.HandleInteractingContainers();
 
         Actions.Update();
 
-        ApplyBaseAnimations();
+        TryDefaultAnimations();
 
         Animator.UpdateCurrentAnimation();
     }
 
     private void FixedUpdate()
     {
-        if (!IsRestricted(Restriction.Movement) && Input.IsInputtingMovement)
+        if (Input.IsInputtingMovement)
         {
             Movement.MoveInDirection(Input.InputMovement);
         }
+
+        Actions.FixedUpdate();
 
         Movement.FixedUpdateMovement();
 
@@ -88,25 +66,25 @@ public class Player : MonoBehaviour
         Movement.LateUpdateMovement();
     }
 
-    private void ApplyBaseAnimations()
+    private void TryDefaultAnimations()
     {
         // Always try and take control if possible
         if (!Animator.IsControlled)
         {
-            animatorControlHandle = Animator.TakeControl(-1);
-            animatorControlHandle.OnCancelled = () => animatorControlHandle = null;
+            defaultAcHandle = Animator.TakeControl(DEFAULT_ANIMATION_PRIORITY);
+            defaultAcHandle.OnCancelled = () => defaultAcHandle = null;
         }
 
         // We have control so idle or walk
-        if (animatorControlHandle != null)
+        if (defaultAcHandle != null)
         {
-            if (Movement.IsMoving && Animator.CurrentAnimation != walkingAnimation)
+            if (Movement.IsMoving && Animator.CurrentAnimation != defaultWalkingAnimation)
             {
-                animatorControlHandle.StartAnimation(walkingAnimation);
+                defaultAcHandle.StartAnimation(defaultWalkingAnimation);
             }
-            else if (!Movement.IsMoving && Animator.CurrentAnimation != idleAnimation)
+            else if (!Movement.IsMoving && Animator.CurrentAnimation != defaultIdleAnimation)
             {
-                animatorControlHandle.StartAnimation(idleAnimation);
+                defaultAcHandle.StartAnimation(defaultIdleAnimation);
             }
         }
     }

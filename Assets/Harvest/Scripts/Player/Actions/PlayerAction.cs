@@ -6,27 +6,28 @@ using UnityEngine;
 
 public abstract class PlayerActionCancelCondition
 {
+    public bool Active { get; set; }
     public abstract bool Evaluate(Player player);
 }
 
 public class CancelOnMovementInput : PlayerActionCancelCondition
 {
-    public override bool Evaluate(Player player) => player.Input.InputMovement.sqrMagnitude > 0.01f;
+    public override bool Evaluate(Player player) => Active && player.Input.InputMovement.sqrMagnitude > 0.01f;
 }
 
 public class CancelOnUnequip : PlayerActionCancelCondition
 {
-    public override bool Evaluate(Player player) => player.Tools.CurrentTool == null;
+    public override bool Evaluate(Player player) => Active && player.Tools.CurrentTool == null;
 }
 
 public class CancelOnPickupItem : PlayerActionCancelCondition
 {
-    public override bool Evaluate(Player player) => player.Interaction.HeldItemUI != null;
+    public override bool Evaluate(Player player) => Active && player.Interactor.HeldItemUI != null;
 }
 
 public class CancelOnMouseRelease : PlayerActionCancelCondition
 {
-    public override bool Evaluate(Player player) => player.Input.IsMouseReleased;
+    public override bool Evaluate(Player player) => Active && player.Input.IsMouseReleased;
 }
 
 public abstract class PlayerAction
@@ -35,34 +36,23 @@ public abstract class PlayerAction
     public event Action<PlayerAction> OnCompleted;
     public event Action<PlayerAction> OnCancelled;
 
-    public Player.Restriction PlayerRestrictions { get; private set; } = Player.Restriction.None;
-    public List<PlayerActionCancelCondition> CancelConditions { get; private set; } = new();
-
-    public bool IsCancellable { get; private set; } = true;
     public bool IsRunning { get; private set; }
     public virtual bool IsAvailable => true;
     public virtual bool IsRunnable => IsAvailable;
 
+    public List<PlayerActionCancelCondition> CancelConditions { get; private set; } = new();
 
-    public PlayerAction ConfigActionPlayerRestriction(Player.Restriction flags)
+    public PlayerAction Configure(List<PlayerActionCancelCondition> cancelConditions)
     {
-        PlayerRestrictions |= flags;
+        CancelConditions.AddRange(cancelConditions);
         return this;
     }
 
-    public PlayerAction ConfigActionCancelCondition(PlayerActionCancelCondition condition)
-    {
-        CancelConditions.Add(condition);
-        return this;
-    }
+    public virtual void UpdateAvailable() { }
 
-    public PlayerAction ConfigActionCancellable(bool cancellable)
-    {
-        IsCancellable = cancellable;
-        return this;
-    }
+    public virtual void UpdateActive() { }
 
-    public virtual void Preview() { }
+    public virtual void FixedUpdateActive() { }
 
     public async Task Run(CancellationToken ct)
     {
