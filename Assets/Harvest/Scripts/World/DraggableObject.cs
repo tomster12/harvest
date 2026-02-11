@@ -16,7 +16,7 @@ public class DraggableObject : MonoBehaviour
     {
         return new()
         {
-            Offset = hit.point - transform.position,
+            Offset = transform.InverseTransformPoint(hit.point),
             Reference = transform
         };
     }

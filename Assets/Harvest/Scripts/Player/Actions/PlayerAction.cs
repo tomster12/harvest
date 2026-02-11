@@ -6,7 +6,7 @@ using UnityEngine;
 
 public abstract class PlayerActionCancelCondition
 {
-    public bool Active { get; set; }
+    public bool Active { get; set; } = true;
     public abstract bool Evaluate(Player player);
 }
 

@@ -6,7 +6,7 @@ public class PlayerMovement
 {
     public Vector3 TargetFacingDir { get; private set; } = Vector3.zero;
     public bool IsMoving { get; private set; }
-    public bool HasReachedTarget => !targetPosition.HasValue || (targetPosition.Value - player.transform.position).sqrMagnitude <= targetThreshold;
+    public bool HasReachedTarget => !setTargetPosition.HasValue || (setTargetPosition.Value - player.transform.position).sqrMagnitude <= targetThreshold;
     public bool IsFacingTarget => Vector3.Angle(TargetFacingDir, player.transform.forward) <= rotationThreshold;
 
     public void Init(Player player)
@@ -14,7 +14,7 @@ public class PlayerMovement
         this.player = player;
         TargetFacingDir = player.transform.forward;
         inputDirection = null;
-        targetPosition = null;
+        setTargetPosition = null;
         IsMoving = false;
     }
 
@@ -22,46 +22,58 @@ public class PlayerMovement
     {
         // Overwrite and set to moving in a direction
         inputDirection = dir.normalized;
-        targetPosition = null;
+        setTargetPosition = null;
     }
 
     public void SetMovementTarget(Vector3 position, float threshold = 0.1f)
     {
         // Overwrite and set to moving towards a position
         inputDirection = null;
-        targetPosition = position;
+        setTargetPosition = position;
         targetThreshold = threshold;
     }
 
-    public void SetFacingTarget(Vector3 position, float speedMult = 1.0f)
+    public void SetFacingTarget(Vector3? position, float speedMult = 1.0f, bool prioritise = false)
     {
         // Set the target facing direction towards a position
-        Vector3 directDir = position - player.transform.position;
-        Vector3 flatDir = Vector3.ProjectOnPlane(directDir, Vector3.up);
-        rotationSpeedMult = speedMult;
-        TargetFacingDir = flatDir.normalized;
+        if (!position.HasValue)
+        {
+            setFacingDir = null;
+            setFacingDirPrioritise = false;
+        }
+        else
+        {
+            Vector3 directDir = position.Value - player.transform.position;
+            Vector3 flatDir = Vector3.ProjectOnPlane(directDir, Vector3.up);
+            rotationSpeedMult = speedMult;
+            setFacingDir = flatDir.normalized;
+            setFacingDirPrioritise = prioritise;
+        }
     }
 
     public void FixedUpdateMovement()
     {
         // Reset target position if reached
-        if (targetPosition.HasValue && HasReachedTarget) targetPosition = null;
+        if (setTargetPosition.HasValue && HasReachedTarget) setTargetPosition = null;
 
         // Check if moving in direction or towards position
-        // Prioritise input but dont clear the target
+        // Prioritise input but dont clear the set target
         Vector3? finalDir = null;
         if (inputDirection.HasValue)
         {
             finalDir = inputDirection.Value;
         }
-        else if (targetPosition.HasValue)
+        else if (setTargetPosition.HasValue)
         {
-            Vector3 directDir = targetPosition.Value - player.transform.position;
+            Vector3 directDir = setTargetPosition.Value - player.transform.position;
             Vector3 flatDir = Vector3.ProjectOnPlane(directDir, Vector3.up);
             finalDir = flatDir.normalized;
         }
 
-        // We are moving in some direction
+        // Always use set facing dir by default
+        if (setFacingDir.HasValue) TargetFacingDir = setFacingDir.Value;
+
+        // If we are moving in some direction
         if (finalDir.HasValue)
         {
             // Naively move in target direction
@@ -69,9 +81,13 @@ public class PlayerMovement
             Vector3 movement = movementSpeed * Time.fixedDeltaTime * finalDir.Value;
             rb.MovePosition(rb.position + movement);
 
-            // Overwrite target rotation with on the movement direction
-            Vector3 movementFacingDir = new(finalDir.Value.x, 0f, finalDir.Value.z);
-            TargetFacingDir = movementFacingDir;
+            // Unless told not to then override with movement dir
+            if (!setFacingDirPrioritise)
+            {
+                Vector3 movementFacingDir = new(finalDir.Value.x, 0f, finalDir.Value.z);
+                TargetFacingDir = movementFacingDir;
+                setFacingDir = null;
+            }
         }
         else IsMoving = false;
 
@@ -104,7 +120,9 @@ public class PlayerMovement
 
     private Player player;
     private Vector3? inputDirection;
-    private Vector3? targetPosition;
+    private Vector3? setTargetPosition;
+    private Vector3? setFacingDir;
+    private bool setFacingDirPrioritise = false;
     private float rotationSpeedMult = 1.0f;
     private float targetThreshold = 0.01f;
 }

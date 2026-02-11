@@ -309,6 +309,51 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tags: 02000000
+--- !u!1 &2021352637604893435
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6224469934005927981}
+  - component: {fileID: 6139202955252510232}
+  m_Layer: 0
+  m_Name: Hands - Drag
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6224469934005927981
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2021352637604893435}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.5662, z: 0.42}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 799884758945488176}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6139202955252510232
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2021352637604893435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a7453a71e482ce48bbc60aec642c4d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tags: 02000000
 --- !u!1 &3373357140580365024
 GameObject:
   m_ObjectHideFlags: 0
@@ -589,6 +634,7 @@ Transform:
   - {fileID: 2625683224600570849}
   - {fileID: 1401216508866440878}
   - {fileID: 4517899639739609598}
+  - {fileID: 6224469934005927981}
   - {fileID: 8220260309155811672}
   - {fileID: 944857585182512487}
   m_Father: {fileID: 0}

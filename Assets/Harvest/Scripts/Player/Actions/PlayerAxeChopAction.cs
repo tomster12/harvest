@@ -25,7 +25,7 @@ public class PlayerAxeChopAction : PlayerAction
             new CancelOnMouseRelease()
         });
 
-        // Grab animation transforms
+        // Get animation transforms
         leftHand = player.Animator.GetAnimationTransform("Left Hand");
         rightHand = player.Animator.GetAnimationTransform("Right Hand");
         leftHandChopBase = player.Animator.GetAnimationPoint("Left Hand - Chop - Base Point");
@@ -117,17 +117,18 @@ public class PlayerAxeChopAction : PlayerAction
 
     private Player player;
     private GameObject axeMesh;
-    private GameObject targetChopPreview;
-    private GameObject chopPreview;
-    private Renderer chopPreviewRenderer;
     private Transform leftHand;
     private Transform rightHand;
     private Transform leftHandChopBase;
     private Transform leftHandChopFrom;
-    private TreeTarget chopTarget;
-    private Vector3 chopFromPos;
+
     private State animationState = State.Setup;
     private PlayerAnimator.AcControlHandle acHandle;
+    private GameObject chopPreview;
+    private Renderer chopPreviewRenderer;
+    private GameObject targetChopPreview;
+    private TreeTarget chopTarget;
+    private Vector3 chopFromPos;
     private float swayCurrentOffsetAmount;
     private float swayNoiseTimeX;
     private float swayNoiseTimeY;
@@ -235,12 +236,13 @@ public class PlayerAxeChopAction : PlayerAction
         }
     }
 
-    protected override async Task Stop(CancellationToken ct)
+    protected override Task Stop(CancellationToken ct)
     {
         player.Input.ShowMouse();
         GameObject.Destroy(chopPreview);
         rightHand.SetParent(player.transform, true);
         acHandle?.Release();
+        return Task.CompletedTask;
     }
 
     private (Vector3 pos, Vector3 normal) GetPreviewHitPose()

@@ -66,6 +66,14 @@ public class PlayerInteractor
         }
     }
 
+    public void OnDrawGizmos()
+    {
+        if (dragAction != null && dragAction.IsRunning)
+        {
+            dragAction.DrawGizmosActive();
+        }
+    }
+
     [Header("Prefab")]
     [SerializeField] private GameObject gridInventoryUIPrefab;
     [SerializeField] private GameObject gearInventoryUIPrefab;
@@ -88,13 +96,5 @@ public class PlayerInteractor
         LooseItem.Spawn(HeldItemUI.ItemInstance, droppedPosition, droppedRotation);
         HeldItemUI.SetItem(null);
         player.Input.IsMousePressed = false;
-    }
-
-    protected void OnDrawGizmos()
-    {
-        if (dragAction.IsRunning)
-        {
-            dragAction.OnDrawGizmos();
-        }
     }
 }

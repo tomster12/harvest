@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -15,13 +16,13 @@ public class Player : MonoBehaviour
     {
         Persistent = persistent;
 
+        Animator.Init(this);
         Input.Init(this);
         Camera.Init(this);
         Tools.Init(this);
         Interactor.Init(this);
         Movement.Init(this);
         Actions.Init(this);
-        Animator.Init(this);
 
         defaultIdleAnimation = new PlayerIdleAnimation(Animator);
         defaultWalkingAnimation = new PlayerWalkingAnimation(Animator);
@@ -87,5 +88,10 @@ public class Player : MonoBehaviour
                 defaultAcHandle.StartAnimation(defaultIdleAnimation);
             }
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        Interactor.OnDrawGizmos();
     }
 }
