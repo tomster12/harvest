@@ -7,6 +7,7 @@ using UnityEngine;
 public class PlayerDragAction : PlayerAction
 {
     public override bool IsAvailable =>
+        !player.Tools.IsEquipped &&
         player.Animator.CanControl(ANIMATION_PRIORITY);
 
     public override bool IsRunnable =>
@@ -90,10 +91,9 @@ public class PlayerDragAction : PlayerAction
 
     private RaycastHit hoveredHit;
     private DraggableObject hoveredDraggable;
-
-    // Active
     private State state = State.Goto;
     private PlayerAnimator.AcControlHandle acHandle;
+    private int? playerSlowModId = null;
     private PlayerActionCancelCondition movementCancel;
     private DraggableObject currentDraggable;
     private DraggableObject.Grab currentGrab;
@@ -104,34 +104,36 @@ public class PlayerDragAction : PlayerAction
     protected override async Task Start(CancellationToken ct)
     {
         state = State.Goto;
-        acHandle = player.Animator.TakeControl(ANIMATION_PRIORITY);
-        if (acHandle == null) throw new OperationCanceledException("Failed to take control of animator.");
+        acHandle = player.Animator.TakeControl(ANIMATION_PRIORITY)
+            ?? throw new OperationCanceledException("Failed to take control of animator.");
 
         // Find Where we will grab on the object
         currentDraggable = hoveredDraggable;
         hoveredDraggable = null;
         currentGrab = currentDraggable.GetGrab(hoveredHit);
 
-        // Move to position within range of the target, and get hands ready
+        // Move to position within range of the target
         movementCancel.Active = true;
         playerDragFromPos = currentGrab.ResolvePosition();
-        await Task.WhenAll(
-            AsyncUtil.While(() =>
-            {
-                player.Movement.SetMovementTarget(playerDragFromPos, 0.5f);
-                return player.Movement.HasReachedTarget;
-            }, ct),
-            AnimationUtil.MoveTo(ct,
-                leftHand, handGrabPos.localPosition, Axis.Local,
-                0.3f, Easing.EaseInQuad
-            ),
-            AnimationUtil.MoveTo(ct,
-                rightHand, handGrabPos.localPosition, Axis.Local,
-                0.3f, Easing.EaseInQuad
-            )
-        );
+        await AsyncUtil.While(() =>
+        {
+            player.Movement.SetMovementTarget(playerDragFromPos, DRAG_DIST);
+            return player.Movement.HasReachedTarget;
+        }, ct);
 
+        // Begin dragging and slow down the player
         state = State.Drag;
+        playerSlowModId = player.Movement.MovementSpeed.AddMultMod(DRAG_SLOW);
+
+        // Tell the hands to move to grab position but ignore for now
+        _ = AnimationUtil.MoveTo(ct,
+            leftHand, handGrabPos.localPosition, Axis.Local,
+            0.3f, Easing.EaseInQuad
+        );
+        _ = AnimationUtil.MoveTo(ct,
+            rightHand, handGrabPos.localPosition, Axis.Local,
+            0.3f, Easing.EaseInQuad
+        );
 
         // Drag with the players movement
         movementCancel.Active = false;
@@ -146,6 +148,9 @@ public class PlayerDragAction : PlayerAction
 
     protected override Task Stop(CancellationToken ct)
     {
+        if (playerSlowModId != null) player.Movement.MovementSpeed.RemoveMod((int)playerSlowModId);
+        playerSlowModId = null;
+
         player.Movement.SetFacingTarget(null);
         currentDraggable?.OnHoverExit();
         acHandle?.Release();
@@ -153,7 +158,8 @@ public class PlayerDragAction : PlayerAction
     }
 
     private static readonly int ANIMATION_PRIORITY = 0;
-
+    private static readonly float DRAG_SLOW = 0.4f;
+    private static readonly float DRAG_DIST = 0.5f;
 
     private enum State
     { Goto, Drag };

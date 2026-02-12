@@ -14,7 +14,7 @@ public class PlayerCamera
         camBaseRot = Quaternion.Euler(camBaseRotEuler);
         camZoom = camZoomBase;
         UpdateCamera(true);
-        FollowPlayerPosition(true);
+        FixedFollowPlayer(true);
     }
 
     public void UpdateCamera(bool force = false)
@@ -51,7 +51,7 @@ public class PlayerCamera
         else Camera.transform.rotation = targetRotation;
     }
 
-    public void FollowPlayerPosition(bool force = false)
+    public void FixedFollowPlayer(bool force = false)
     {
         // Move camera based on player position and zoom
         Vector3 centrePosition = player.transform.position + camCentreOffset;

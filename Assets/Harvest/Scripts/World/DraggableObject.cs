@@ -2,6 +2,13 @@ using UnityEngine;
 
 public class DraggableObject : MonoBehaviour
 {
+    public void Init(Outline outline, Rigidbody rb)
+    {
+        this.outline = outline;
+        this.rb = rb;
+        outline.enabled = false;
+    }
+
     public void OnHoverEnter()
     {
         outline.enabled = true;
@@ -42,7 +49,7 @@ public class DraggableObject : MonoBehaviour
 
     private void Awake()
     {
-        outline.enabled = false;
+        if (outline != null) outline.enabled = false;
     }
 
     public class Grab

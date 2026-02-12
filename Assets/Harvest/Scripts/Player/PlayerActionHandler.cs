@@ -79,7 +79,7 @@ public class PlayerActionHandler
         }
     }
 
-    public void FixedUpdate()
+    public void FixedUpdateActions()
     {
         if (!isCancelling && IsActing)
         {

@@ -52,19 +52,19 @@ public class Player : MonoBehaviour
     {
         if (Input.IsInputtingMovement)
         {
-            Movement.MoveInDirection(Input.InputMovement);
+            Movement.SetMovementInput(Input.InputMovement);
         }
 
-        Actions.FixedUpdate();
+        Actions.FixedUpdateActions();
 
-        Movement.FixedUpdateMovement();
+        Movement.FixedApplyMovement();
 
-        Camera.FollowPlayerPosition();
+        Camera.FixedFollowPlayer();
     }
 
     private void LateUpdate()
     {
-        Movement.LateUpdateMovement();
+        Movement.LateClearInputs();
     }
 
     private void TryDefaultAnimations()

@@ -4,6 +4,7 @@ using UnityEngine;
 [Serializable]
 public class PlayerTools
 {
+    public bool IsEquipped => CurrentTool != null;
     public PlayerTool CurrentTool { get; private set; } = null;
 
     public void Init(Player player)

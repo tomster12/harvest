@@ -251,17 +251,31 @@ public class ChoppableTree : MonoBehaviour
 
         bool causesSplit = grid.ApplyHit(hit, depth, width, height);
 
-        if (causesSplit)
+        if (!causesSplit)
         {
-            var (bottomGrid, topGrid) = grid.SplitAtRow(hit.y);
-            grid = bottomGrid;
-            CanChop = false;
             RebuildMesh();
-            if (topGrid != null) SpawnTopLog(topGrid);
             return;
         }
 
+        var (bottomGrid, topGrid) = grid.SplitAtRow(hit.y);
+
+        // Reduce and disable bottom half as a stump
+        grid = bottomGrid;
+        CanChop = false;
         RebuildMesh();
+
+        if (topGrid != null)
+        {
+            // Spawn and loosen top half as a log
+            Vector3 spawnPos = transform.position + Vector3.up * (grid.Rows - 1) * (grid.Height / grid.Rows) + Vector3.up * 0.01f;
+            var go = Instantiate(gameObject, spawnPos, transform.rotation);
+            var tree = go.GetComponent<ChoppableTree>();
+
+            tree.grid = topGrid;
+            tree.CanChop = false;
+            tree.RebuildMesh();
+            tree.SetDraggable();
+        }
     }
 
     [Header("References")]
@@ -455,21 +469,17 @@ public class ChoppableTree : MonoBehaviour
         mc.sharedMesh = mesh;
     }
 
-    private void SpawnTopLog(TreeGrid topGrid)
-    {
-        Vector3 topPos = transform.position + Vector3.up * (grid.Rows - 1) * (grid.Height / grid.Rows) + Vector3.up * 0.01f;
-        var go = Instantiate(gameObject, topPos, transform.rotation);
-        var tree = go.GetComponent<ChoppableTree>();
-
-        tree.grid = topGrid;
-        tree.RebuildMesh();
-        tree.rb.isKinematic = false;
-        tree.CanChop = false;
-    }
-
     private Vector2Int WorldToGrid(Vector3 posWorld)
     {
         Vector3 local = transform.InverseTransformPoint(posWorld);
         return grid.LocalToGrid(local);
+    }
+
+    private void SetDraggable()
+    {
+        rb.isKinematic = false;
+        var outline = gameObject.AddComponent<Outline>();
+        var draggable = gameObject.AddComponent<DraggableObject>();
+        draggable.Init(outline, rb);
     }
 }
