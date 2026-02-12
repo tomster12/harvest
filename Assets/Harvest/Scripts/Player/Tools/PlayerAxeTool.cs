@@ -1,5 +1,7 @@
+using System;
 using UnityEngine;
 
+[Serializable]
 public class PlayerAxeTool : PlayerTool
 {
     public PlayerAxeTool(Player player, ItemInstance itemInstance) : base(player, itemInstance) { }

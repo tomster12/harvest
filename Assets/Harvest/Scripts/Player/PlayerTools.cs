@@ -5,7 +5,7 @@ using UnityEngine;
 public class PlayerTools
 {
     public bool IsEquipped => CurrentTool != null;
-    public PlayerTool CurrentTool { get; private set; } = null;
+    public PlayerTool CurrentTool => currentTool;
 
     public void Init(Player player)
     {
@@ -21,7 +21,7 @@ public class PlayerTools
             switch (itemInstance.Data.ToolData.Type)
             {
                 case ToolType.Axe:
-                    CurrentTool = new PlayerAxeTool(player, itemInstance);
+                    currentTool = new PlayerAxeTool(player, itemInstance);
                     break;
 
                 default:
@@ -29,18 +29,19 @@ public class PlayerTools
                     break;
             }
 
-            CurrentTool?.Equip();
+            currentTool?.Equip();
         }
     }
 
     public void OnItemUnequipped(ItemInstance itemInstance)
     {
-        if (itemInstance.Data.Type == ItemType.Tool && CurrentTool != null)
+        if (itemInstance.Data.Type == ItemType.Tool && currentTool != null)
         {
-            CurrentTool.Unequip();
-            CurrentTool = null;
+            currentTool.Unequip();
+            currentTool = null;
         }
     }
 
     private Player player;
+    [SerializeField] private PlayerTool currentTool;
 }

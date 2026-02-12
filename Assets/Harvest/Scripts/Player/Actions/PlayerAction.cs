@@ -30,6 +30,7 @@ public class CancelOnMouseRelease : PlayerActionCancelCondition
     public override bool Evaluate(Player player) => Active && player.Input.IsMouseReleased;
 }
 
+[Serializable]
 public abstract class PlayerAction
 {
     public event Action<PlayerAction> OnStarted;

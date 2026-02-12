@@ -4,6 +4,7 @@ using UnityEngine;
 using Unity.Mathematics;
 using System;
 
+[Serializable]
 public class PlayerAxeChopAction : PlayerAction
 {
 
@@ -254,8 +255,8 @@ public class PlayerAxeChopAction : PlayerAction
     private void OnHitTree()
     {
         float accuracy = Mathf.Clamp01(1f - Mathf.Abs(swayCurrentOffsetAmount));
-        float depth = 0.01f + accuracy * 0.05f;
-        float width = 0.1f + accuracy * 0.25f;
+        float depth = 0.02f + accuracy * 0.05f;
+        float width = 0.05f + accuracy * 0.3f;
         float height = 0.02f + accuracy * 0.05f;
 
         var (previewPos, _) = GetPreviewHitPose();
