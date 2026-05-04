@@ -32,7 +32,7 @@ public class ItemUI : MonoBehaviour
         // Set up item UI with new Item
         ItemInstance.OnAmountChanged += OnAmountChanged;
         gameObject.SetActive(true);
-        gameObject.name = $"Inventory Item UI ({itemInstance.Data.Name})";
+        gameObject.name = $"Inventory Item UI ({itemInstance.Data.DisplayName})";
         Rect.sizeDelta = GridInventoryUI.GetGridSize(itemInstance.Data.SizeX, itemInstance.Data.SizeY);
         iconImage.sprite = itemInstance.Data.Icon;
         amountText.gameObject.SetActive(itemInstance.Data.IsStackable);

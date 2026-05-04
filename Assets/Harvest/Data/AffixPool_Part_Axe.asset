@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 29e755c9f484e2b4fa26c6e14d38bc74, type: 3}
+  m_Name: AffixPool_Part_Axe
+  m_EditorClassIdentifier: 
+  MinAffixes: 0
+  MaxAffixes: 2
+  Affixes:
+  - {fileID: 11400000, guid: 47951442ce89f78479dd7d17626e2f69, type: 2}
+  - {fileID: 11400000, guid: 02181de93d73e47498a8e40a54a8bdad, type: 2}

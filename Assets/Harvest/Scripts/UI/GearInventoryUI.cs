@@ -200,10 +200,10 @@ public class GearInventoryUI : MonoBehaviour, IItemContainerUI
         if (item == null) return null;
         if (item.Data.Type == ItemType.Equipment)
         {
-            Debug.Assert(item.Data.EquipmentData != null, "ItemInstance Data must have EquipmentData for Equipment type in GearInventoryUI.");
-            EquipmentItemData equipmentData = item.Data.EquipmentData;
-            Debug.Assert(equipmentSlots.ContainsKey(equipmentData.Type), "EquipmentSlots dictionary must contain the EquipmentType key for Equipment type in GearInventoryUI.");
-            return equipmentSlots[equipmentData.Type];
+            var equipmentType = item.Data.EquipmentType;
+            Debug.Assert(equipmentType != EquipmentType.None, "ItemInstance Data must have EquipmentData for Equipment type in GearInventoryUI.");
+            Debug.Assert(equipmentSlots.ContainsKey(equipmentType), "EquipmentSlots dictionary must contain the EquipmentType key for Equipment type in GearInventoryUI.");
+            return equipmentSlots[equipmentType];
         }
         else if (item.Data.Type == ItemType.Tool)
         {
@@ -264,8 +264,8 @@ public class GearInventoryUI : MonoBehaviour, IItemContainerUI
         {
             var data = item.Data;
             return IsToolSlot
-                ? data.Type == ItemType.Tool && data.ToolData?.Type != ToolType.None
-                : data.Type == ItemType.Equipment && data.EquipmentData?.Type == EquipmentType;
+                ? data.Type == ItemType.Tool && data.ToolType != ToolType.None
+                : data.Type == ItemType.Equipment && data.EquipmentType == EquipmentType;
         }
     }
 }

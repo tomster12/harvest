@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -15,7 +16,8 @@ public class PlayerPersistent : MonoBehaviour
     {
         if (instance != null && instance != this)
         {
-            DestroyImmediate(gameObject);
+            Debug.LogError("PlayerPersistent Instance already initialised");
+            Destroy(gameObject);
             return;
         }
         instance = this;

@@ -7,7 +7,6 @@ using System;
 [Serializable]
 public class PlayerAxeChopAction : PlayerAction
 {
-
     public override bool IsAvailable =>
         player.Animator.CanControl(ANIMATION_PRIORITY);
 
@@ -15,10 +14,11 @@ public class PlayerAxeChopAction : PlayerAction
         chopTarget != null &&
         chopFromPos != null;
 
-    public PlayerAxeChopAction(Player player, GameObject axeMesh)
+    public PlayerAxeChopAction(Player player, GameObject axeMesh, IStatProvider stats)
     {
         this.player = player;
         this.axeMesh = axeMesh;
+        this.stats = stats;
 
         Configure(new()
         {
@@ -118,6 +118,7 @@ public class PlayerAxeChopAction : PlayerAction
 
     private Player player;
     private GameObject axeMesh;
+    private IStatProvider stats;
     private Transform leftHand;
     private Transform rightHand;
     private Transform leftHandChopBase;
@@ -156,7 +157,7 @@ public class PlayerAxeChopAction : PlayerAction
         chopPreviewRenderer.sharedMaterial = new(AssetDatabase.GetMaterial("Chop Preview"));
         chopPreviewRenderer.sharedMaterial.color = CHOP_GOOD_COLOR;
 
-        // Start the player input reaction task
+        // Initialise the player input state
         swayNoiseTimeX = Time.time;
         swayNoiseTimeY = Time.time + 100f;
         swayShakeNoiseTime = Time.time;
@@ -166,9 +167,10 @@ public class PlayerAxeChopAction : PlayerAction
 
         player.Input.HideMouse();
 
-        // Put right hand locally forward of the left, and left in base position
-        rightHand.SetParent(leftHand, true);
+        // Start moving towards target, with right hand locally forward of the left, and left in base position
         player.Movement.SetMovementTarget(chopFromPos, 0.02f);
+
+        rightHand.SetParent(leftHand, true);
 
         await Task.WhenAll(
             AsyncUtil.While(() => player.Movement.HasReachedTarget, ct),
@@ -194,21 +196,24 @@ public class PlayerAxeChopAction : PlayerAction
         {
             ct.ThrowIfCancellationRequested();
 
+            float swingSpeed = stats.GetStat(StatType.SwingSpeed);
+            float durationMult = Mathf.Max(0.001f, 1 / Mathf.Max(0.001f, swingSpeed));
+
             if (animationState == State.Setup)
             {
                 await AnimationUtil.MoveAndRotateTo(ct,
                     leftHand, leftHandChopFrom, Axis.Local,
-                    1.0f, Easing.EaseInQuad
+                    1.0f * durationMult, Easing.EaseInQuad
                 );
 
-                await Task.Delay(200, ct);
+                await Task.Delay((int)(200 * durationMult), ct);
                 animationState = State.Swing;
             }
 
             else if (animationState == State.Swing)
             {
                 // Sample the preview pose and calculate the target hand pose
-                var (previewPos, previewNormal) = GetPreviewHitPose();
+                var (previewPos, previewNormal) = GetChopTargetPose();
                 Transform axeHitPoint = axeMesh.transform.Find("Hit Point");
                 var previewPoseMatrix = Matrix4x4.TRS(previewPos, Quaternion.LookRotation(previewNormal, Vector3.up), Vector3.one);
                 var chopToMatrix = previewPoseMatrix * (leftHand.worldToLocalMatrix * axeHitPoint.localToWorldMatrix).inverse;
@@ -217,11 +222,11 @@ public class PlayerAxeChopAction : PlayerAction
 
                 await AnimationUtil.MoveAndRotateTo(ct,
                     leftHand, leftHandChopToPos, leftHandChopToRot,
-                    Axis.Global, 0.1f, Easing.Linear
+                    Axis.Global, 0.1f * durationMult, Easing.Linear
                 );
 
                 OnHitTree();
-                await Task.Delay(400, ct);
+                await Task.Delay((int)(400 * durationMult), ct);
                 animationState = State.Pull;
             }
 
@@ -229,7 +234,7 @@ public class PlayerAxeChopAction : PlayerAction
             {
                 await AnimationUtil.MoveAndRotateTo(ct,
                     leftHand, leftHandChopFrom,
-                    Axis.Local, 0.7f, Easing.EaseOutQuad
+                    Axis.Local, 0.7f * durationMult, Easing.EaseOutQuad
                 );
 
                 animationState = State.Swing;
@@ -246,7 +251,7 @@ public class PlayerAxeChopAction : PlayerAction
         return Task.CompletedTask;
     }
 
-    private (Vector3 pos, Vector3 normal) GetPreviewHitPose()
+    private (Vector3 pos, Vector3 normal) GetChopTargetPose()
     {
         Vector3 pos = chopPreview.transform.position;
         return (pos, chopTarget.Hit.normal);
@@ -254,13 +259,18 @@ public class PlayerAxeChopAction : PlayerAction
 
     private void OnHitTree()
     {
+        float swingDamage = stats.GetStat(StatType.SwingDamage);
         float accuracy = Mathf.Clamp01(1f - Mathf.Abs(swayCurrentOffsetAmount));
-        float depth = 0.02f + accuracy * 0.05f;
-        float width = 0.05f + accuracy * 0.3f;
-        float height = 0.02f + accuracy * 0.05f;
 
-        var (previewPos, _) = GetPreviewHitPose();
-        chopTarget.Tree.Hit(previewPos, depth, width, height);
+        float depth = (0.02f + accuracy * 0.05f) * swingDamage;
+        float width = (0.05f + accuracy * 0.3f) * swingDamage;
+        float height = (0.02f + accuracy * 0.05f) * swingDamage;
+
+        var (targetPos, _) = GetChopTargetPose();
+
+        var hit = chopTarget.Tree.Hit(targetPos, depth, width, height);
+
+        if (hit) TextPopupManager.SpawnTextPopup(targetPos, (depth * CHOP_POPUP_MULT).ToString());
     }
 
     private TreeTarget FindTreeTarget()
@@ -312,4 +322,5 @@ public class PlayerAxeChopAction : PlayerAction
     private static readonly float CHOP_SWAY_SHAKE_MAGNITUDE = 0.02f;
     private static readonly float CHOP_SWAY_SHAKE_FREQUENCY = 8f;
     private static readonly int ANIMATION_PRIORITY = 0;
+    private static float CHOP_POPUP_MULT = 100.0f;
 }

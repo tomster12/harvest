@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Grass Geom Unlit Material
-  m_Shader: {fileID: 4800000, guid: c5c7723604785104897e45ad173bf257, type: 3}
+  m_Name: Grass Geom Material
+  m_Shader: {fileID: 4800000, guid: 0dd7d9c3880b36e4fabb609eb82cf493, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -25,6 +25,10 @@ Material:
     m_TexEnvs:
     - _BladeGradientMap:
         m_Texture: {fileID: 2800000, guid: f1123507fa2d7204ba4f6a0dd190883e, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ColorNoiseTexture:
+        m_Texture: {fileID: 2800000, guid: 2d406ec95bb0e4046bf9609e1807c8ba, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _GradientMap:
@@ -49,28 +53,35 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _BladeBend: 0.15
     - _BladeCount: 30
-    - _BladeHeight: 0.15
-    - _BladePositionRandomness: -0.01
-    - _BladeWidth: 0.026
+    - _BladeHeight: 0.44
+    - _BladePositionRandomness: 0
+    - _BladeWidth: 0.052
+    - _ColorNoiseScale: 0.47
+    - _ColorNoiseStrength: 0.79
+    - _DensityNoiseScale: 1.2
+    - _DensityNoiseStrength: 0.76
     - _GrassBlades: 6.2
     - _GrassHeight: 0.76
     - _GrassWidth: 0.083
-    - _HeightNoiseScale: 0.132
-    - _HeightNoiseStrength: 0.403
+    - _HeightNoiseScale: 1.67
+    - _HeightNoiseStrength: 0.71
     - _MaxCameraDistance: 10
     - _MaxGrassBlades: 30
     - _MinGrassBlades: 30
     - _MinimunGrassBlades: 15
     - _NoiseScale: 0.06
     - _PositionRandomness: 0.03
-    - _WindScale: 0.103
-    - _WindSpeed: 0.03
-    - _WindStrength: 0.06
+    - _ShadowStrength: 0.7
+    - _WindColorStrength: 3.11
+    - _WindScale: 0.38
+    - _WindSpeed: 0.8
+    - _WindStrength: 0.04
     m_Colors:
-    - _BaseColor: {r: 0.43456, g: 0.56, b: 0.42112002, a: 1}
+    - _BaseColor: {r: 0.6, g: 0.8, b: 0.6, a: 1}
     - _Color: {r: 0.6889879, g: 1, b: 0.5990566, a: 1}
-    - _SecondaryColor: {r: 0.3584906, g: 0.31800187, b: 0.3026878, a: 1}
-    - _WindColor: {r: 0, g: 0, b: 0, a: 0}
+    - _SecondaryColor: {r: 0.35819218, g: 0.5377358, b: 0.2967693, a: 1}
+    - _WindColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

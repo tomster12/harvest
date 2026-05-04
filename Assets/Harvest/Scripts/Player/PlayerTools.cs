@@ -18,14 +18,14 @@ public class PlayerTools
     {
         if (itemInstance.Data.Type == ItemType.Tool)
         {
-            switch (itemInstance.Data.ToolData.Type)
+            switch (itemInstance.Data.ToolType)
             {
                 case ToolType.Axe:
                     currentTool = new PlayerAxeTool(player, itemInstance);
                     break;
 
                 default:
-                    Debug.LogWarning($"Unhandled tool type: {itemInstance.Data.ToolData.Type}");
+                    Debug.LogWarning($"Unhandled tool type: {itemInstance.Data.ToolType}");
                     break;
             }
 

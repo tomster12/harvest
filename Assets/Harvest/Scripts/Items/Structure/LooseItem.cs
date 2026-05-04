@@ -5,7 +5,7 @@ public class LooseItem : MonoBehaviour, IItemContainer
     public static LooseItem Spawn(ItemInstance itemInstance, Vector3 position, Quaternion rotation)
     {
         GameObject looseItemObject = Instantiate(AssetDatabase.GetPrefab("Loose Item"), position, rotation);
-        looseItemObject.name = $"Loose Item ({itemInstance.Data.Name})";
+        looseItemObject.name = $"Loose Item ({itemInstance.Data.DisplayName})";
         LooseItem looseItem = looseItemObject.GetComponent<LooseItem>();
 
         GameObject itemMesh = Instantiate(itemInstance.Data.MeshPrefab, looseItemObject.transform);

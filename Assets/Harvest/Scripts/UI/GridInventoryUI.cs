@@ -181,7 +181,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
     private void OnItemAdded(ItemInstance itemInstance)
     {
         // Create new inventory item UI and
-        ItemUI itemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, $"Inventory Item UI ({itemInstance.Data.Name})", itemContainer);
+        ItemUI itemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, $"Inventory Item UI ({itemInstance.Data.DisplayName})", itemContainer);
         itemUI.SetItem(itemInstance);
         Debug.Assert(Inventory.TryGetItemPosition(itemInstance, out Vector2Int itemGridPos), "Item must be in the inventory");
         Vector2 localPos = ConvertGridPosToLocalPos(itemGridPos.x, itemGridPos.y);

@@ -10,6 +10,13 @@ public class AssetDatabase : MonoBehaviour
         return data;
     }
 
+    public static AffixData GetAffixData(string affixID)
+    {
+        affixDictionary.TryGetValue(affixID, out AffixData data);
+        Debug.Assert(data != null, $"Affix with ID '{affixID}' not found in the database.");
+        return data;
+    }
+
     public static GameObject GetPrefab(string itemID)
     {
         prefabDictionary.TryGetValue(itemID, out GameObject prefab);
@@ -26,11 +33,15 @@ public class AssetDatabase : MonoBehaviour
 
     private static bool isInitialized = false;
     private static readonly Dictionary<string, ItemData> itemDictionary = new();
+    private static readonly Dictionary<string, AffixData> affixDictionary = new();
     private static readonly Dictionary<string, GameObject> prefabDictionary = new();
     private static readonly Dictionary<string, Material> materialDictionary = new();
 
     [Header("Items")]
     [SerializeField] private List<ItemData> items = new();
+
+    [Header("Affixes")]
+    [SerializeField] private List<AffixData> affixes = new();
 
     [Header("Prefabs")]
     [SerializeField] private List<GameObject> prefabs = new();
@@ -51,9 +62,12 @@ public class AssetDatabase : MonoBehaviour
 
         // Load the locally defined variables into the static dictionaries
         itemDictionary.Clear();
+        affixDictionary.Clear();
         prefabDictionary.Clear();
         materialDictionary.Clear();
+
         for (int i = 0; i < items.Count; i++) itemDictionary.Add(items[i].ID, items[i]);
+        for (int i = 0; i < affixes.Count; i++) affixDictionary.Add(affixes[i].name, affixes[i]);
         for (int i = 0; i < prefabs.Count; i++) prefabDictionary.Add(prefabs[i].name, prefabs[i]);
         for (int i = 0; i < materials.Count; i++) materialDictionary.Add(materials[i].name, materials[i]);
     }

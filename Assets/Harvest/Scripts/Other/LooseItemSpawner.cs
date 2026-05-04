@@ -7,7 +7,10 @@ public class DebugItemSpawner : MonoBehaviour
     [ContextMenu("Spawn Current Item")]
     public void SpawnCurrentItem()
     {
-        ItemInstance itemInstance = new(currentData, 1);
+        ItemInstance itemInstance = currentData.Type == ItemType.Resource
+            ? ItemInstance.NewResource(currentData, 1)
+            : ItemGenerator.GenerateComplex(currentData, 1, null);
+
         LooseItem.Spawn(itemInstance, transform.position, transform.rotation);
     }
 }

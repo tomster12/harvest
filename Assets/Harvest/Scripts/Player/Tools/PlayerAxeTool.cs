@@ -22,7 +22,7 @@ public class PlayerAxeTool : PlayerTool
         foreach (var collider in colliders) collider.isTrigger = true;
 
         // Finally we can add the actual action to chop
-        chopAction = new PlayerAxeChopAction(player, axeMesh);
+        chopAction = new PlayerAxeChopAction(player, axeMesh, new ItemStatProvider(itemInstance));
         player.Actions.Register(chopAction);
     }
 

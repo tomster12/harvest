@@ -129,10 +129,11 @@ public sealed class TreeGrid
         }
     }
 
-    public bool ApplyHit(Vector2Int hitGrid, float depth, float width, float height)
+    public bool ApplyHitToGrid(Vector2Int hitGrid, float depth, float width, float height)
     {
         int hitCols = Mathf.CeilToInt(width * Settings.ColDensity);
         int hitRows = Mathf.CeilToInt(height * Settings.RowDensity);
+        hitCols = Mathf.Min(hitCols, Cols / 4);
 
         for (int dc = -hitCols; dc <= hitCols; dc++)
         {
@@ -153,6 +154,8 @@ public sealed class TreeGrid
             }
         }
 
+        if (!RowInChoppableRange(hitGrid.y)) return false;
+
         return CheckSplit(hitGrid.y - hitRows, hitGrid.y + hitRows);
     }
 
@@ -163,6 +166,7 @@ public sealed class TreeGrid
 
         for (int r = lowRow; r <= highRow; r++)
         {
+            if (!RowInChoppableRange(r)) continue;
             if (CheckRowSplitRequirement(r)) return true;
         }
 
@@ -229,15 +233,23 @@ public sealed class TreeGrid
         return p;
     }
 
-    public Vector2Int LocalToGrid(Vector3 localPos)
+    public Vector2Int? LocalToGrid(Vector3 localPos)
     {
         float angle = Mathf.Atan2(localPos.z, localPos.x);
         if (angle < 0) angle += Mathf.PI * 2f;
 
         int col = Mathf.FloorToInt(angle / (Mathf.PI * 2f) * Cols);
-        int row = Mathf.Clamp(Mathf.RoundToInt((localPos.y / Height) * (Rows - 1)), 0, Rows - 1);
+        int row = Mathf.RoundToInt(localPos.y / Height * (Rows - 1));
 
+        if (row < 0 || row > Rows - 1) return null;
         return new Vector2Int(col, row);
+    }
+
+    private bool RowInChoppableRange(int r)
+    {
+        int minSplitRow = 2;
+        int maxSplitRow = Rows - 3;
+        return r >= minSplitRow && r <= maxSplitRow;
     }
 }
 
@@ -245,21 +257,30 @@ public class ChoppableTree : MonoBehaviour
 {
     public bool CanChop { get; private set; } = true;
 
-    public void Hit(Vector3 posWorld, float depth, float width, float height)
+    public bool Hit(Vector3 posWorld, float depth, float width, float height)
     {
-        Vector2Int hit = WorldToGrid(posWorld);
+        Vector2Int? posGrid = WorldToGrid(posWorld);
+        if (posGrid == null) return false;
 
-        bool causesSplit = grid.ApplyHit(hit, depth, width, height);
+        // Spawn particles
+        Vector3 hitTrunkPos = new(transform.position.x, posWorld.y, transform.position.z);
+        Vector3 normal = (posWorld - hitTrunkPos).normalized;
+        var particles = ParticleManager.Instance.Spawn(ParticleEffect.TreeChop, posWorld, Quaternion.LookRotation(normal));
+        if (particles != null) particles.Play();
 
-        if (!causesSplit)
+        // Apply the world hit to the grid
+        bool hitCausedSplit = grid.ApplyHitToGrid(posGrid.Value, depth, width, height);
+
+        // Just rebuild mesh with the updated grid
+        if (!hitCausedSplit)
         {
             RebuildMesh();
-            return;
+            return true;
         }
 
-        var (bottomGrid, topGrid) = grid.SplitAtRow(hit.y);
+        // Otherwise we need to split the grid, rebuild bottom half, then spawn top half
+        var (bottomGrid, topGrid) = grid.SplitAtRow(posGrid.Value.y);
 
-        // Reduce and disable bottom half as a stump
         grid = bottomGrid;
         CanChop = false;
         RebuildMesh();
@@ -276,6 +297,8 @@ public class ChoppableTree : MonoBehaviour
             tree.RebuildMesh();
             tree.SetDraggable();
         }
+
+        return true;
     }
 
     [Header("References")]
@@ -469,7 +492,7 @@ public class ChoppableTree : MonoBehaviour
         mc.sharedMesh = mesh;
     }
 
-    private Vector2Int WorldToGrid(Vector3 posWorld)
+    private Vector2Int? WorldToGrid(Vector3 posWorld)
     {
         Vector3 local = transform.InverseTransformPoint(posWorld);
         return grid.LocalToGrid(local);

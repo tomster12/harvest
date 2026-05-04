@@ -37,11 +37,11 @@ public class PlayerActionHandler
 
         if (!isCancelling)
         {
-            // Check cancel conditions for running action
             if (IsActing)
             {
                 currentAction.UpdateActive();
 
+                // Check cancel conditions for running action
                 foreach (var condition in currentAction.CancelConditions)
                 {
                     if (condition.Evaluate(player))

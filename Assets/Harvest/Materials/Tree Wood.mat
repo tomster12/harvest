@@ -33,16 +33,16 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BarkEdgeWidth: 0.079
+    - _BarkEdgeWidth: 0.0527
     - _BarkThickness: 0.02
     - _BarkThreshold: 0.02
-    - _BarkWidth: 0.002
+    - _BarkWidth: 0.018
     - _Darken: 0.35
     - _DarkenAmount: 0.35
     - _DarkenStart: 0.35
     - _DarkenThreshold: 0.35
     - _EdgeWidth: 0.04
-    - _InnerDarkenAmount: 0.315
+    - _InnerDarkenAmount: 0.473
     - _InnerDarkenStart: 0.304
     - _Metallic: 0
     - _ShadowSoftness: 0.64

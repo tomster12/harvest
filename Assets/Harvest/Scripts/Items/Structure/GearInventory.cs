@@ -23,17 +23,16 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
         if (itemInstance.Data.Type == ItemType.Equipment)
         {
             // Make sure the item is a valid option
-            Debug.Assert(itemInstance.Data.EquipmentData != null, "ItemInstance Data must have EquipmentData for Equipment type in GearInventory.");
-            Debug.Assert(itemInstance.Data.EquipmentData.Type != EquipmentType.None, "EquipmentData must have a valid EquipmentType for Equipment type in GearInventory.");
-            EquipmentItemData equipmentData = itemInstance.Data.EquipmentData;
+            Debug.Assert(itemInstance.Data.EquipmentType != EquipmentType.None, "EquipmentData must have a valid EquipmentType for Equipment type in GearInventory.");
+            EquipmentType equipmentType = itemInstance.Data.EquipmentType;
 
             // Replace an existing item
-            ItemInstance existingItem = equipmentItems[equipmentData.Type];
+            ItemInstance existingItem = equipmentItems[equipmentType];
             if (existingItem != null && existingItem.Data != null)
             {
                 if (!preview)
                 {
-                    equipmentItems[equipmentData.Type] = itemInstance;
+                    equipmentItems[equipmentType] = itemInstance;
                     itemInstance.SetContainer(this);
                     OnItemRemoved?.Invoke(existingItem);
                     OnItemAdded?.Invoke(itemInstance);
@@ -44,7 +43,7 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
             // Place as a  new item
             if (!preview)
             {
-                equipmentItems[equipmentData.Type] = itemInstance;
+                equipmentItems[equipmentType] = itemInstance;
                 itemInstance.SetContainer(this);
                 OnItemAdded?.Invoke(itemInstance);
             }
@@ -55,9 +54,8 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
         if (itemInstance.Data.Type == ItemType.Tool)
         {
             // Make sure the item is a valid option
-            Debug.Assert(itemInstance.Data.ToolData != null, "ItemInstance Data must have ToolData for Tool type in GearInventory.");
-            ToolItemData toolData = itemInstance.Data.ToolData;
-            Debug.Assert(toolData.Type != ToolType.None, "ToolData must have a valid ToolType for Tool type in GearInventory.");
+            Debug.Assert(itemInstance.Data.ToolType != ToolType.None, "ToolData must have a valid ToolType for Tool type in GearInventory.");
+            ToolType toolType = itemInstance.Data.ToolType;
 
             // Replace an existing tool
             if (toolItem != null && toolItem.Data != null)
@@ -93,15 +91,13 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
         if (itemInstance.Data.Type == ItemType.Equipment)
         {
             // Make sure the item is a valid option
-            Debug.Assert(itemInstance.Data.EquipmentData != null, "ItemInstance Data must have EquipmentData for Equipment type in GearInventory.");
-            EquipmentItemData equipmentData = itemInstance.Data.EquipmentData;
-            Debug.Assert(equipmentData.Type != EquipmentType.None, "EquipmentData must have a valid EquipmentType for Equipment type in GearInventory.");
-            Debug.Assert(equipmentItems.ContainsKey(equipmentData.Type), "EquipmentItems dictionary must contain the EquipmentType key for Equipment type.");
-            Debug.Assert(equipmentItems[equipmentData.Type] == itemInstance, "EquipmentItems dictionary must contain the itemInstance for the EquipmentType key in GearInventory.");
-            Debug.Assert(itemInstance.Container == this, equipmentData.Type + " itemInstance container must match GearInventory for removal.");
+            EquipmentType equipmentType = itemInstance.Data.EquipmentType;
+            Debug.Assert(equipmentItems.ContainsKey(equipmentType), "EquipmentItems dictionary must contain the EquipmentType key for Equipment type.");
+            Debug.Assert(equipmentItems[equipmentType] == itemInstance, "EquipmentItems dictionary must contain the itemInstance for the EquipmentType key in GearInventory.");
+            Debug.Assert(itemInstance.Container == this, equipmentType + " itemInstance container must match GearInventory for removal.");
 
             // Remove the item from the inventory
-            equipmentItems.Remove(equipmentData.Type);
+            equipmentItems.Remove(equipmentType);
             itemInstance.SetContainer(null);
             OnItemRemoved?.Invoke(itemInstance);
             return new ItemContainerInteractResponse(ItemContainerInteractType.Pickup, itemInstance);
@@ -111,9 +107,8 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
         if (itemInstance.Data.Type == ItemType.Tool)
         {
             // Make sure the item is a valid option
-            Debug.Assert(itemInstance.Data.ToolData != null, "ItemInstance Data must have ToolData for Tool type in GearInventory.");
-            ToolItemData toolData = itemInstance.Data.ToolData;
-            Debug.Assert(toolData.Type != ToolType.None, "ToolData must have a valid ToolType for Tool type in GearInventory.");
+            ToolType toolType = itemInstance.Data.ToolType;
+            Debug.Assert(itemInstance.Data.ToolType != ToolType.None, "ToolData must have a valid ToolType for Tool type in GearInventory.");
             Debug.Assert(toolItem == itemInstance, "ToolItem must match the itemInstance for removal.");
             Debug.Assert(itemInstance.Container == this, "Tool itemInstance container must match GearInventory for removal.");
 
