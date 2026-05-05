@@ -180,7 +180,7 @@ public class PlayerAxeChopAction : PlayerAction
                 0.3f, Easing.EaseInQuad
             ),
             AnimationUtil.MoveTo(ct,
-                rightHand, Vector3.forward * 0.15f, Axis.Local,
+                rightHand, -Vector3.up * 0.15f, Axis.Local,
                 0.3f, Easing.Linear
             )
         );
@@ -246,7 +246,7 @@ public class PlayerAxeChopAction : PlayerAction
     {
         player.Input.ShowMouse();
         GameObject.Destroy(chopPreview);
-        rightHand.SetParent(player.transform, true);
+        rightHand.SetParent(leftHand.parent, true);
         acHandle?.Release();
         return Task.CompletedTask;
     }
@@ -270,7 +270,7 @@ public class PlayerAxeChopAction : PlayerAction
 
         var hit = chopTarget.Tree.Hit(targetPos, depth, width, height);
 
-        if (hit) TextPopupManager.SpawnTextPopup(targetPos, (depth * CHOP_POPUP_MULT).ToString());
+        if (hit) TextPopupManager.SpawnTextPopup(targetPos, (depth * CHOP_POPUP_MULT).ToString("F1"));
     }
 
     private TreeTarget FindTreeTarget()

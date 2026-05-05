@@ -13,9 +13,9 @@ public class PlayerAxeTool : PlayerTool
         axeMesh = GameObject.Instantiate(itemInstance.Data.MeshPrefab, leftHandSlot);
 
         // Set the local offset to match the handle point
-        Transform toolHandlePoint = axeMesh.transform.Find("Handle Point");
-        axeMesh.transform.localPosition = -toolHandlePoint.localPosition;
-        axeMesh.transform.localRotation = toolHandlePoint.localRotation;
+        Transform axeHandle = axeMesh.transform.Find("Handle Point");
+        axeMesh.transform.rotation = leftHandSlot.rotation * Quaternion.Inverse(axeHandle.localRotation);
+        axeMesh.transform.position = leftHandSlot.position + (axeMesh.transform.position - axeHandle.position);
 
         // Make colliders trigger
         var colliders = axeMesh.GetComponentsInChildren<Collider>();

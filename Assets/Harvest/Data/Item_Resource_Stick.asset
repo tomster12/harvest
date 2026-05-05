@@ -19,9 +19,11 @@ MonoBehaviour:
   SizeY: 1
   MaxStackSize: 4
   Icon: {fileID: 21300000, guid: 0ebfe97e17aa8ee44b8c01a522f36064, type: 3}
-  MeshPrefab: {fileID: 1397908617694374863, guid: eda29a2064d53e249855fc26eff141ae, type: 3}
+  MeshPrefab: {fileID: 8389078452145669868, guid: f145a7b3184268c4c8744ac21d812288, type: 3}
   Type: 0
+  ToolType: 0
+  EquipmentType: 0
+  PartType: 0
   BaseGoldValue: 10
-  PartSlots: 
-  PartSlotsDefaults: []
+  PartSlotDefinitions: []
   AffixPool: {fileID: 0}

@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e10e23d57f8d1f947b3d9ab5674cb2a1, type: 3}
-  m_Name: Item_Tool_SimpleAxe
+  m_Name: Item_Tool_Axe_SimpleAxe
   m_EditorClassIdentifier: 
   ID: simple_axe
   DisplayName: Simple Axe
@@ -19,7 +19,7 @@ MonoBehaviour:
   SizeY: 3
   MaxStackSize: 1
   Icon: {fileID: 21300000, guid: 227bb19562ea589449b357f9af1c6e96, type: 3}
-  MeshPrefab: {fileID: 5615053417295945409, guid: f490f474b5e38f74ea5508d2c4156b89, type: 3}
+  MeshPrefab: {fileID: 7553614246930269149, guid: 93f7a014dcfa8a5409d3d22637162863, type: 3}
   Type: 1
   ToolType: 1
   EquipmentType: 0
