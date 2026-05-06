@@ -3,13 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [Serializable]
-public struct PartSlotDefinition
-{
-    public PartType RequiredType;
-    public ItemData DefaultItem;
-}
-
-[Serializable]
 [CreateAssetMenu(fileName = "Item_", menuName = "ItemData")]
 public class ItemData : ScriptableObject
 {
@@ -17,24 +10,25 @@ public class ItemData : ScriptableObject
     public string ID;
     public string DisplayName;
     public string Description;
+    public ItemType Type;
+    public ToolType ToolType = ToolType.None;
+    public EquipmentType EquipmentType = EquipmentType.None;
+    public PartType PartType = PartType.None;
+
+    [Header("Assets")]
+    public Sprite Icon;
+    public GameObject MeshPrefab;
 
     [Header("Inventory")]
     public int SizeX;
     public int SizeY;
     public int MaxStackSize;
 
-    [Header("Assets")]
-    public Sprite Icon;
-    public GameObject MeshPrefab;
-
-    [Header("Type")]
-    public ItemType Type;
-    public ToolType ToolType = ToolType.None;
-    public EquipmentType EquipmentType = EquipmentType.None;
-    public PartType PartType = PartType.None;
-    public float BaseGoldValue;
-    public List<PartSlotDefinition> PartSlotDefinitions = new();
+    [Header("Itemisation")]
+    public List<PartSlotData> PartSlots = new();
     public AffixPool AffixPool;
+    public float BaseGoldValue;
+    public List<BaseStat> BaseStats = new();
 
     public bool IsStackable => MaxStackSize > 1;
 
@@ -43,6 +37,13 @@ public class ItemData : ScriptableObject
         if (Type != ItemType.Tool) ToolType = ToolType.None;
         if (Type != ItemType.Equipment) EquipmentType = EquipmentType.None;
     }
+}
+
+[Serializable]
+public struct PartSlotData
+{
+    public PartType RequiredType;
+    public ItemData DefaultItem;
 }
 
 [Serializable]

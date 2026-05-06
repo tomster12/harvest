@@ -12,18 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e10e23d57f8d1f947b3d9ab5674cb2a1, type: 3}
   m_Name: Item_Resource_Stone
   m_EditorClassIdentifier: 
-  ID: stone
+  ID: resource_stone
   DisplayName: Stone
   Description: It is a stone
-  SizeX: 1
-  SizeY: 1
-  MaxStackSize: 6
-  Icon: {fileID: 21300000, guid: daab0153a6e1f92489f6d0b6bf522f22, type: 3}
-  MeshPrefab: {fileID: 5307032038811331197, guid: 6d9d1212cfc0f4d4485a20b2f8b2c0b2, type: 3}
   Type: 0
   ToolType: 0
   EquipmentType: 0
   PartType: 0
-  BaseGoldValue: 5
-  PartSlotDefinitions: []
+  Icon: {fileID: 21300000, guid: daab0153a6e1f92489f6d0b6bf522f22, type: 3}
+  MeshPrefab: {fileID: 5307032038811331197, guid: 6d9d1212cfc0f4d4485a20b2f8b2c0b2, type: 3}
+  SizeX: 1
+  SizeY: 1
+  MaxStackSize: 6
+  PartSlots: []
   AffixPool: {fileID: 0}
+  BaseGoldValue: 5
+  BaseStats: []

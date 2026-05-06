@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 799884758945488176}
   - component: {fileID: 8297751930472964162}
   - component: {fileID: 4532439239926667928}
+  - component: {fileID: 3444648053024064941}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -73,11 +74,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9d278f8fe798314fa77f1ea73493003, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Persistent: {fileID: 0}
-  Camera:
-    camCentreOffset: {x: 0, y: 0.75, z: 0}
-    camOrbitDir: {x: 0, y: 2.84, z: -5.4}
-    camBaseRotEuler: {x: 22.5, y: 0, z: 0}
+  customTags: {fileID: 3444648053024064941}
+  persistent: {fileID: 0}
+  camera:
+    camCentreOffset: {x: 0, y: 1, z: 0}
+    camOrbitDir: {x: 0, y: 4, z: -5.4}
+    camBaseRotEuler: {x: 30, y: 0, z: 0}
     camFollowLerp: 8
     camZoomStrength: 0.1
     camZoomMin: 2
@@ -88,16 +90,31 @@ MonoBehaviour:
     camSwayPlayerAmount: 0.5
     camSwayLerp: 10
     camSwayDeadzone: 0.05
-  Input:
+  input:
     IsMousePressed: 0
-  Movement:
+  movement:
     rb: {fileID: 8297751930472964162}
     rotationSpeed: 450
     rotationThreshold: 0.1
-  Interactor:
+  interactor:
     gridInventoryUIPrefab: {fileID: 4015203399251158968, guid: b579e50e0c1d54941aef74dce7011cc2, type: 3}
     gearInventoryUIPrefab: {fileID: 2802936245369996191, guid: 3d1ecab094aebf04fb82e544e92fc109, type: 3}
     itemUIPrefab: {fileID: 8263889042602191977, guid: 67d1e624a9ff8a74cae44e4286b4f657, type: 3}
+  baseStats:
+  - Stat: 4
+    Value: 3.5
+--- !u!114 &3444648053024064941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8257604332684250834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 332fa3d15685dc34baf875b5cd4e73b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &8376816589293648223
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -121,6 +138,10 @@ PrefabInstance:
     - target: {fileID: 104914571036117284, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1666113704773031371, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
+      propertyPath: m_Name
+      value: AP - Left Hand - Base
       objectReference: {fileID: 0}
     - target: {fileID: 1669247332123899409, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
       propertyPath: m_LocalPosition.x
@@ -165,6 +186,10 @@ PrefabInstance:
     - target: {fileID: 2045068771377491115, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
       propertyPath: m_Name
       value: Player Mesh
+      objectReference: {fileID: 0}
+    - target: {fileID: 3203673366665054706, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
+      propertyPath: m_Name
+      value: AP - Both Hands - Drag
       objectReference: {fileID: 0}
     - target: {fileID: 5746998079989764433, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
       propertyPath: m_LocalPosition.x
@@ -222,6 +247,18 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6534454457210394398, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
+      propertyPath: m_Name
+      value: AP - Left Hand - Chop - Back
+      objectReference: {fileID: 0}
+    - target: {fileID: 6773135223211067838, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
+      propertyPath: m_Name
+      value: AP - Right Hand - Base
+      objectReference: {fileID: 0}
+    - target: {fileID: 7960379697358852961, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
+      propertyPath: m_Name
+      value: MP - Gear - Head
+      objectReference: {fileID: 0}
     - target: {fileID: 8849512683096895120, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.1427
@@ -250,8 +287,13 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.y
       value: -75.786
       objectReference: {fileID: 0}
+    - target: {fileID: 9105464251660013816, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
+      propertyPath: m_Name
+      value: AP - Left Hand - Chop - Start
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 7766661321700775070, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7f71a2fb6f7f13142b007338bc1cbc91, type: 3}

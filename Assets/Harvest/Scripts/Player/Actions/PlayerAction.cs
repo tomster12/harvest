@@ -17,7 +17,7 @@ public class CancelOnMovementInput : PlayerActionCancelCondition
 
 public class CancelOnUnequip : PlayerActionCancelCondition
 {
-    public override bool Evaluate(Player player) => Active && player.Tools.CurrentTool == null;
+    public override bool Evaluate(Player player) => Active && player.Gear.CurrentTool == null;
 }
 
 public class CancelOnPickupItem : PlayerActionCancelCondition

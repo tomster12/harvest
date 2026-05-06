@@ -3,18 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public struct GridInventoryDTO
-{
-    public (Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs;
-    public int[,] slots;
-
-    public GridInventoryDTO((Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs, int[,] slots)
-    {
-        this.itemInstanceDTOs = itemInstanceDTOs;
-        this.slots = slots;
-    }
-}
-
 [Serializable]
 public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContainer
 {
@@ -178,13 +166,13 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
 
     public void Deserialize(GridInventoryDTO inventoryDTO)
     {
-        slots = inventoryDTO.slots;
-        sizeX = inventoryDTO.slots.GetLength(0);
-        sizeY = inventoryDTO.slots.GetLength(1);
+        slots = inventoryDTO.Slots;
+        sizeX = inventoryDTO.Slots.GetLength(0);
+        sizeY = inventoryDTO.Slots.GetLength(1);
         itemInstances.Clear();
-        for (int i = 0; i < inventoryDTO.itemInstanceDTOs.Length; i++)
+        for (int i = 0; i < inventoryDTO.ItemInstanceDTOs.Length; i++)
         {
-            var (itemPos, itemInstanceDTO) = inventoryDTO.itemInstanceDTOs[i];
+            var (itemPos, itemInstanceDTO) = inventoryDTO.ItemInstanceDTOs[i];
             ItemInstance itemInstance = ItemInstance.DeserializeNew(itemInstanceDTO);
             itemInstance.SetContainer(this);
             itemInstances.Add(itemInstance);
@@ -270,5 +258,18 @@ public partial class GridInventory : ISerdeable<GridInventoryDTO>, IItemContaine
 
         OnItemRemoved?.Invoke(itemInstance);
         return new ItemContainerInteractResponse(ItemContainerInteractType.Pickup, itemInstance);
+    }
+}
+
+
+public struct GridInventoryDTO
+{
+    public (Vector2Int, ItemInstanceDTO)[] ItemInstanceDTOs;
+    public int[,] Slots;
+
+    public GridInventoryDTO((Vector2Int, ItemInstanceDTO)[] itemInstanceDTOs, int[,] slots)
+    {
+        this.ItemInstanceDTOs = itemInstanceDTOs;
+        this.Slots = slots;
     }
 }

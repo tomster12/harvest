@@ -1,4 +1,4 @@
 public interface IStatProvider
 {
-    float GetStat(StatType stat);
+    float GetStat(Stat stat);
 }

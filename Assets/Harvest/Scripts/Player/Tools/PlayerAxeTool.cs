@@ -9,20 +9,17 @@ public class PlayerAxeTool : PlayerTool
     public override void Equip()
     {
         // Create tool mesh attached to the left hand
-        var leftHandSlot = player.Animator.GetAttachmentSlot("Left Hand");
-        axeMesh = GameObject.Instantiate(itemInstance.Data.MeshPrefab, leftHandSlot);
+        var mpLeftHand = player.CustomTags.Get(CustomTagType.MeshPoint, "Left Hand");
 
-        // Set the local offset to match the handle point
-        Transform axeHandle = axeMesh.transform.Find("Handle Point");
-        axeMesh.transform.rotation = leftHandSlot.rotation * Quaternion.Inverse(axeHandle.localRotation);
-        axeMesh.transform.position = leftHandSlot.position + (axeMesh.transform.position - axeHandle.position);
+        axeMesh = GameObject.Instantiate(itemInstance.Data.MeshPrefab, mpLeftHand);
 
-        // Make colliders trigger
-        var colliders = axeMesh.GetComponentsInChildren<Collider>();
-        foreach (var collider in colliders) collider.isTrigger = true;
+        axeMesh.TryGetComponent<CustomTagRegistry>(out var axeTags);
+        var mpHandle = axeTags.Get(CustomTagType.MeshPoint, "MP - Handle");
 
-        // Finally we can add the actual action to chop
-        chopAction = new PlayerAxeChopAction(player, axeMesh, new ItemStatProvider(itemInstance));
+        MeshAttachmentUtility.AlignTransforms(mpLeftHand, axeMesh.transform, mpHandle);
+        MeshAttachmentUtility.SetCollidersTrigger(axeMesh, true);
+
+        chopAction = new PlayerAxeChopAction(player, axeMesh, axeTags);
         player.Actions.Register(chopAction);
     }
 

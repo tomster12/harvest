@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public enum CustomTagType
 {
-    AttachmentSlot,
+    MeshPoint,
     AnimationTransform,
     AnimationPoint
 }

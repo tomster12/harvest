@@ -7,7 +7,7 @@ using UnityEngine;
 public class PlayerDragAction : PlayerAction
 {
     public override bool IsAvailable =>
-        !player.Tools.IsEquipped &&
+        !player.Gear.IsEquipped &&
         player.Animator.CanControl(ANIMATION_PRIORITY);
 
     public override bool IsRunnable =>
@@ -25,10 +25,9 @@ public class PlayerDragAction : PlayerAction
         });
 
         // Get animation transforms
-        leftHand = player.Animator.GetAnimationTransform("Left Hand");
-        rightHand = player.Animator.GetAnimationTransform("Right Hand");
-        handGrabPos = player.Animator.GetAnimationPoint("Hands - Drag");
-
+        atLeftHand = player.CustomTags.Get(CustomTagType.AnimationTransform, "Left Hand");
+        atRightHand = player.CustomTags.Get(CustomTagType.AnimationTransform, "Right Hand");
+        apBothHandsGrab = player.CustomTags.Get(CustomTagType.AnimationPoint, "AP - Both Hands - Drag");
     }
 
     public override void UpdateAvailable()
@@ -85,15 +84,15 @@ public class PlayerDragAction : PlayerAction
     }
 
     private readonly Player player;
-    private Transform leftHand;
-    private Transform rightHand;
-    private Transform handGrabPos;
+    private Transform atLeftHand;
+    private Transform atRightHand;
+    private Transform apBothHandsGrab;
 
     private RaycastHit hoveredHit;
     private DraggableObject hoveredDraggable;
     private State state = State.Goto;
     private PlayerAnimator.AcControlHandle acHandle;
-    private int? playerSlowModId = null;
+    private PlayerBuffHandle playerSlowHandle = null;
     private PlayerActionCancelCondition movementCancel;
     private DraggableObject currentDraggable;
     private DraggableObject.Grab currentGrab;
@@ -123,15 +122,19 @@ public class PlayerDragAction : PlayerAction
 
         // Begin dragging and slow down the player
         state = State.Drag;
-        playerSlowModId = player.Movement.MovementSpeed.AddMultMod(DRAG_SLOW);
+        playerSlowHandle = player.Buffs.Apply(new PlayerBuffEffect
+        {
+            Stat = Stat.MovementSpeed,
+            Multiplicative = -DRAG_SLOW
+        });
 
         // Tell the hands to move to grab position but ignore for now
         _ = AnimationUtil.MoveTo(ct,
-            leftHand, handGrabPos.localPosition, Axis.Local,
+            atLeftHand, apBothHandsGrab.localPosition, Axis.Local,
             0.3f, Easing.EaseInQuad
         );
         _ = AnimationUtil.MoveTo(ct,
-            rightHand, handGrabPos.localPosition, Axis.Local,
+            atRightHand, apBothHandsGrab.localPosition, Axis.Local,
             0.3f, Easing.EaseInQuad
         );
 
@@ -148,8 +151,8 @@ public class PlayerDragAction : PlayerAction
 
     protected override Task Stop(CancellationToken ct)
     {
-        if (playerSlowModId != null) player.Movement.MovementSpeed.RemoveMod((int)playerSlowModId);
-        playerSlowModId = null;
+        playerSlowHandle?.Dispose();
+        playerSlowHandle = null;
 
         player.Movement.SetFacingTarget(null);
         currentDraggable?.OnHoverExit();

@@ -22,7 +22,7 @@ public class AffixInstance
     {
         return new()
         {
-            DefinitionID = data.ID,
+            DataID = data.ID,
             RolledValue = rolledValue
         };
     }
@@ -30,7 +30,7 @@ public class AffixInstance
     public void Deserialize(AffixInstanceDTO affixDTO)
     {
 
-        data = AssetDatabase.GetAffixData(affixDTO.DefinitionID);
+        data = AssetDatabase.GetAffixData(affixDTO.DataID);
         rolledValue = affixDTO.RolledValue;
     }
 
@@ -47,6 +47,6 @@ public class AffixInstance
 [Serializable]
 public struct AffixInstanceDTO
 {
-    public string DefinitionID;
+    public string DataID;
     public float RolledValue;
 }

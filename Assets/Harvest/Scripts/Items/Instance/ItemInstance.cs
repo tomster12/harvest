@@ -12,8 +12,8 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
     public IItemContainer Container { get; private set; }
     public ItemData Data => data;
     public int Amount => amount;
+    public IReadOnlyList<PartSlotInstance> PartSlots => partSlots;
     public IReadOnlyList<AffixInstance> Affixes => affixes;
-    public IReadOnlyList<PartSlot> PartSlots => partSlots;
 
     public static ItemInstance NewResource(ItemData data, int amount)
     {
@@ -37,14 +37,14 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
             rarity = rarity,
             affixes = affixes,
             level = level,
-            partSlots = data.PartSlotDefinitions.Select(slotDef => new PartSlot(slotDef)).ToList()
+            partSlots = data.PartSlots.Select(slotDef => new PartSlotInstance(slotDef)).ToList()
         };
 
-        if (data.PartSlotDefinitions.Count > 0)
+        if (data.PartSlots.Count > 0)
         {
-            for (int i = 0; i < data.PartSlotDefinitions.Count; i++)
+            for (int i = 0; i < data.PartSlots.Count; i++)
             {
-                PartSlotDefinition slotDef = data.PartSlotDefinitions[i];
+                PartSlotData slotDef = data.PartSlots[i];
                 ItemInstance defaultPart = ItemGenerator.GenerateComplex(slotDef.DefaultItem, level, ItemRarity.Common);
                 var partSlot = instance.GetPartSlot(slotDef.RequiredType);
                 partSlot?.PlaceItem(defaultPart);
@@ -65,7 +65,7 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
         OnAmountChanged?.Invoke();
     }
 
-    public PartSlot GetPartSlot(PartType type) =>
+    public PartSlotInstance GetPartSlot(PartType type) =>
         partSlots.FirstOrDefault(s => s.RequiredType == type);
 
     [SerializeField] private ItemData data;
@@ -73,7 +73,7 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
     [SerializeField] private ItemRarity rarity = ItemRarity.Common;
     [SerializeField] private int level = 1;
     [SerializeField] private List<AffixInstance> affixes = new();
-    [SerializeField] private List<PartSlot> partSlots = new();
+    [SerializeField] private List<PartSlotInstance> partSlots = new();
 
     // -------------------- Serialization  --------------------
 
@@ -81,25 +81,25 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
     {
         return new ItemInstanceDTO
         {
-            itemID = data.ID,
-            amount = amount,
-            rarity = (int)rarity,
-            level = level,
-            affixes = affixes.Select(affix => affix.Serialize()).ToArray(),
-            partSlots = partSlots.Select(slot => slot.Serialize()).ToArray()
+            ItemID = data.ID,
+            Amount = amount,
+            Rarity = (int)rarity,
+            Level = level,
+            Affixes = affixes.Select(affix => affix.Serialize()).ToArray(),
+            PartSlots = partSlots.Select(slot => slot.Serialize()).ToArray()
         };
     }
 
     public void Deserialize(ItemInstanceDTO itemDTO)
     {
-        data = AssetDatabase.GetItemData(itemDTO.itemID);
-        amount = itemDTO.amount;
-        rarity = (ItemRarity)itemDTO.rarity;
-        level = itemDTO.level;
-        affixes = itemDTO.affixes?.Select(affixDTO => AffixInstance.DeserializeNew(affixDTO)).ToList() ?? new();
-        for (int i = 0; i < itemDTO.partSlots.Length; i++)
+        data = AssetDatabase.GetItemData(itemDTO.ItemID);
+        amount = itemDTO.Amount;
+        rarity = (ItemRarity)itemDTO.Rarity;
+        level = itemDTO.Level;
+        affixes = itemDTO.Affixes?.Select(affixDTO => AffixInstance.DeserializeNew(affixDTO)).ToList() ?? new();
+        for (int i = 0; i < itemDTO.PartSlots.Length; i++)
         {
-            partSlots.Add(PartSlot.DeserializeNew(data.PartSlotDefinitions[i], itemDTO.partSlots[i]));
+            partSlots.Add(PartSlotInstance.DeserializeNew(data.PartSlots[i], itemDTO.PartSlots[i]));
         }
     }
 
@@ -115,10 +115,10 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
 
 public struct ItemInstanceDTO
 {
-    public string itemID;
-    public int amount;
-    public int rarity;
-    public int level;
-    public AffixInstanceDTO[] affixes;
-    public PartSlotDTO[] partSlots;
+    public string ItemID;
+    public int Amount;
+    public int Rarity;
+    public int Level;
+    public AffixInstanceDTO[] Affixes;
+    public PartSlotInstanceDTO[] PartSlots;
 }

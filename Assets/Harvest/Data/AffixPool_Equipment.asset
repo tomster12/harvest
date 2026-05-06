@@ -9,14 +9,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4255fbc323306d741963b0242fb28422, type: 3}
-  m_Name: Affix_SwingSpeedAdd
+  m_Script: {fileID: 11500000, guid: 29e755c9f484e2b4fa26c6e14d38bc74, type: 3}
+  m_Name: AffixPool_Equipment
   m_EditorClassIdentifier: 
-  ID: swing_speed_add
-  DisplayName: Swing Speed
-  Stat: 1
-  MinValue: 0.1
-  MaxValue: 0.3
-  ValueType: 0
-  Weight: 1
-  IsUnique: 0
+  MinAffixes: 1
+  MaxAffixes: 3
+  Affixes:
+  - {fileID: 11400000, guid: acf16173e9ff58f42848bc2250d38d4c, type: 2}

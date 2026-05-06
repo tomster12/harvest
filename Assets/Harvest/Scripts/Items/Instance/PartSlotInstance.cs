@@ -2,35 +2,35 @@ using System;
 using UnityEngine;
 
 [Serializable]
-public class PartSlot : IItemContainer
+public class PartSlotInstance : IItemContainer
 {
     public event Action<ItemInstance> OnItemAdded = delegate { };
     public event Action<ItemInstance> OnItemRemoved = delegate { };
-    public PartType RequiredType => requiredType;
-    public ItemInstance Part => part;
+    public PartType RequiredType => data.RequiredType;
+    public ItemInstance Item => item;
 
-    public PartSlot(PartSlotDefinition slotDefinition)
+    public PartSlotInstance(PartSlotData data)
     {
-        requiredType = slotDefinition.RequiredType;
+        this.data = data;
     }
 
     public ItemContainerInteractResponse PlaceItem(ItemInstance item, bool preview = false)
     {
-        if (item.Data.PartType != requiredType)
+        if (item.Data.PartType != data.RequiredType)
         {
             return new ItemContainerInteractResponse(ItemContainerInteractType.Invalid, item);
         }
 
-        ItemInstance displaced = part;
+        ItemInstance displaced = this.item;
 
         if (!preview)
         {
-            if (part != null)
+            if (this.item != null)
             {
-                part.SetContainer(null);
-                OnItemRemoved.Invoke(part);
+                this.item.SetContainer(null);
+                OnItemRemoved.Invoke(this.item);
             }
-            part = item;
+            this.item = item;
             item.SetContainer(this);
             OnItemAdded.Invoke(item);
         }
@@ -42,53 +42,53 @@ public class PartSlot : IItemContainer
 
     public ItemContainerInteractResponse PickupItem(ItemInstance item)
     {
-        if (part != item)
+        if (this.item != item)
         {
             return new ItemContainerInteractResponse(ItemContainerInteractType.Invalid, item);
         }
 
-        part.SetContainer(null);
-        OnItemRemoved.Invoke(part);
-        part = null;
+        this.item.SetContainer(null);
+        OnItemRemoved.Invoke(this.item);
+        this.item = null;
         return new ItemContainerInteractResponse(ItemContainerInteractType.Pickup, item);
     }
 
-    [SerializeField] private PartType requiredType;
-    [SerializeField] private ItemInstance part = null;
+    [SerializeField] private PartSlotData data;
+    [SerializeField] private ItemInstance item = null;
 
     // -------------------- Serialization  --------------------
 
-    public PartSlotDTO Serialize()
+    public PartSlotInstanceDTO Serialize()
     {
         return new()
         {
-            part = part != null ? part.Serialize() : null
+            Part = item != null ? item.Serialize() : null
         };
     }
 
-    public void Deserialize(PartSlotDefinition slotDefinition, PartSlotDTO slotDTO)
+    public void Deserialize(PartSlotData data, PartSlotInstanceDTO slotDTO)
     {
-        requiredType = slotDefinition.RequiredType;
+        this.data = data;
 
-        if (slotDTO.part.HasValue)
+        if (slotDTO.Part.HasValue)
         {
-            var item = ItemInstance.DeserializeNew(slotDTO.part.Value);
+            var item = ItemInstance.DeserializeNew(slotDTO.Part.Value);
             PlaceItem(item);
         }
     }
 
-    public static PartSlot DeserializeNew(PartSlotDefinition slotDefinition, PartSlotDTO slotDTO)
+    public static PartSlotInstance DeserializeNew(PartSlotData data, PartSlotInstanceDTO slotDTO)
     {
-        PartSlot instance = new();
-        instance.Deserialize(slotDefinition, slotDTO);
+        PartSlotInstance instance = new();
+        instance.Deserialize(data, slotDTO);
         return instance;
     }
 
-    private PartSlot() { }
+    private PartSlotInstance() { }
 }
 
 [Serializable]
-public struct PartSlotDTO
+public struct PartSlotInstanceDTO
 {
-    public ItemInstanceDTO? part;
+    public ItemInstanceDTO? Part;
 }

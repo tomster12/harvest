@@ -6,7 +6,7 @@ public class AffixData : ScriptableObject
 {
     public string ID;
     public string DisplayName;
-    public StatType Stat;
+    public Stat Stat;
     public float MinValue;
     public float MaxValue;
     public AffixValueType ValueType = AffixValueType.Additive;

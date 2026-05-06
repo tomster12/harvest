@@ -1,19 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
-public struct GearInventoryDTO
-{
-}
 
 [Serializable]
 public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContainer
 {
     public event Action<ItemInstance> OnItemAdded = delegate { };
-
     public event Action<ItemInstance> OnItemRemoved = delegate { };
-
     public Dictionary<EquipmentType, ItemInstance> EquipmentItems => equipmentItems;
     public ItemInstance ToolItem => toolItem;
 
@@ -27,7 +21,7 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
             EquipmentType equipmentType = itemInstance.Data.EquipmentType;
 
             // Replace an existing item
-            ItemInstance existingItem = equipmentItems[equipmentType];
+            equipmentItems.TryGetValue(equipmentType, out var existingItem);
             if (existingItem != null && existingItem.Data != null)
             {
                 if (!preview)
@@ -40,7 +34,7 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
                 return new ItemContainerInteractResponse(ItemContainerInteractType.Replaced, existingItem);
             }
 
-            // Place as a  new item
+            // Place as a new item
             if (!preview)
             {
                 equipmentItems[equipmentType] = itemInstance;
@@ -134,4 +128,8 @@ public partial class GearInventory : ISerdeable<GearInventoryDTO>, IItemContaine
 
     private Dictionary<EquipmentType, ItemInstance> equipmentItems = new();
     private ItemInstance toolItem = null;
+}
+
+public struct GearInventoryDTO
+{
 }

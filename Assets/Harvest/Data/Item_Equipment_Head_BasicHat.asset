@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e10e23d57f8d1f947b3d9ab5674cb2a1, type: 3}
+  m_Name: Item_Equipment_Head_BasicHat
+  m_EditorClassIdentifier: 
+  ID: equipment_basichat
+  DisplayName: Basic Hat
+  Description: It is a basic hat
+  Type: 2
+  ToolType: 0
+  EquipmentType: 1
+  PartType: 0
+  Icon: {fileID: 21300000, guid: 272c784a499722542a19315a187db1cd, type: 3}
+  MeshPrefab: {fileID: 4385515959263621749, guid: 0725b24bd2dc36a45abd543332514b06, type: 3}
+  SizeX: 2
+  SizeY: 2
+  MaxStackSize: 1
+  PartSlots: []
+  AffixPool: {fileID: 11400000, guid: 21bee911be70a3748ad980acc112de15, type: 2}
+  BaseGoldValue: 10
+  BaseStats:
+  - Stat: 3
+    Value: 10

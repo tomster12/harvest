@@ -5,7 +5,6 @@ using UnityEngine;
 public class PlayerMovement
 {
     public Vector3 TargetFacingDir => targetFacingDir;
-    public Stat MovementSpeed => movementSpeed;
     public bool IsMoving { get; private set; }
     public bool HasReachedTarget => !setTargetPosition.HasValue || (setTargetPosition.Value - player.transform.position).sqrMagnitude <= targetThreshold;
     public bool IsFacingTarget => Vector3.Angle(TargetFacingDir, player.transform.forward) <= rotationThreshold;
@@ -80,7 +79,8 @@ public class PlayerMovement
         {
             // Naively move in target movement direction
             IsMoving = true;
-            Vector3 movement = movementSpeed.Evaluate() * Time.fixedDeltaTime * finalMovementDir.Value;
+            var movementSpeed = player.Stats.GetStat(Stat.MovementSpeed);
+            Vector3 movement = movementSpeed * Time.fixedDeltaTime * finalMovementDir.Value;
             rb.MovePosition(rb.position + movement);
 
             // Then overwrite final direction if configured
@@ -92,6 +92,7 @@ public class PlayerMovement
             }
         }
         else IsMoving = false;
+
         // Naively rotate towards the final facing direction
         Quaternion targetRotation = Quaternion.LookRotation(TargetFacingDir, Vector3.up);
         if (!IsFacingTarget)
@@ -115,7 +116,6 @@ public class PlayerMovement
     [SerializeField] private Rigidbody rb;
 
     [Header("Config")]
-    [SerializeField] private Stat movementSpeed = new(3.5f);
     [SerializeField] private float rotationSpeed = 450f;
     [SerializeField] private float rotationThreshold = 0.1f;
 

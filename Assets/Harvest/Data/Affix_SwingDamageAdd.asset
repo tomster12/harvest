@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4255fbc323306d741963b0242fb28422, type: 3}
   m_Name: Affix_SwingDamageAdd
   m_EditorClassIdentifier: 
-  ID: swing_damage
+  ID: swing_damage_add
   DisplayName: Swing Damage
   Stat: 0
   MinValue: 0.1
   MaxValue: 1
+  ValueType: 0
   Weight: 1
   IsUnique: 0

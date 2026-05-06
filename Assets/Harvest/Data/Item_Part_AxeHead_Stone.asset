@@ -12,19 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e10e23d57f8d1f947b3d9ab5674cb2a1, type: 3}
   m_Name: Item_Part_AxeHead_Stone
   m_EditorClassIdentifier: 
-  ID: 
-  DisplayName: 
-  Description: 
-  SizeX: 0
-  SizeY: 0
-  MaxStackSize: 0
-  Icon: {fileID: 0}
-  MeshPrefab: {fileID: 0}
+  ID: part_axehead_stone
+  DisplayName: Stone Axe Head
+  Description: it is a stone axe head
   Type: 3
   ToolType: 0
   EquipmentType: 0
   PartType: 1
-  BaseGoldValue: 10
-  PartSlots: 
-  PartSlotsDefaults: []
+  Icon: {fileID: 0}
+  MeshPrefab: {fileID: 0}
+  SizeX: 0
+  SizeY: 0
+  MaxStackSize: 0
+  PartSlots: []
   AffixPool: {fileID: 11400000, guid: 0fcecabff5a739945a84b0f90e8f2216, type: 2}
+  BaseGoldValue: 10
+  BaseStats: []

@@ -7,16 +7,11 @@ public class PlayerAnimator
 {
     public bool IsControlled => currentHandle != null;
     public PlayerAnimation CurrentAnimation => currentAnimation;
+    public CustomTagRegistry CustomTags => player.CustomTags;
 
     public void Init(Player player)
     {
-        // Setup internal variables
-        Array.ForEach(player.GetComponentsInChildren<CustomTag>(), t =>
-        {
-            if (t.HasTag(CustomTagType.AttachmentSlot)) attachmentSlots[t.name] = t.transform;
-            if (t.HasTag(CustomTagType.AnimationTransform)) animationTransforms[t.name] = t.transform;
-            if (t.HasTag(CustomTagType.AnimationPoint)) animationPoints[t.name] = t.transform;
-        });
+        this.player = player;
     }
 
     public void UpdateCurrentAnimation()
@@ -45,25 +40,36 @@ public class PlayerAnimator
         return currentHandle;
     }
 
-    public Transform GetAttachmentSlot(string name)
+    private Player player;
+    private AcControlHandle currentHandle;
+    private PlayerAnimation currentAnimation;
+
+    private void StartAnimation(PlayerAnimation animation)
     {
-        attachmentSlots.TryGetValue(name, out var slot);
-        Debug.Assert(slot != null, $"'{name}' not found in attachment slots");
-        return slot;
+        currentAnimation?.Cancel();
+        currentAnimation = animation;
+        currentAnimation.OnFinished += OnCurrentAnimationFinished;
+        currentAnimation.Start();
     }
 
-    public Transform GetAnimationTransform(string name)
+    private void CancelAnimation()
     {
-        animationTransforms.TryGetValue(name, out var transform);
-        Debug.Assert(transform != null, $"'{name}' not found in animation transforms");
-        return transform;
+        if (currentAnimation == null) return;
+        currentAnimation?.Cancel();
+        currentAnimation = null;
     }
 
-    public Transform GetAnimationPoint(string name)
+    private void OnCurrentAnimationFinished()
     {
-        animationPoints.TryGetValue(name, out var point);
-        Debug.Assert(point != null, $"'{name}' not found in animation points");
-        return point;
+        currentAnimation.OnFinished -= OnCurrentAnimationFinished;
+        currentAnimation = null;
+    }
+
+    private void Release()
+    {
+        Debug.Assert(currentHandle != null, "No animation handle to release");
+        currentHandle = null;
+        CancelAnimation();
     }
 
     public class AcControlHandle
@@ -121,40 +127,5 @@ public class PlayerAnimator
         }
 
         private readonly PlayerAnimator animator;
-    }
-
-    private readonly Dictionary<string, Transform> attachmentSlots = new();
-    private readonly Dictionary<string, Transform> animationTransforms = new();
-    private readonly Dictionary<string, Transform> animationPoints = new();
-
-    private AcControlHandle currentHandle;
-    private PlayerAnimation currentAnimation;
-
-    private void StartAnimation(PlayerAnimation animation)
-    {
-        currentAnimation?.Cancel();
-        currentAnimation = animation;
-        currentAnimation.OnFinished += OnCurrentAnimationFinished;
-        currentAnimation.Start();
-    }
-
-    private void CancelAnimation()
-    {
-        if (currentAnimation == null) return;
-        currentAnimation?.Cancel();
-        currentAnimation = null;
-    }
-
-    private void OnCurrentAnimationFinished()
-    {
-        currentAnimation.OnFinished -= OnCurrentAnimationFinished;
-        currentAnimation = null;
-    }
-
-    private void Release()
-    {
-        Debug.Assert(currentHandle != null, "No animation handle to release");
-        currentHandle = null;
-        CancelAnimation();
     }
 }
