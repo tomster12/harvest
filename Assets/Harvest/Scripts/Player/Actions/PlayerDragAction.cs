@@ -161,7 +161,7 @@ public class PlayerDragAction : PlayerAction
     }
 
     private static readonly int ANIMATION_PRIORITY = 0;
-    private static readonly float DRAG_SLOW = 0.4f;
+    private static readonly float DRAG_SLOW = 0.65f;
     private static readonly float DRAG_DIST = 0.5f;
 
     private enum State

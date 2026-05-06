@@ -7,9 +7,10 @@ public static class StatResolver
         // Add base stats from the player
         foreach (var baseStat in player.BaseStats)
         {
-            if (baseStat.Stat != stat) continue;
-
-            values.Base += baseStat.Value;
+            if (baseStat.Stat == stat)
+            {
+                values.Base += baseStat.Value;
+            }
         }
 
         // Accumulate all stats from all gear
@@ -22,9 +23,9 @@ public static class StatResolver
         {
             AccumulateStatFromItem(player.Persistent.Gear.ToolItem, stat, values);
         }
-        
+
         // Accumulate buffs
-        player.Buffs.AccumulateStat(stat, values);
+        player.Buffs.AccumulateStatFromBuffs(stat, values);
     }
 
     public static void AccumulateStatFromItem(ItemInstance item, Stat stat, StatValues values)
@@ -42,15 +43,16 @@ public static class StatResolver
         // Add affix contributions from this item
         foreach (var affix in item.Affixes)
         {
-            if (affix.Data.Stat != stat) continue;
-
-            if (affix.Data.ValueType == AffixValueType.Additive)
+            if (affix.Data.Stat == stat)
             {
-                values.Additive += affix.RolledValue;
-            }
-            else
-            {
-                values.Multiplicative += affix.RolledValue;
+                if (affix.Data.ValueType == AffixValueType.Additive)
+                {
+                    values.Additive += affix.RolledValue;
+                }
+                else
+                {
+                    values.Multiplicative += affix.RolledValue;
+                }
             }
         }
 
@@ -70,5 +72,8 @@ public class StatValues
 
     public float Evaluate() => (Base + Additive) * Multiplicative;
 
-    public void Log(Stat stat) => Debug.Log($"Calculated {stat} as {Evaluate()} = ({Base} + {Additive}) * {Multiplicative}");
+    public void Log(Stat stat)
+    {
+        Debug.Log($"Calculated {stat} as {Evaluate()} = ({Base} + {Additive}) * {Multiplicative}");
+    }
 }

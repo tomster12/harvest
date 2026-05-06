@@ -14,7 +14,7 @@ public class PlayerBuffs
         return new PlayerBuffHandle(id, OnBuffRemoved);
     }
 
-    public void AccumulateStat(Stat stat, StatValues values)
+    public void AccumulateStatFromBuffs(Stat stat, StatValues values)
     {
         foreach (var effects in activeBuffs.Values)
         {
