@@ -264,9 +264,9 @@ public class PlayerAxeChopAction : PlayerAction
         float swingDamage = stats.GetStat(Stat.SwingDamage);
         float accuracy = Mathf.Clamp01(1f - Mathf.Abs(swayCurrentOffsetAmount));
 
-        float depth = (0.02f + accuracy * 0.05f) * swingDamage;
-        float width = (0.05f + accuracy * 0.3f) * swingDamage;
-        float height = (0.02f + accuracy * 0.05f) * swingDamage;
+        float depth = (0.005f + accuracy * 0.015f) * swingDamage;
+        float width = (0.01f + accuracy * 0.07f) * swingDamage;
+        float height = (0.005f + accuracy * 0.015f) * swingDamage;
 
         var (targetPos, _) = GetChopTargetPose();
 

@@ -15,8 +15,8 @@ MonoBehaviour:
   ID: movement_speed_add
   DisplayName: Movement Speed
   Stat: 4
-  MinValue: 0.5
-  MaxValue: 3
+  MinValue: 0.3
+  MaxValue: 0.6
   ValueType: 0
   Weight: 1
   IsUnique: 0
