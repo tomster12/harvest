@@ -282,7 +282,6 @@ public class ChoppableTree : MonoBehaviour
         var (bottomGrid, topGrid) = grid.SplitAtRow(posGrid.Value.y);
 
         grid = bottomGrid;
-        CanChop = false;
         RebuildMesh();
 
         if (topGrid != null)

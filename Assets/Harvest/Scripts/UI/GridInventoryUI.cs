@@ -90,7 +90,7 @@ public class GridInventoryUI : MonoBehaviour, IItemContainerUI
         itemUI.SetItemWithResponse(response, offset);
     }
 
-    public void PreviewClick(ItemUI itemUI, Vector2 pos)
+    public void PreviewHover(ItemUI itemUI, Vector2 pos)
     {
         // Find the hovered item UI
         ItemUI hoveredItemUI = GetHoveredItem(pos);

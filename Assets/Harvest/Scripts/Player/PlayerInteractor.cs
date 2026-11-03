@@ -16,54 +16,83 @@ public class PlayerInteractor
         // Setup inventory UIs
         inventoryUI = PlayerUI.InstantiateElement<GridInventoryUI>(gridInventoryUIPrefab, "Player Grid Inventory UI");
         inventoryUI.SetInventory(player.Persistent.Inventory);
+
         gearUI = PlayerUI.InstantiateElement<GearInventoryUI>(gearInventoryUIPrefab, "Player Gear Inventory UI");
         gearUI.SetInventory(player.Persistent.Gear);
+
         HeldItemUI = PlayerUI.InstantiateElement<ItemUI>(itemUIPrefab, "Player Held Inventory Item UI");
         HeldItemUI.SetItem(null);
 
+        itemInspectorUI = PlayerUI.InstantiateElement<ItemInspectorUI>(itemInspectorUIPrefab, "Item Inspector UI");
+        itemInspectorUI.Init();
+
         // Setup actions
         looseItemPickupAction = new PlayerPickupItemAction(player);
-        dragAction = new PlayerDragAction(player);
         player.Actions.Register(looseItemPickupAction);
+
+        dragAction = new PlayerDragAction(player);
         player.Actions.Register(dragAction);
     }
 
-    public void HandleInteractingContainers()
+    public void HandleInteractingUI()
     {
-        if (!player.Actions.IsActing)
+        if (player.Actions.IsActing)
         {
-            // Update hovered container UI
-            var newHoveredContainerUI = UIUtil.GetEventSystemRaycastResults()
+            if (hoveredItemUI != null)
+            {
+                itemInspectorUI.HideInspector();
+                hoveredItemUI = null;
+            }
+            if (hoveredContainerUI != null)
+            {
+                hoveredContainerUI?.DisablePreview();
+                hoveredContainerUI = null;
+            }
+            return;
+        }
+
+        var raycastResults = UIUtil.GetEventSystemRaycastResults();
+
+        // Handle hovering item UIs
+        var newHoveredItemUI = HeldItemUI.State == ItemUI.StateType.Mouse ? null : raycastResults
+            .Select(r => r.gameObject.GetComponent<ItemUI>())
+            .FirstOrDefault(c => c != null);
+
+        if (newHoveredItemUI != hoveredItemUI)
+        {
+            if (hoveredItemUI != null) itemInspectorUI.HideInspector();
+            hoveredItemUI = newHoveredItemUI;
+            if (hoveredItemUI != null) itemInspectorUI.ShowInspector(hoveredItemUI.ItemInstance);
+        }
+
+        // Handle hovering container UIs
+        var newHoveredContainerUI = raycastResults
                 .Select(r => r.gameObject.GetComponent<IItemContainerUI>())
                 .FirstOrDefault(c => c != null);
 
-            if (hoveredContainerUI != newHoveredContainerUI) hoveredContainerUI?.DisablePreview();
-            hoveredContainerUI = newHoveredContainerUI;
-
-            // Click inside or outside a container
-            if (player.Input.IsMousePressed)
-            {
-                if (hoveredContainerUI != null)
-                {
-                    hoveredContainerUI.Click(HeldItemUI, Input.mousePosition);
-                    player.Input.IsMousePressed = false;
-                }
-                else if (IsHoldingItem)
-                {
-                    DropHeldItem();
-                    player.Input.IsMousePressed = false;
-                }
-            }
-
-            // Otherwise preview a click
-            else hoveredContainerUI?.PreviewClick(HeldItemUI, Input.mousePosition);
-        }
-        else
+        if (hoveredContainerUI != newHoveredContainerUI)
         {
-            // Clear hovered container UI if restricted
             hoveredContainerUI?.DisablePreview();
-            hoveredContainerUI = null;
+            hoveredContainerUI = newHoveredContainerUI;
         }
+
+        // Click inside or outside a container
+        if (player.Input.IsMousePressed)
+        {
+            if (hoveredContainerUI != null)
+            {
+                hoveredContainerUI.Click(HeldItemUI, Input.mousePosition);
+                player.Input.IsMousePressed = false;
+            }
+            else if (IsHoldingItem)
+            {
+                DropHeldItem();
+                player.Input.IsMousePressed = false;
+            }
+        }
+
+        // Otherwise preview a click on the container
+        else hoveredContainerUI?.PreviewHover(HeldItemUI, Input.mousePosition);
     }
 
     public void OnDrawGizmos()
@@ -78,11 +107,15 @@ public class PlayerInteractor
     [SerializeField] private GameObject gridInventoryUIPrefab;
     [SerializeField] private GameObject gearInventoryUIPrefab;
     [SerializeField] private GameObject itemUIPrefab;
+    [SerializeField] private GameObject itemInspectorUIPrefab;
 
     private Player player;
     private GridInventoryUI inventoryUI;
     private GearInventoryUI gearUI;
+    private ItemInspectorUI itemInspectorUI;
+
     private IItemContainerUI hoveredContainerUI;
+    private ItemUI hoveredItemUI;
     private PlayerPickupItemAction looseItemPickupAction;
     private PlayerDragAction dragAction;
 

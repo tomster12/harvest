@@ -37,7 +37,7 @@ public class PlayerGear
         {
             var type = itemInstance.Data.EquipmentType;
 
-            var mpGear = player.CustomTags.Get(CustomTagType.MeshPoint, $"MP - Gear - {type}");
+            var mpGear = player.TaggedObjects.Get(CustomTagType.MeshPoint, $"MP - Gear - {type}");
 
             var gearMesh = GameObject.Instantiate(itemInstance.Data.MeshPrefab, mpGear);
 

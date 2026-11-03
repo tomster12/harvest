@@ -55,17 +55,20 @@ Material:
     m_Floats:
     - _BladeBend: 0.15
     - _BladeCount: 30
-    - _BladeHeight: 0.44
+    - _BladeHeight: 0.3
     - _BladePositionRandomness: 0
-    - _BladeWidth: 0.052
+    - _BladeWidth: 0.057
+    - _ColorDensityNoiseContribution: 0
     - _ColorNoiseScale: 0.47
-    - _ColorNoiseStrength: 0.79
-    - _DensityNoiseScale: 1.2
-    - _DensityNoiseStrength: 0.76
+    - _ColorNoiseStrength: 1.5
+    - _DensityNoiseMidpoint: 0.35
+    - _DensityNoiseScale: 0.81
+    - _DensityNoiseSteepness: 7.4
+    - _DensityNoiseStrength: 1.24
     - _GrassBlades: 6.2
     - _GrassHeight: 0.76
     - _GrassWidth: 0.083
-    - _HeightNoiseScale: 1.67
+    - _HeightNoiseScale: 1.52
     - _HeightNoiseStrength: 0.71
     - _MaxCameraDistance: 10
     - _MaxGrassBlades: 30
@@ -74,14 +77,14 @@ Material:
     - _NoiseScale: 0.06
     - _PositionRandomness: 0.03
     - _ShadowStrength: 0.7
-    - _WindColorStrength: 3.11
+    - _WindColorStrength: 20.39
     - _WindScale: 0.38
-    - _WindSpeed: 0.8
+    - _WindSpeed: 0.53
     - _WindStrength: 0.04
     m_Colors:
-    - _BaseColor: {r: 0.6, g: 0.8, b: 0.6, a: 1}
+    - _BaseColor: {r: 0.609302, g: 0.8509804, b: 0.609302, a: 1}
     - _Color: {r: 0.6889879, g: 1, b: 0.5990566, a: 1}
-    - _SecondaryColor: {r: 0.35819218, g: 0.5377358, b: 0.2967693, a: 1}
-    - _WindColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SecondaryColor: {r: 0.5189737, g: 0.645, b: 0.480525, a: 1}
+    - _WindColor: {r: 0.69803923, g: 0.88207275, b: 0.94509804, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

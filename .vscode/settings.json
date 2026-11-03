@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "Git-Harvest.sln"
+    "dotnet.defaultSolution": "Git-Harvest.slnx"
 }

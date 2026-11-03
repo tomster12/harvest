@@ -25,9 +25,9 @@ public class PlayerDragAction : PlayerAction
         });
 
         // Get animation transforms
-        atLeftHand = player.CustomTags.Get(CustomTagType.AnimationTransform, "Left Hand");
-        atRightHand = player.CustomTags.Get(CustomTagType.AnimationTransform, "Right Hand");
-        apBothHandsGrab = player.CustomTags.Get(CustomTagType.AnimationPoint, "AP - Both Hands - Drag");
+        atLeftHand = player.TaggedObjects.Get(CustomTagType.AnimationTransform, "Left Hand");
+        atRightHand = player.TaggedObjects.Get(CustomTagType.AnimationTransform, "Right Hand");
+        apBothHandsGrab = player.TaggedObjects.Get(CustomTagType.AnimationPoint, "AP - Both Hands - Drag");
     }
 
     public override void UpdateAvailable()

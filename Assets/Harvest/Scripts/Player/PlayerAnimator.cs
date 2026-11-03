@@ -7,7 +7,7 @@ public class PlayerAnimator
 {
     public bool IsControlled => currentHandle != null;
     public PlayerAnimation CurrentAnimation => currentAnimation;
-    public CustomTagRegistry CustomTags => player.CustomTags;
+    public CustomTagRegistry TaggedObjects => player.TaggedObjects;
 
     public void Init(Player player)
     {

@@ -12,8 +12,10 @@ public class PlayerUI : MonoBehaviour
     public static T InstantiateElement<T>(GameObject prefab, string name, Transform parent = null)
     {
         if (parent == null) parent = GetContainer();
+
         GameObject UIObject = Instantiate(prefab, parent);
         UIObject.name = name;
+
         return UIObject.GetComponent<T>();
     }
 

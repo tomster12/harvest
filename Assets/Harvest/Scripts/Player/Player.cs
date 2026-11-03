@@ -15,7 +15,7 @@ public class Player : MonoBehaviour
     public PlayerBuffs Buffs => buffs;
     public List<BaseStat> BaseStats => baseStats;
     public IStatProvider Stats => stats;
-    public CustomTagRegistry CustomTags => customTags;
+    public CustomTagRegistry TaggedObjects => taggedObjects;
 
     public void Init(PlayerPersistent persistent)
     {
@@ -36,7 +36,7 @@ public class Player : MonoBehaviour
     }
 
     [Header("References")]
-    [SerializeField] private CustomTagRegistry customTags;
+    [SerializeField] private CustomTagRegistry taggedObjects;
 
     [Header("Components")]
     [SerializeField] private PlayerPersistent persistent;
@@ -64,7 +64,7 @@ public class Player : MonoBehaviour
 
         Camera.UpdateCamera();
 
-        Interactor.HandleInteractingContainers();
+        Interactor.HandleInteractingUI();
 
         Actions.Update();
 
@@ -80,7 +80,7 @@ public class Player : MonoBehaviour
             Movement.SetMovementInput(Input.InputMovement);
         }
 
-        Actions.FixedUpdateActions();
+        Actions.FixedUpdate();
 
         Movement.FixedApplyMovement();
 

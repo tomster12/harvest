@@ -66,7 +66,7 @@ public class GearInventoryUI : MonoBehaviour, IItemContainerUI
         itemUI.SetItemWithResponse(response, offset);
     }
 
-    public void PreviewClick(ItemUI itemUI, Vector2 pos)
+    public void PreviewHover(ItemUI itemUI, Vector2 pos)
     {
         // Reset all slot backgrounds to default colour
         foreach (GearSlot slot in gearSlots) slot.Background.color = colourDefault;

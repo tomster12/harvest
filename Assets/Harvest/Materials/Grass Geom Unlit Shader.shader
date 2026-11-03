@@ -21,6 +21,8 @@ Shader "Geometry/Grass Geometry Unlit"
         _BladeCount("Grass Blades / triangle", Range(0, 30)) = 6
         _DensityNoiseScale("Density Noise Scale", Range(0.0, 2.0)) = 0.4
         _DensityNoiseStrength("Density Noise Strength", Range(0.0, 1.5)) = 0.6
+        _DensityNoiseMidpoint("Density Noise Midpoint", Range(0.0, 1.0)) = 0.5
+        _DensityNoiseSteepness("Density Noise Steepness", Range(0.0, 40.0)) = 20.0
         _BladeWidth("Blade Width", Range(0.0, 0.1)) = 0.1
     }
     SubShader
@@ -48,6 +50,8 @@ Shader "Geometry/Grass Geometry Unlit"
         float _BladeCount;
         float _DensityNoiseScale;
         float _DensityNoiseStrength;
+        float _DensityNoiseMidpoint;
+        float _DensityNoiseSteepness;
         float _BladeWidth;
 
         struct appdata
@@ -128,6 +132,11 @@ Shader "Geometry/Grass Geometry Unlit"
             return o;
         }
 
+        float sigmoid(float x, float midpoint, float steepness)
+        {
+            return 1.0 / (1.0 + exp(-steepness * (x - midpoint)));
+        }
+
         [maxvertexcount(93)]
         void geom(triangle v2g input[3], inout TriangleStream<g2f> triStream)
         {
@@ -137,14 +146,16 @@ Shader "Geometry/Grass Geometry Unlit"
                     input[2].color.a
                 ) / 3.0;
             
-            float2 triangleWorldPos = (
+            float2 triangleWorld = (
                     mul(unity_ObjectToWorld, input[0].vertex).xz +
                     mul(unity_ObjectToWorld, input[1].vertex).xz +
                     mul(unity_ObjectToWorld, input[2].vertex).xz
                 ) / 3;
 
-            float densitySample = perlin01(triangleWorldPos * _DensityNoiseScale);
+            float densitySample = perlin01(triangleWorld * _DensityNoiseScale);
             densitySample = clamp(lerp(1.0, densitySample, _DensityNoiseStrength), 0, 1);
+            
+            densitySample = sigmoid(densitySample, _DensityNoiseMidpoint, _DensityNoiseSteepness);
 
             int bladeCount = _BladeCount * triangleDensity * densitySample;
 
@@ -157,10 +168,10 @@ Shader "Geometry/Grass Geometry Unlit"
                     + (sqrt(r1) * (1 - r2)) * input[1].vertex
                     + (sqrt(r1) * r2) * input[2].vertex;
 
-                float2 worldPos = mul(unity_ObjectToWorld, midpoint).xz;
+                float2 midpointWorld = mul(unity_ObjectToWorld, midpoint).xz;
 
                 // Wind Noise (two independent Perlin samples per axis)
-                float2 windCoord = worldPos * _WindScale + _Time.y * _WindSpeed;
+                float2 windCoord = midpointWorld * _WindScale + _Time.y * _WindSpeed;
                 float windX = perlinNoise(windCoord);
                 float windY = perlinNoise(windCoord + float2(31.7, 17.3));
                 float2 windVector = float2(windX, windY) * _WindStrength;
@@ -168,10 +179,10 @@ Shader "Geometry/Grass Geometry Unlit"
                 windMagnitude = windMagnitude * windMagnitude;
 
                 // Height noise
-                float heightSample = perlin01(worldPos * _HeightNoiseScale);
+                float heightSample = perlin01(midpointWorld * _HeightNoiseScale);
 
                 // Colour noise
-                float baseColorSample = perlin01(worldPos * _ColorNoiseScale);
+                float baseColorSample = perlin01(midpointWorld * _ColorNoiseScale);
 
                 // Calculate blade tip with midpoint and samples
                 float tipX = midpoint.x + windVector.x;

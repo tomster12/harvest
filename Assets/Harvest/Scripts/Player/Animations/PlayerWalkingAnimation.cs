@@ -4,10 +4,10 @@ public class PlayerWalkingAnimation : PlayerAnimation
 {
     public PlayerWalkingAnimation(PlayerAnimator animator) : base(animator)
     {
-        atLeftHand = animator.CustomTags.Get(CustomTagType.AnimationTransform, "Left Hand");
-        atRightHand = animator.CustomTags.Get(CustomTagType.AnimationTransform, "Right Hand");
-        apLeftHandBase = animator.CustomTags.Get(CustomTagType.AnimationPoint, "AP - Left Hand - Base");
-        apRightHandeBase = animator.CustomTags.Get(CustomTagType.AnimationPoint, "AP - Right Hand - Base");
+        atLeftHand = animator.TaggedObjects.Get(CustomTagType.AnimationTransform, "Left Hand");
+        atRightHand = animator.TaggedObjects.Get(CustomTagType.AnimationTransform, "Right Hand");
+        apLeftHandBase = animator.TaggedObjects.Get(CustomTagType.AnimationPoint, "AP - Left Hand - Base");
+        apRightHandeBase = animator.TaggedObjects.Get(CustomTagType.AnimationPoint, "AP - Right Hand - Base");
     }
 
     public override void Start()

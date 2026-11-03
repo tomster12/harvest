@@ -14,6 +14,8 @@ public class ItemInstance : ISerdeable<ItemInstanceDTO>
     public int Amount => amount;
     public IReadOnlyList<PartSlotInstance> PartSlots => partSlots;
     public IReadOnlyList<AffixInstance> Affixes => affixes;
+    public ItemRarity Rarity => rarity;
+    public int Level => level;
 
     public static ItemInstance NewResource(ItemData data, int amount)
     {

@@ -33,6 +33,6 @@ MonoBehaviour:
   BaseGoldValue: 20
   BaseStats:
   - Stat: 0
-    Value: 4
+    Value: 5
   - Stat: 1
     Value: 1

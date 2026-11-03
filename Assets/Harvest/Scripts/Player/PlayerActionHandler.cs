@@ -37,6 +37,7 @@ public class PlayerActionHandler
 
         if (!isCancelling)
         {
+            // Handle currently active action
             if (IsActing)
             {
                 currentAction.UpdateActive();
@@ -79,7 +80,7 @@ public class PlayerActionHandler
         }
     }
 
-    public void FixedUpdateActions()
+    public void FixedUpdate()
     {
         if (!isCancelling && IsActing)
         {

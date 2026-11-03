@@ -9,17 +9,17 @@ public class PlayerAxeTool : PlayerTool
     public override void Equip()
     {
         // Create tool mesh attached to the left hand
-        var mpLeftHand = player.CustomTags.Get(CustomTagType.MeshPoint, "Left Hand");
+        var mpLeftHand = player.TaggedObjects.Get(CustomTagType.MeshPoint, "Left Hand");
 
         axeMesh = GameObject.Instantiate(itemInstance.Data.MeshPrefab, mpLeftHand);
 
-        axeMesh.TryGetComponent<CustomTagRegistry>(out var axeTags);
-        var mpHandle = axeTags.Get(CustomTagType.MeshPoint, "MP - Handle");
+        axeMesh.TryGetComponent<CustomTagRegistry>(out var taggedObjects);
+        var mpHandle = taggedObjects.Get(CustomTagType.MeshPoint, "MP - Handle");
 
         MeshAttachmentUtility.AlignTransforms(mpLeftHand, axeMesh.transform, mpHandle);
         MeshAttachmentUtility.SetCollidersTrigger(axeMesh, true);
 
-        chopAction = new PlayerAxeChopAction(player, axeMesh, axeTags);
+        chopAction = new PlayerAxeChopAction(player, axeMesh, taggedObjects);
         player.Actions.Register(chopAction);
     }
 

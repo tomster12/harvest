@@ -16,7 +16,7 @@ MonoBehaviour:
   DisplayName: Swing Damage
   Stat: 0
   MinValue: 0.1
-  MaxValue: 1
+  MaxValue: 0.4
   ValueType: 0
   Weight: 1
   IsUnique: 0
