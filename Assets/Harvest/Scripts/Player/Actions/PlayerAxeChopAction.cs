@@ -11,8 +11,7 @@ public class PlayerAxeChopAction : PlayerAction
         player.Animator.CanControl(ANIMATION_PRIORITY);
 
     public override bool IsRunnable =>
-        chopTarget != null &&
-        chopFromPos != null;
+        chopTarget != null;
 
     public PlayerAxeChopAction(Player player, GameObject axeMesh, CustomTagRegistry taggedObjects)
     {
@@ -60,8 +59,15 @@ public class PlayerAxeChopAction : PlayerAction
         awayFromChopPos += Vector3.Cross(chopTarget.Hit.normal, Vector3.up) * CHOP_SIDE_OFFSET;
 
         // If there is nowhere to chop from just stop early
-        if (!Physics.Raycast(awayFromChopPos, Vector3.down, out RaycastHit playerChopFromHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))) return;
-        if (playerChopFromHit.distance < MIN_CHOP_GROUND_DISTANCE) return;
+        bool foundChopFromPos = Physics.Raycast(awayFromChopPos, Vector3.down, out RaycastHit playerChopFromHit, MAX_CHOP_GROUND_DISTANCE, LayerMask.GetMask("Ground"))
+            && playerChopFromHit.distance >= MIN_CHOP_GROUND_DISTANCE;
+
+        if (!foundChopFromPos)
+        {
+            chopTarget = null;
+            return;
+        }
+        
         chopFromPos = playerChopFromHit.point;
 
         // Update preview to current hovered position

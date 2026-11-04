@@ -54,6 +54,43 @@ public class AssetDatabase : MonoBehaviour
         ReloadDatabase();
     }
 
+#if UNITY_EDITOR
+    [ContextMenu("Collect Items And Affixes")]
+    private void OnValidate()
+    {
+        var collectedItems = CollectAssets<ItemData>();
+        var collectedAffixes = CollectAssets<AffixData>();
+
+        if (items.Count == collectedItems.Count && affixes.Count == collectedAffixes.Count)
+        {
+            bool isSame = true;
+            for (int i = 0; i < items.Count && isSame; i++) isSame = items[i] == collectedItems[i];
+            for (int i = 0; i < affixes.Count && isSame; i++) isSame = affixes[i] == collectedAffixes[i];
+            if (isSame) return;
+        }
+
+        items = collectedItems;
+        affixes = collectedAffixes;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    private static List<T> CollectAssets<T>() where T : Object
+    {
+        var guids = UnityEditor.AssetDatabase.FindAssets($"t:{typeof(T).Name}");
+        var paths = new List<string>();
+        for (int i = 0; i < guids.Length; i++) paths.Add(UnityEditor.AssetDatabase.GUIDToAssetPath(guids[i]));
+        paths.Sort(System.StringComparer.Ordinal);
+
+        var assets = new List<T>();
+        for (int i = 0; i < paths.Count; i++)
+        {
+            var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<T>(paths[i]);
+            if (asset != null) assets.Add(asset);
+        }
+        return assets;
+    }
+#endif
+
     [ContextMenu("Reload Database")]
     private void ReloadDatabase()
     {
@@ -67,7 +104,7 @@ public class AssetDatabase : MonoBehaviour
         materialDictionary.Clear();
 
         for (int i = 0; i < items.Count; i++) itemDictionary.Add(items[i].ID, items[i]);
-        for (int i = 0; i < affixes.Count; i++) affixDictionary.Add(affixes[i].name, affixes[i]);
+        for (int i = 0; i < affixes.Count; i++) affixDictionary.Add(affixes[i].ID, affixes[i]);
         for (int i = 0; i < prefabs.Count; i++) prefabDictionary.Add(prefabs[i].name, prefabs[i]);
         for (int i = 0; i < materials.Count; i++) materialDictionary.Add(materials[i].name, materials[i]);
     }

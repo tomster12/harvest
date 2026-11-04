@@ -54,7 +54,7 @@ public class PartSlotInstance : IItemContainer
     }
 
     [SerializeField] private PartSlotData data;
-    [SerializeField] private ItemInstance item = null;
+    [SerializeReference] private ItemInstance item = null;
 
     // -------------------- Serialization  --------------------
 
