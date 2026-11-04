@@ -88,12 +88,24 @@ public class PlayerAxeChopAction : PlayerAction
         }
         else
         {
-            Vector3 right = HitRight;
+            // Aim axes come from the camera yaw and pitch without shake, so the mapping stays stable
+            Quaternion aimRotation = player.Camera.AimRotation;
+            Vector3 camRight = aimRotation * Vector3.right;
+            Vector3 camUp = aimRotation * Vector3.up;
+            Vector3 right = Vector3.ProjectOnPlane(camRight, chopTarget.Hit.normal);
+            right = right.sqrMagnitude > 0.001f ? right.normalized : HitRight;
             Vector3 up = Vector3.up;
 
+            // Boost the more foreshortened axis so equal mouse movement moves the reticle equally on screen
+            float screenRight = Mathf.Max(Mathf.Abs(Vector3.Dot(right, camRight)), 0.01f);
+            float screenUp = Mathf.Max(Mathf.Abs(Vector3.Dot(up, camUp)), 0.01f);
+            float screenMax = Mathf.Max(screenRight, screenUp);
+            float gainRight = Mathf.Min(CHOP_AIM_GAIN_MAX, screenMax / screenRight);
+            float gainUp = Mathf.Min(CHOP_AIM_GAIN_MAX, screenMax / screenUp);
+
             // Calculate mouse sway with mouse screen delta
-            float mouseX = (player.Input.MouseDelta.x / Screen.width) / CHOP_SWAY_SCREEN_MAX;
-            float mouseY = (player.Input.MouseDelta.y / Screen.height) / CHOP_SWAY_SCREEN_MAX;
+            float mouseX = (player.Input.MouseDelta.x / Screen.width) / CHOP_SWAY_SCREEN_MAX * gainRight;
+            float mouseY = (player.Input.MouseDelta.y / Screen.height) / CHOP_SWAY_SCREEN_MAX * gainUp;
             Vector2 mouseSway = new(mouseX, mouseY);
 
             // Calculate noise amounts based on existing distance from target
@@ -140,6 +152,7 @@ public class PlayerAxeChopAction : PlayerAction
 
             chopPreview.transform.position = targetChopPreview.transform.position + worldOffsetDir;
             chopPreviewRenderer.sharedMaterial.color = Color.Lerp(CHOP_GOOD_COLOR, CHOP_BAD_COLOR, shakeOffsetMult);
+            player.Camera.SetFocusSway(currentSwayPct);
         }
     }
 
@@ -194,6 +207,7 @@ public class PlayerAxeChopAction : PlayerAction
 
         animationState = State.Travel;
         player.Input.HideMouse();
+        player.Camera.SetFocus(chopTarget.Hit.point, chopTarget.Hit.normal);
 
         // Start moving towards target, with right hand locally forward of the left, and left in base position
         player.Movement.SetMovementTarget(chopFromPos, 0.02f);
@@ -276,6 +290,7 @@ public class PlayerAxeChopAction : PlayerAction
     protected override Task Stop(CancellationToken ct)
     {
         player.Input.ShowMouse();
+        player.Camera.ClearFocus();
         GameObject.Destroy(chopPreview);
         atRightHand.SetParent(atLeftHand.parent, true);
         acHandle?.Release();
@@ -347,6 +362,7 @@ public class PlayerAxeChopAction : PlayerAction
     private static readonly Color CHOP_GOOD_COLOR = new(0.2f, 1f, 0.2f, 0.5f);
     private static readonly Color CHOP_BAD_COLOR = new(1f, 0.2f, 0.2f, 0.5f);
 
+    private static readonly float CHOP_AIM_GAIN_MAX = 2f;
     private static readonly float CHOP_SWAY_SCREEN_MAX = 0.03f;
     private static readonly float CHOP_SWAY_WORLD_MAX = 0.15f;
     private static readonly float CHOP_SWAY_NOISE_CLAMP = 0.1f;

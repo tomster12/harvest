@@ -62,8 +62,6 @@ public class Player : MonoBehaviour
     {
         Input.ReceiveInput();
 
-        Camera.UpdateCamera();
-
         Interactor.HandleInteractingUI();
 
         Actions.Update();
@@ -83,12 +81,12 @@ public class Player : MonoBehaviour
         Actions.FixedUpdate();
 
         Movement.FixedApplyMovement();
-
-        Camera.FixedFollowPlayer();
     }
 
     private void LateUpdate()
     {
+        Camera.UpdateCamera();
+
         Movement.LateClearInputs();
     }
 

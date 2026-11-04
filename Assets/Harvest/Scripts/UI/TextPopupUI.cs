@@ -39,4 +39,10 @@ public class TextPopupUI : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
+    private void LateUpdate()
+    {
+        // Face the camera so the number reads whatever the camera yaw is
+        transform.rotation = Camera.main.transform.rotation;
+    }
 }

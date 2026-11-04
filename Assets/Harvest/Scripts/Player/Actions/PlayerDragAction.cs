@@ -111,12 +111,17 @@ public class PlayerDragAction : PlayerAction
         hoveredDraggable = null;
         currentGrab = currentDraggable.GetGrab(hoveredHit);
 
+        // Frame the drag from beside the line between the player and the grab point
+        Vector3 grabPos = currentGrab.ResolvePosition();
+        player.Camera.SetDragFocus(grabPos, grabPos - player.transform.position);
+
         // Move to position within range of the target
         movementCancel.Active = true;
         playerDragFromPos = currentGrab.ResolvePosition();
         await AsyncUtil.While(() =>
         {
             player.Movement.SetMovementTarget(playerDragFromPos, DRAG_DIST);
+            player.Camera.UpdateFocusPoint(currentGrab.ResolvePosition());
             return player.Movement.HasReachedTarget;
         }, ct);
 
@@ -144,6 +149,7 @@ public class PlayerDragAction : PlayerAction
         await AsyncUtil.While(() =>
         {
             targetGrabFromPos = currentGrab.ResolvePosition();
+            player.Camera.UpdateFocusPoint(targetGrabFromPos);
             player.Movement.SetFacingTarget(targetGrabFromPos, prioritise: true);
             return !currentDraggable.DragTo(currentGrab, targetGrabToPos, 1.0f, 1.0f);
         }, ct);
@@ -155,6 +161,7 @@ public class PlayerDragAction : PlayerAction
         playerSlowHandle = null;
 
         player.Movement.SetFacingTarget(null);
+        player.Camera.ClearFocus();
         currentDraggable?.OnHoverExit();
         acHandle?.Release();
         return Task.CompletedTask;

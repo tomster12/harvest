@@ -170,16 +170,23 @@ MonoBehaviour:
     camCentreOffset: {x: 0, y: 0.62, z: 0}
     camOrbitDir: {x: 0, y: 2.76, z: -5.4}
     camBaseRotEuler: {x: 20, y: 0, z: 0}
+    camStartYaw: 45
     camFollowLerp: 8
-    camZoomStrength: 0.1
+    camFollowLerpVertical: 3
+    camZoomStep: 0.12
+    camZoomLerp: 18
     camZoomMin: 2
     camZoomMax: 15
     camZoomBase: 6
-    camSwayEaseScale: 0.5
-    camSwayMouseAmount: 5
-    camSwayPlayerAmount: 0.5
+    camOrbitSensitivity: 1
+    camFocusYawOffset: 10
+    camFocusYawSmoothTime: 0.45
+    camFocusYawMaxSpeed: 180
+    camFocusBlend: 0.6
+    camFollowPointBlend: 0.3
+    camFocusSwayAmount: 1
+    camFocusSwayFrequency: 3
     camSwayLerp: 10
-    camSwayDeadzone: 0.05
   input:
     IsMousePressed: 0
     inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

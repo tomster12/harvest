@@ -42,6 +42,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "Orbit",
+                    "type": "Button",
+                    "id": "e3a71c50-4b9d-4f82-a6d1-97c05b2e8f13",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Zoom",
                     "type": "PassThrough",
                     "id": "b7e9d4a1-3c28-4f6b-8d05-2a91c7e3f640",
@@ -192,6 +201,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "Primary",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2b84f6d9-1a37-4c05-8e9a-5d70c3b1e426",
+                    "path": "<Mouse>/middleButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Orbit",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

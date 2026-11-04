@@ -80,8 +80,8 @@ public class PlayerMovement
             // Naively move in target movement direction
             IsMoving = true;
             var movementSpeed = player.Stats.GetStat(Stat.MovementSpeed);
-            Vector3 movement = movementSpeed * Time.fixedDeltaTime * finalMovementDir.Value;
-            rb.MovePosition(rb.position + movement);
+            Vector3 movement = movementSpeed * finalMovementDir.Value;
+            rb.linearVelocity = new Vector3(movement.x, rb.linearVelocity.y, movement.z);
 
             // Then overwrite final direction if configured
             if (!setFacingDirPrioritise)
@@ -91,7 +91,11 @@ public class PlayerMovement
                 setFacingDir = null;
             }
         }
-        else IsMoving = false;
+        else
+        {
+            IsMoving = false;
+            rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
+        }
 
         // Naively rotate towards the final facing direction
         Quaternion targetRotation = Quaternion.LookRotation(TargetFacingDir, Vector3.up);
@@ -102,7 +106,7 @@ public class PlayerMovement
         }
         else
         {
-            rb.rotation = targetRotation;
+            rb.MoveRotation(targetRotation);
             rotationSpeedMult = 1.0f;
         }
     }
