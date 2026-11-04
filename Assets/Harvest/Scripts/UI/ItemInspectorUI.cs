@@ -74,7 +74,7 @@ public class ItemInspectorUI : MonoBehaviour
     {
 
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            Rect, Input.mousePosition, null, out Vector2 mouseLocalPos);
+            Rect, PlayerInput.PointerPosition, null, out Vector2 mouseLocalPos);
 
         // Offset so the panel up-right of the cursor
         Vector2 target = new(

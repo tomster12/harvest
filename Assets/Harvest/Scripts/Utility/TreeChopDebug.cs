@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Camera))]
 public class TreeChopDebug : MonoBehaviour
@@ -11,7 +12,6 @@ public class TreeChopDebug : MonoBehaviour
     public float hitDepth = 1f;
     public float hitWidth = 1f;
     public float hitHeight = 1f;
-    public KeyCode chopKey = KeyCode.Mouse0;
 
     [Header("Debug")]
     public bool showDebug = true;
@@ -26,14 +26,14 @@ public class TreeChopDebug : MonoBehaviour
 
     private void Update()
     {
-        hitRay = cam.ScreenPointToRay(Input.mousePosition);
+        hitRay = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
         if (Physics.Raycast(hitRay, out hit, maxDistance))
         {
             hitTransform = hit.transform;
             hitPoint = hit.point;
             hitTree = hitTransform.GetComponentInParent<ChoppableTree>();
 
-            if (Input.GetKeyDown(chopKey) && hitPoint != null && hitTree != null)
+            if (Mouse.current.leftButton.wasPressedThisFrame && hitPoint != null && hitTree != null)
             {
                 hitTree.Hit((Vector3)hitPoint, hitDepth, hitWidth, hitHeight);
             }

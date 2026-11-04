@@ -109,7 +109,7 @@ public class ItemUI : MonoBehaviour
     private void UpdatePositionWithMouse()
     {
         if (State != StateType.Mouse) return;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, Input.mousePosition, null, out Vector2 localPos);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)Rect.parent, PlayerInput.PointerPosition, null, out Vector2 localPos);
         Rect.localPosition = localPos - MouseOffset;
     }
 

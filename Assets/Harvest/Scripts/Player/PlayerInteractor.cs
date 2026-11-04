@@ -81,7 +81,7 @@ public class PlayerInteractor
         {
             if (hoveredContainerUI != null)
             {
-                hoveredContainerUI.Click(HeldItemUI, Input.mousePosition);
+                hoveredContainerUI.Click(HeldItemUI, PlayerInput.PointerPosition);
                 player.Input.IsMousePressed = false;
             }
             else if (IsHoldingItem)
@@ -92,7 +92,7 @@ public class PlayerInteractor
         }
 
         // Otherwise preview a click on the container
-        else hoveredContainerUI?.PreviewHover(HeldItemUI, Input.mousePosition);
+        else hoveredContainerUI?.PreviewHover(HeldItemUI, PlayerInput.PointerPosition);
     }
 
     public void OnDrawGizmos()

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class OrbitCamera : MonoBehaviour
 {
@@ -12,6 +13,8 @@ public class OrbitCamera : MonoBehaviour
     private Vector3 offset;
     private float yaw;
     private float pitch;
+
+    private static readonly float SCROLL_PER_NOTCH = 120f;
 
     private void Start()
     {
@@ -33,19 +36,21 @@ public class OrbitCamera : MonoBehaviour
 
     private void Update()
     {
+        var keyboard = Keyboard.current;
+
         // Orbit around target with WASD
-        if (Input.GetKey(KeyCode.W)) pitch += orbitSpeed * Time.deltaTime;
-        if (Input.GetKey(KeyCode.S)) pitch -= orbitSpeed * Time.deltaTime;
-        if (Input.GetKey(KeyCode.A)) yaw += orbitSpeed * Time.deltaTime;
-        if (Input.GetKey(KeyCode.D)) yaw -= orbitSpeed * Time.deltaTime;
+        if (keyboard.wKey.isPressed) pitch += orbitSpeed * Time.deltaTime;
+        if (keyboard.sKey.isPressed) pitch -= orbitSpeed * Time.deltaTime;
+        if (keyboard.aKey.isPressed) yaw += orbitSpeed * Time.deltaTime;
+        if (keyboard.dKey.isPressed) yaw -= orbitSpeed * Time.deltaTime;
         pitch = Mathf.Clamp(pitch, -89f, 89f);
 
         // Move up/down with Q / E
-        if (Input.GetKey(KeyCode.Q)) target.position += moveSpeed * Time.deltaTime * Vector3.down;
-        if (Input.GetKey(KeyCode.E)) target.position += moveSpeed * Time.deltaTime * Vector3.up;
+        if (keyboard.qKey.isPressed) target.position += moveSpeed * Time.deltaTime * Vector3.down;
+        if (keyboard.eKey.isPressed) target.position += moveSpeed * Time.deltaTime * Vector3.up;
 
         // Scroll to zoom
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        float scroll = Mouse.current.scroll.ReadValue().y / SCROLL_PER_NOTCH * 0.1f;
         distance -= scroll * zoomSpeed;
         distance = Mathf.Clamp(distance, distanceLimits.x, distanceLimits.y);
 

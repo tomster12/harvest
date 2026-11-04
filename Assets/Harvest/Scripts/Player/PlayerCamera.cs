@@ -27,10 +27,10 @@ public class PlayerCamera
         camZoom = Mathf.Clamp(camZoom, camZoomMin, camZoomMax);
 
         // Sway with the mouse
-        float yOffset = Mathf.Clamp01(Input.mousePosition.y / Screen.height) - 0.5f;
+        float yOffset = Mathf.Clamp01(PlayerInput.PointerPosition.y / Screen.height) - 0.5f;
         if (Mathf.Abs(yOffset) > camSwayDeadzone)
             xSway = -Easing.EaseOutQuad(camSwayEaseScale * (Mathf.Abs(yOffset) - camSwayDeadzone)) * Mathf.Sign(yOffset) * camSwayMouseAmount;
-        float xOffset = Mathf.Clamp01(Input.mousePosition.x / Screen.width) - 0.5f;
+        float xOffset = Mathf.Clamp01(PlayerInput.PointerPosition.x / Screen.width) - 0.5f;
         if (Mathf.Abs(xOffset) > camSwayDeadzone)
             ySway = Easing.EaseOutQuad(camSwayEaseScale * (Mathf.Abs(xOffset) - camSwayDeadzone)) * Mathf.Sign(xOffset) * camSwayMouseAmount;
 
