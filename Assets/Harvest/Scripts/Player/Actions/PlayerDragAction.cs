@@ -99,6 +99,7 @@ public class PlayerDragAction : PlayerAction
     private Vector3 playerDragFromPos;
     private Vector3 targetGrabToPos;
     private Vector3 targetGrabFromPos;
+    private CameraFocus camFocus;
 
     protected override async Task Start(CancellationToken ct)
     {
@@ -113,7 +114,16 @@ public class PlayerDragAction : PlayerAction
 
         // Frame the drag from beside the line between the player and the grab point
         Vector3 grabPos = currentGrab.ResolvePosition();
-        player.Camera.SetDragFocus(grabPos, grabPos - player.transform.position);
+        camFocus = new CameraFocus
+        {
+            Point = grabPos,
+            ViewDir = grabPos - player.transform.position,
+            YawOffset = DRAG_CAM_YAW_OFFSET,
+            CentreBlend = DRAG_CAM_CENTRE_BLEND,
+            PicksNearestSide = true,
+            AllowsOrbit = true
+        };
+        player.Camera.SetFocus(camFocus);
 
         // Move to position within range of the target
         movementCancel.Active = true;
@@ -121,7 +131,7 @@ public class PlayerDragAction : PlayerAction
         await AsyncUtil.While(() =>
         {
             player.Movement.SetMovementTarget(playerDragFromPos, DRAG_DIST);
-            player.Camera.UpdateFocusPoint(currentGrab.ResolvePosition());
+            camFocus.Point = currentGrab.ResolvePosition();
             return player.Movement.HasReachedTarget;
         }, ct);
 
@@ -149,7 +159,7 @@ public class PlayerDragAction : PlayerAction
         await AsyncUtil.While(() =>
         {
             targetGrabFromPos = currentGrab.ResolvePosition();
-            player.Camera.UpdateFocusPoint(targetGrabFromPos);
+            camFocus.Point = targetGrabFromPos;
             player.Movement.SetFacingTarget(targetGrabFromPos, prioritise: true);
             return !currentDraggable.DragTo(currentGrab, targetGrabToPos, 1.0f, 1.0f);
         }, ct);
@@ -170,6 +180,8 @@ public class PlayerDragAction : PlayerAction
     private static readonly int ANIMATION_PRIORITY = 0;
     private static readonly float DRAG_SLOW = 0.65f;
     private static readonly float DRAG_DIST = 0.5f;
+    private static readonly float DRAG_CAM_YAW_OFFSET = 40f;
+    private static readonly float DRAG_CAM_CENTRE_BLEND = 0.3f;
 
     private enum State
     { Goto, Drag };

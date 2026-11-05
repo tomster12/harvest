@@ -152,7 +152,14 @@ public class PlayerAxeChopAction : PlayerAction
 
             chopPreview.transform.position = targetChopPreview.transform.position + worldOffsetDir;
             chopPreviewRenderer.sharedMaterial.color = Color.Lerp(CHOP_GOOD_COLOR, CHOP_BAD_COLOR, shakeOffsetMult);
-            player.Camera.SetFocusSway(currentSwayPct);
+
+            // Shake the camera with how inaccurate the swing is
+            float camShakeAmount = currentSwayPct * CHOP_CAM_SHAKE_AMOUNT;
+            float camShakeNoiseTime = Time.time * CHOP_CAM_SHAKE_FREQUENCY;
+            camFocus.RotationOffset = new(
+                (Mathf.PerlinNoise(camShakeNoiseTime, 0.5f) - 0.5f) * 2f * camShakeAmount,
+                (Mathf.PerlinNoise(camShakeNoiseTime, 10.5f) - 0.5f) * 2f * camShakeAmount
+            );
         }
     }
 
@@ -172,6 +179,7 @@ public class PlayerAxeChopAction : PlayerAction
     private GameObject targetChopPreview;
     private TreeTarget chopTarget;
     private Vector3 chopFromPos;
+    private CameraFocus camFocus;
 
     private Vector2 currentSway;
     private float currentSwayPct;
@@ -207,7 +215,14 @@ public class PlayerAxeChopAction : PlayerAction
 
         animationState = State.Travel;
         player.Input.HideMouse();
-        player.Camera.SetFocus(chopTarget.Hit.point, chopTarget.Hit.normal);
+        camFocus = new CameraFocus
+        {
+            Point = chopTarget.Hit.point,
+            ViewDir = -chopTarget.Hit.normal,
+            YawOffset = CHOP_CAM_YAW_OFFSET,
+            CentreBlend = CHOP_CAM_CENTRE_BLEND
+        };
+        player.Camera.SetFocus(camFocus);
 
         // Start moving towards target, with right hand locally forward of the left, and left in base position
         player.Movement.SetMovementTarget(chopFromPos, 0.02f);
@@ -362,6 +377,10 @@ public class PlayerAxeChopAction : PlayerAction
     private static readonly Color CHOP_GOOD_COLOR = new(0.2f, 1f, 0.2f, 0.5f);
     private static readonly Color CHOP_BAD_COLOR = new(1f, 0.2f, 0.2f, 0.5f);
 
+    private static readonly float CHOP_CAM_YAW_OFFSET = 10f;
+    private static readonly float CHOP_CAM_CENTRE_BLEND = 0.6f;
+    private static readonly float CHOP_CAM_SHAKE_AMOUNT = 1f;
+    private static readonly float CHOP_CAM_SHAKE_FREQUENCY = 3f;
     private static readonly float CHOP_AIM_GAIN_MAX = 2f;
     private static readonly float CHOP_SWAY_SCREEN_MAX = 0.03f;
     private static readonly float CHOP_SWAY_WORLD_MAX = 0.15f;
