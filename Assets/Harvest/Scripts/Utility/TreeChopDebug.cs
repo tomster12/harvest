@@ -35,7 +35,7 @@ public class TreeChopDebug : MonoBehaviour
 
             if (Mouse.current.leftButton.wasPressedThisFrame && hitPoint != null && hitTree != null)
             {
-                hitTree.Hit((Vector3)hitPoint, hitDepth, hitWidth, hitHeight);
+                hitTree.Hit((Vector3)hitPoint, hitDepth, hitWidth, hitHeight, 0f);
             }
         }
         else

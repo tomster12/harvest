@@ -324,9 +324,13 @@ public class PlayerAxeChopAction : PlayerAction
 
         var (targetPos, _) = GetChopTargetPose();
 
-        var hit = chopTarget.Tree.Hit(targetPos, depth, width, height);
+        float sharpness = stats.GetStat(Stat.Sharpness);
 
-        if (hit) TextPopupManager.SpawnTextPopup(targetPos, adjustedDamage.ToString("F1"));
+        var result = chopTarget.Tree.Hit(targetPos, depth, width, height, sharpness);
+        if (result.Outcome == TreeHitOutcome.Miss) return;
+
+        Debug.Log($"Tree hit: {result.Outcome} on {chopTarget.Tree.WoodType.DisplayName}, depth {result.Depth:F4}, sharpness {result.Sharpness:F2}, split {result.CausedSplit}");
+        TextPopupManager.SpawnTextPopup(targetPos, adjustedDamage.ToString("F1"));
     }
 
     private (Vector3 pos, Vector3 normal) GetChopTargetPose()

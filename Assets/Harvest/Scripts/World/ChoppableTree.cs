@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public struct TreeGenConfig
@@ -255,18 +256,33 @@ public sealed class TreeGrid
 
 public class ChoppableTree : MonoBehaviour
 {
-    public bool CanChop { get; private set; } = true;
+    public event Action<TreeHitResult> OnHit = delegate { };
+    public event Action<ChoppableTree> OnFelled = delegate { };
+    public event Action<float> OnLanded = delegate { };
 
-    public bool Hit(Vector3 posWorld, float depth, float width, float height)
+    public bool CanChop { get; private set; } = true;
+    public WoodType WoodType => woodType;
+
+    public TreeHitResult Hit(Vector3 posWorld, float depth, float width, float height, float sharpness)
     {
         Vector2Int? posGrid = WorldToGrid(posWorld);
-        if (posGrid == null) return false;
+        if (posGrid == null) return new TreeHitResult { Outcome = TreeHitOutcome.Miss, Position = posWorld };
 
         // Spawn particles
         Vector3 hitTrunkPos = new(transform.position.x, posWorld.y, transform.position.z);
         Vector3 normal = (posWorld - hitTrunkPos).normalized;
         var particles = ParticleManager.Instance.Spawn(ParticleEffect.TreeChop, posWorld, Quaternion.LookRotation(normal));
         if (particles != null) particles.Play();
+
+        var result = new TreeHitResult
+        {
+            Outcome = TreeHitOutcome.Clean,
+            Position = posWorld,
+            Normal = normal,
+            Cell = posGrid.Value,
+            Depth = depth,
+            Sharpness = sharpness
+        };
 
         // Apply the world hit to the grid
         bool hitCausedSplit = grid.ApplyHitToGrid(posGrid.Value, depth, width, height);
@@ -275,7 +291,8 @@ public class ChoppableTree : MonoBehaviour
         if (!hitCausedSplit)
         {
             RebuildMesh();
-            return true;
+            OnHit?.Invoke(result);
+            return result;
         }
 
         // Otherwise we need to split the grid, rebuild bottom half, then spawn top half
@@ -295,15 +312,24 @@ public class ChoppableTree : MonoBehaviour
             tree.CanChop = false;
             tree.RebuildMesh();
             tree.SetDraggable();
+
+            result.CausedSplit = true;
+            result.Log = tree;
         }
 
-        return true;
+        OnHit?.Invoke(result);
+        if (result.Log != null) OnFelled?.Invoke(result.Log);
+        return result;
     }
 
     [Header("References")]
     [SerializeField] private MeshFilter mf;
     [SerializeField] private MeshCollider mc;
     [SerializeField] private Rigidbody rb;
+
+    [Header("Wood")]
+    [SerializeField] private WoodType woodType;
+    [SerializeField] private int colourSeed;
 
     [Header("Generation Config")]
     [SerializeField] private float genColDensity = 20f;
@@ -322,12 +348,64 @@ public class ChoppableTree : MonoBehaviour
 
     private TreeGrid grid;
     private Mesh mesh;
+    private MaterialPropertyBlock colourBlock;
 
     private void Awake()
     {
+        Debug.Assert(woodType != null, $"ChoppableTree '{name}' has no WoodType assigned.", this);
+        ApplyColourBlock();
         RegenerateTree();
         rb.isKinematic = true;
         CanChop = true;
+    }
+
+    private void OnValidate()
+    {
+        ApplyColourBlock();
+    }
+
+    [ContextMenu("Roll Wood Colours")]
+    private void RollWoodColours()
+    {
+        colourSeed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+        ApplyColourBlock();
+    }
+
+    private static Color ShiftColour(Color colour, float hueShift, float saturationShift, float valueShift)
+    {
+        Color.RGBToHSV(colour, out float hue, out float saturation, out float value);
+        return Color.HSVToRGB(
+            Mathf.Repeat(hue + hueShift, 1f),
+            Mathf.Clamp01(saturation * (1f + saturationShift)),
+            Mathf.Clamp01(value * (1f + valueShift)));
+    }
+
+    private void ApplyColourBlock()
+    {
+        if (woodType == null || mf == null || !mf.TryGetComponent(out MeshRenderer meshRenderer)) return;
+
+        // One shared shift per tree keeps its three tones coherent
+        var rng = new System.Random(colourSeed);
+        float valueShift = ((float)rng.NextDouble() * 2f - 1f) * woodType.ColourVariance;
+        float saturationShift = ((float)rng.NextDouble() * 2f - 1f) * woodType.ColourVariance * 0.5f;
+        float hueShift = ((float)rng.NextDouble() * 2f - 1f) * woodType.ColourVariance * 0.1f;
+
+        colourBlock ??= new MaterialPropertyBlock();
+        meshRenderer.GetPropertyBlock(colourBlock);
+        colourBlock.SetColor(BARK_COLOR_ID, ShiftColour(woodType.BarkColor, hueShift, saturationShift, valueShift));
+        colourBlock.SetColor(INNER_COLOR_ID, ShiftColour(woodType.InnerColor, hueShift, saturationShift, valueShift));
+        colourBlock.SetColor(CORE_COLOR_ID, ShiftColour(woodType.CoreColor, hueShift, saturationShift, valueShift));
+        meshRenderer.SetPropertyBlock(colourBlock);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (rb.isKinematic) return;
+
+        float impactSpeed = collision.relativeVelocity.magnitude;
+        if (impactSpeed < LANDING_MIN_SPEED) return;
+
+        OnLanded?.Invoke(impactSpeed);
     }
 
     [ContextMenu("Regenerate Tree")]
@@ -504,4 +582,9 @@ public class ChoppableTree : MonoBehaviour
         var draggable = gameObject.AddComponent<DraggableObject>();
         draggable.Init(outline, rb);
     }
+
+    private static readonly float LANDING_MIN_SPEED = 1f;
+    private static readonly int BARK_COLOR_ID = Shader.PropertyToID("_BarkColor");
+    private static readonly int INNER_COLOR_ID = Shader.PropertyToID("_InnerColor");
+    private static readonly int CORE_COLOR_ID = Shader.PropertyToID("_CoreColor");
 }

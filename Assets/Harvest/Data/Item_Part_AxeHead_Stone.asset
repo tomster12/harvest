@@ -27,4 +27,6 @@ MonoBehaviour:
   PartSlots: []
   AffixPool: {fileID: 11400000, guid: 0fcecabff5a739945a84b0f90e8f2216, type: 2}
   BaseGoldValue: 10
-  BaseStats: []
+  BaseStats:
+  - Stat: 6
+    Value: 1

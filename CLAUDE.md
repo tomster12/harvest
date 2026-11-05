@@ -13,6 +13,7 @@ Before doing anything, read the project tracker. It and the code are the source 
 ## Workflow
 
 - Do not commit and do not edit Notion unless asked. Never change a row's Status unless asked.
+- Keep Notion row page content short: a few lines or bullets covering only what is vague, complex or a non-obvious decision. It is rarely read, so no tuning values, no restating the code, no long behaviour write-ups. Leave a page blank if the description says it all.
 - Do not add systems beyond the row being worked on. Prefer procedural assets over new files.
 - Tell the user before editing scenes or prefabs.
 - After finishing work, say how to verify it in Play Mode.

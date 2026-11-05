@@ -33,24 +33,23 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BarkEdgeWidth: 0.0527
+    - _BarkEdgeWidth: 0.0455
     - _BarkThickness: 0.02
     - _BarkThreshold: 0.02
-    - _BarkWidth: 0.018
+    - _BarkWidth: 0.062
+    - _CoreStart: 0.386
     - _Darken: 0.35
     - _DarkenAmount: 0.35
     - _DarkenStart: 0.35
     - _DarkenThreshold: 0.35
     - _EdgeWidth: 0.04
-    - _InnerDarkenAmount: 0.473
-    - _InnerDarkenStart: 0.304
     - _Metallic: 0
     - _ShadowSoftness: 0.64
     - _Smoothness: 0
     m_Colors:
     - _BarkColor: {r: 0.4716981, g: 0.41180876, b: 0.3448736, a: 1}
-    - _BarkEdgeColor: {r: 0.53199995, g: 0.45882353, b: 0.37878397, a: 1}
-    - _WoodColor: {r: 0.72, g: 0.62, b: 0.5, a: 1}
+    - _CoreColor: {r: 0.38, g: 0.33, b: 0.26, a: 1}
+    - _InnerColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &555373952796339508
