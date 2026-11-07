@@ -314,23 +314,22 @@ public class PlayerAxeChopAction : PlayerAction
 
     private void HitTree()
     {
-        float swingDamage = stats.GetStat(Stat.SwingDamage);
-        float accuracy = Mathf.Clamp01(1f - Mathf.Abs(currentSwayPct));
-
-        float adjustedDamage = swingDamage * (0.25f + accuracy * 1.0f);
-        float depth = adjustedDamage * 0.0075f;
-        float width = adjustedDamage * 0.08f;
-        float height = adjustedDamage * 0.01f;
-
         var (targetPos, _) = GetChopTargetPose();
 
-        float sharpness = stats.GetStat(Stat.Sharpness);
-
-        var result = chopTarget.Tree.Hit(targetPos, depth, width, height, sharpness);
+        var result = chopTarget.Tree.Hit(new TreeHitInput
+        {
+            Position = targetPos,
+            Strength = stats.GetStat(Stat.SwingStrength),
+            Sharpness = stats.GetStat(Stat.Sharpness),
+            Accuracy = Mathf.Clamp01(1f - Mathf.Abs(currentSwayPct)),
+            BitWidth = stats.GetStat(Stat.BitWidth)
+        });
         if (result.Outcome == TreeHitOutcome.Miss) return;
 
-        Debug.Log($"Tree hit: {result.Outcome} on {chopTarget.Tree.WoodType.DisplayName}, depth {result.Depth:F4}, sharpness {result.Sharpness:F2}, split {result.CausedSplit}");
-        TextPopupManager.SpawnTextPopup(targetPos, adjustedDamage.ToString("F1"));
+        Debug.Log($"Tree hit: {result.Outcome} on {chopTarget.Tree.WoodType.DisplayName}, land chance {result.LandChance:P0}, depth {result.Depth:F4}, removed {result.LitresRemoved:F2} L, wood damage {result.Damage:F2}, split {result.CausedSplit}");
+
+        string popupText = result.Outcome == TreeHitOutcome.Glance ? "Miss!" : result.LitresRemoved.ToString("F1");
+        TextPopupManager.SpawnTextPopup(targetPos, popupText);
     }
 
     private (Vector3 pos, Vector3 normal) GetChopTargetPose()

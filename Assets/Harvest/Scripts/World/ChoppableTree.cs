@@ -38,6 +38,14 @@ public sealed class TreeGridSettings
     }
 }
 
+public struct GridHitSummary
+{
+    public float PeakDepth;
+    public float PeakDamage;
+    public float LitresRemoved;
+    public int? SplitRow;
+}
+
 public sealed class TreeGrid
 {
     public readonly TreeGridSettings Settings;
@@ -45,6 +53,7 @@ public sealed class TreeGrid
     public readonly int Rows;
     public readonly float[,] Radius;
     public readonly float[,] BaseRadius;
+    public readonly float[,] Damage;
     public readonly Vector3[,] Offsets;
 
     public float Height => Rows * Settings.HeightPerRow;
@@ -89,7 +98,13 @@ public sealed class TreeGrid
         Rows = rows;
         Radius = new float[cols, rows];
         BaseRadius = new float[cols, rows];
+        Damage = new float[cols, rows];
         Offsets = new Vector3[cols, rows];
+    }
+
+    public float HardnessAt(int c, int r, float baseHardness)
+    {
+        return TreeHitMath.Hardness(baseHardness, BaseRadius[c, r], Radius[c, r], Settings.MinRadius);
     }
 
     private void GenerateBaseRadius(float baseRadius, float noiseScale, float noiseStrength, int seed)
@@ -130,11 +145,14 @@ public sealed class TreeGrid
         }
     }
 
-    public bool ApplyHitToGrid(Vector2Int hitGrid, float depth, float width, float height)
+    public GridHitSummary ApplyHitToGrid(Vector2Int hitGrid, float halfWidth, float halfHeight, float effectiveStrength, float woodDamage, float baseHardness)
     {
-        int hitCols = Mathf.CeilToInt(width * Settings.ColDensity);
-        int hitRows = Mathf.CeilToInt(height * Settings.RowDensity);
-        hitCols = Mathf.Min(hitCols, Cols / 4);
+        int hitCols = Mathf.Max(1, Mathf.Min(Mathf.CeilToInt(halfWidth * Settings.ColDensity), Cols / 4));
+        int hitRows = Mathf.Max(1, Mathf.CeilToInt(halfHeight * Settings.RowDensity));
+        float cellAngle = Mathf.PI * 2f / Cols;
+
+        var summary = new GridHitSummary();
+        float cubicMetresRemoved = 0f;
 
         for (int dc = -hitCols; dc <= hitCols; dc++)
         {
@@ -150,28 +168,46 @@ public sealed class TreeGrid
                 float dist = Mathf.Sqrt(colDist * colDist + rowDist * rowDist);
                 if (dist > 1f) continue;
 
+                // Each cell dents by its own hardness, scaled by the footprint falloff
                 float falloff = 1f - dist;
-                Radius[c, r] = Mathf.Max(Settings.MinRadius, Radius[c, r] - depth * falloff);
+                float hardness = HardnessAt(c, r, baseHardness);
+                float depth = TreeHitMath.DentDepth(effectiveStrength, hardness) * falloff;
+
+                float oldRadius = Radius[c, r];
+                float newRadius = Mathf.Max(Settings.MinRadius, oldRadius - depth);
+                Radius[c, r] = newRadius;
+
+                float cellDamage = woodDamage * falloff;
+                Damage[c, r] += cellDamage;
+
+                cubicMetresRemoved += 0.5f * (oldRadius * oldRadius - newRadius * newRadius) * cellAngle * Settings.HeightPerRow;
+                summary.PeakDepth = Mathf.Max(summary.PeakDepth, oldRadius - newRadius);
+                summary.PeakDamage = Mathf.Max(summary.PeakDamage, cellDamage);
             }
         }
 
-        if (!RowInChoppableRange(hitGrid.y)) return false;
-
-        return CheckSplit(hitGrid.y - hitRows, hitGrid.y + hitRows);
+        summary.LitresRemoved = cubicMetresRemoved * 1000f;
+        summary.SplitRow = CheckSplit(hitGrid.y - hitRows, hitGrid.y + hitRows, hitGrid.y);
+        return summary;
     }
 
-    public bool CheckSplit(int lowRow, int highRow)
+    public int? CheckSplit(int lowRow, int highRow, int preferredRow)
     {
         lowRow = Mathf.Clamp(lowRow, 0, Rows - 1);
         highRow = Mathf.Clamp(highRow, 0, Rows - 1);
 
-        for (int r = lowRow; r <= highRow; r++)
+        // Search outwards from the preferred row so the cut lands closest to the hit
+        int maxOffset = Mathf.Max(preferredRow - lowRow, highRow - preferredRow);
+        for (int offset = 0; offset <= maxOffset; offset++)
         {
-            if (!RowInChoppableRange(r)) continue;
-            if (CheckRowSplitRequirement(r)) return true;
+            int below = preferredRow - offset;
+            if (below >= lowRow && below <= highRow && RowInChoppableRange(below) && CheckRowSplitRequirement(below)) return below;
+
+            int above = preferredRow + offset;
+            if (offset > 0 && above >= lowRow && above <= highRow && RowInChoppableRange(above) && CheckRowSplitRequirement(above)) return above;
         }
 
-        return false;
+        return null;
     }
 
     private bool CheckRowSplitRequirement(int r)
@@ -195,7 +231,28 @@ public sealed class TreeGrid
 
         var bottom = Slice(0, bottomRows);
         var top = Slice(bottomRows + 1, topRows - 1);
+
+        bottom.SmoothCutEnd(bottom.Rows - 1, -1);
+        top.SmoothCutEnd(0, 1);
         return (bottom, top);
+    }
+
+    private void SmoothCutEnd(int endRow, int towardsInside)
+    {
+        var source = (float[,])Radius.Clone();
+
+        for (int i = 0; i < CUT_SMOOTH_ROWS; i++)
+        {
+            int r = endRow + towardsInside * i;
+            if (r < 0 || r >= Rows) break;
+
+            float weight = CUT_SMOOTH_STRENGTH * (1f - i / (float)CUT_SMOOTH_ROWS);
+            for (int c = 0; c < Cols; c++)
+            {
+                float neighbourAverage = (source[(c - 1 + Cols) % Cols, r] + source[c, r] + source[(c + 1) % Cols, r]) / 3f;
+                Radius[c, r] = Mathf.Lerp(source[c, r], neighbourAverage, weight);
+            }
+        }
     }
 
     private TreeGrid Slice(int startRow, int rows)
@@ -209,6 +266,7 @@ public sealed class TreeGrid
                 int sourceRow = startRow + r;
                 grid.Radius[c, r] = Radius[c, sourceRow];
                 grid.BaseRadius[c, r] = BaseRadius[c, sourceRow];
+                grid.Damage[c, r] = Damage[c, sourceRow];
                 grid.Offsets[c, r] = Offsets[c, sourceRow];
             }
         }
@@ -252,6 +310,9 @@ public sealed class TreeGrid
         int maxSplitRow = Rows - 3;
         return r >= minSplitRow && r <= maxSplitRow;
     }
+
+    private static readonly int CUT_SMOOTH_ROWS = 3;
+    private static readonly float CUT_SMOOTH_STRENGTH = 0.4f;
 }
 
 public class ChoppableTree : MonoBehaviour
@@ -263,32 +324,57 @@ public class ChoppableTree : MonoBehaviour
     public bool CanChop { get; private set; } = true;
     public WoodType WoodType => woodType;
 
-    public TreeHitResult Hit(Vector3 posWorld, float depth, float width, float height, float sharpness)
+    public TreeHitResult Hit(TreeHitInput input)
     {
-        Vector2Int? posGrid = WorldToGrid(posWorld);
-        if (posGrid == null) return new TreeHitResult { Outcome = TreeHitOutcome.Miss, Position = posWorld };
+        Vector2Int? posGrid = WorldToGrid(input.Position);
+        if (posGrid == null) return new TreeHitResult { Outcome = TreeHitOutcome.Miss, Position = input.Position };
 
-        // Spawn particles
-        Vector3 hitTrunkPos = new(transform.position.x, posWorld.y, transform.position.z);
-        Vector3 normal = (posWorld - hitTrunkPos).normalized;
-        var particles = ParticleManager.Instance.Spawn(ParticleEffect.TreeChop, posWorld, Quaternion.LookRotation(normal));
-        if (particles != null) particles.Play();
+        Vector3 hitTrunkPos = new(transform.position.x, input.Position.y, transform.position.z);
+        Vector3 normal = (input.Position - hitTrunkPos).normalized;
+
+        // Accuracy scales both tool stats before anything else reads them
+        float swingQuality = TreeHitMath.SwingQuality(input.Accuracy);
+        float effectiveSharpness = input.Sharpness * swingQuality;
+        float effectiveStrength = input.Strength * swingQuality;
+
+        // Sharpness against the struck cell's hardness decides whether the hit lands
+        float baseHardness = woodType.BaseHardness;
+        float hardness = grid.HardnessAt(posGrid.Value.x, posGrid.Value.y, baseHardness);
+        float landChance = TreeHitMath.LandChance(effectiveSharpness, hardness);
 
         var result = new TreeHitResult
         {
-            Outcome = TreeHitOutcome.Clean,
-            Position = posWorld,
+            Outcome = TreeHitOutcome.Glance,
+            Position = input.Position,
             Normal = normal,
             Cell = posGrid.Value,
-            Depth = depth,
-            Sharpness = sharpness
+            LandChance = landChance
         };
 
+        if (UnityEngine.Random.value >= landChance)
+        {
+            OnHit?.Invoke(result);
+            return result;
+        }
+
+        result.Outcome = TreeHitOutcome.Clean;
+
+        // Spawn particles
+        var particles = ParticleManager.Instance.Spawn(ParticleEffect.TreeChop, input.Position, Quaternion.LookRotation(normal));
+        if (particles != null) particles.Play();
+
         // Apply the world hit to the grid
-        bool hitCausedSplit = grid.ApplyHitToGrid(posGrid.Value, depth, width, height);
+        float woodDamage = TreeHitMath.WoodDamage(effectiveStrength, landChance);
+        float halfWidth = input.BitWidth * (0.6f + 0.4f * input.Accuracy);
+        float halfHeight = TreeHitMath.HalfHeightFromBitWidth(input.BitWidth);
+        var summary = grid.ApplyHitToGrid(posGrid.Value, halfWidth, halfHeight, effectiveStrength, woodDamage, baseHardness);
+
+        result.Depth = summary.PeakDepth;
+        result.LitresRemoved = summary.LitresRemoved;
+        result.Damage = summary.PeakDamage;
 
         // Just rebuild mesh with the updated grid
-        if (!hitCausedSplit)
+        if (summary.SplitRow == null)
         {
             RebuildMesh();
             OnHit?.Invoke(result);
@@ -296,7 +382,7 @@ public class ChoppableTree : MonoBehaviour
         }
 
         // Otherwise we need to split the grid, rebuild bottom half, then spawn top half
-        var (bottomGrid, topGrid) = grid.SplitAtRow(posGrid.Value.y);
+        var (bottomGrid, topGrid) = grid.SplitAtRow(summary.SplitRow.Value);
 
         grid = bottomGrid;
         RebuildMesh();
@@ -330,6 +416,9 @@ public class ChoppableTree : MonoBehaviour
     [Header("Wood")]
     [SerializeField] private WoodType woodType;
     [SerializeField] private int colourSeed;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugShowDamage;
 
     [Header("Generation Config")]
     [SerializeField] private float genColDensity = 20f;
@@ -395,6 +484,7 @@ public class ChoppableTree : MonoBehaviour
         colourBlock.SetColor(BARK_COLOR_ID, ShiftColour(woodType.BarkColor, hueShift, saturationShift, valueShift));
         colourBlock.SetColor(INNER_COLOR_ID, ShiftColour(woodType.InnerColor, hueShift, saturationShift, valueShift));
         colourBlock.SetColor(CORE_COLOR_ID, ShiftColour(woodType.CoreColor, hueShift, saturationShift, valueShift));
+        colourBlock.SetFloat(DEBUG_DAMAGE_ID, debugShowDamage ? 1f : 0f);
         meshRenderer.SetPropertyBlock(colourBlock);
     }
 
@@ -463,7 +553,7 @@ public class ChoppableTree : MonoBehaviour
             return (p, n);
         }
 
-        Vector2 UV(int c, int r) => new(1.0f - grid.Radius[c, r] / grid.BaseRadius[c, r], 0);
+        Vector2 UV(int c, int r) => new(1.0f - grid.Radius[c, r] / grid.BaseRadius[c, r], Mathf.Clamp01(grid.Damage[c, r] / DEBUG_DAMAGE_MAX));
 
         // ---------------------------- Trunk ----------------------------
 
@@ -533,7 +623,7 @@ public class ChoppableTree : MonoBehaviour
         int topCenter = v;
         verts[v] = new Vector3(0f, grid.Height, 0f);
         norms[v] = Vector3.up;
-        uvs[v] = new Vector2(0.5f, 1f);
+        uvs[v] = new Vector2(0.5f, 0f);
         v++;
 
         for (int c = 0; c < grid.Cols; c++)
@@ -587,4 +677,6 @@ public class ChoppableTree : MonoBehaviour
     private static readonly int BARK_COLOR_ID = Shader.PropertyToID("_BarkColor");
     private static readonly int INNER_COLOR_ID = Shader.PropertyToID("_InnerColor");
     private static readonly int CORE_COLOR_ID = Shader.PropertyToID("_CoreColor");
+    private static readonly int DEBUG_DAMAGE_ID = Shader.PropertyToID("_DebugDamage");
+    private static readonly float DEBUG_DAMAGE_MAX = 8f;
 }

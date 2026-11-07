@@ -15,7 +15,7 @@ MonoBehaviour:
   ID: wood_oak
   DisplayName: Oak
   Density: 750
-  BaseHardness: 2
+  BaseHardness: 17.5
   PricePerVolume: 12
   BarkColor: {r: 0.31132078, g: 0.25072944, b: 0.20412071, a: 1}
   InnerColor: {r: 0.8, g: 0.5977433, b: 0.4509804, a: 1}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Affix_SwingDamageAdd
   m_EditorClassIdentifier: 
   ID: swing_damage_add
-  DisplayName: Swing Damage
+  DisplayName: Swing Strength
   Stat: 0
   MinValue: 0.1
   MaxValue: 0.4

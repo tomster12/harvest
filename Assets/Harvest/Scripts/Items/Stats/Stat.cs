@@ -5,9 +5,9 @@ using Unity.VisualScripting;
 [Serializable]
 public enum Stat
 {
-    SwingDamage, SwingSpeed, ResourceYield,
+    SwingStrength, SwingSpeed, ResourceYield,
     Armour, MovementSpeed, CarryCapacity,
-    Sharpness,
+    Sharpness, BitWidth,
 }
 
 public static class StatExtensions

@@ -9,9 +9,10 @@ public class TreeChopDebug : MonoBehaviour
 
     [Header("Chop Settings")]
     public float maxDistance = 10f;
-    public float hitDepth = 1f;
-    public float hitWidth = 1f;
-    public float hitHeight = 1f;
+    public float strength = 5f;
+    public float sharpness = 1f;
+    public float accuracy = 1f;
+    public float bitWidth = 0.5f;
 
     [Header("Debug")]
     public bool showDebug = true;
@@ -35,7 +36,14 @@ public class TreeChopDebug : MonoBehaviour
 
             if (Mouse.current.leftButton.wasPressedThisFrame && hitPoint != null && hitTree != null)
             {
-                hitTree.Hit((Vector3)hitPoint, hitDepth, hitWidth, hitHeight, 0f);
+                hitTree.Hit(new TreeHitInput
+                {
+                    Position = (Vector3)hitPoint,
+                    Strength = strength,
+                    Sharpness = sharpness,
+                    Accuracy = accuracy,
+                    BitWidth = bitWidth
+                });
             }
         }
         else

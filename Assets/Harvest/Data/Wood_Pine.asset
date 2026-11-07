@@ -15,7 +15,7 @@ MonoBehaviour:
   ID: wood_pine
   DisplayName: Pine
   Density: 500
-  BaseHardness: 1
+  BaseHardness: 2.5
   PricePerVolume: 5
   BarkColor: {r: 0.5849056, g: 0.44535214, b: 0.3448736, a: 1}
   InnerColor: {r: 0.754717, g: 0.59693116, b: 0.4805981, a: 1}

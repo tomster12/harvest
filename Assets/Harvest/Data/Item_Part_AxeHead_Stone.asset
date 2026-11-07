@@ -30,3 +30,5 @@ MonoBehaviour:
   BaseStats:
   - Stat: 6
     Value: 1
+  - Stat: 7
+    Value: 0.5

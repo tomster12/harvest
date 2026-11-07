@@ -10,6 +10,9 @@ Shader "Custom/Tree Wood"
         _BarkEdgeWidth ("Bark Edge Width", Range(0, 0.1)) = 0.04
         _CoreStart ("Core Start", Range(0, 1)) = 0.35
 
+        [Header(Debug)]
+        [Toggle] _DebugDamage ("Show Damage", Float) = 0
+
         [Header(Surface Options)]
         _Smoothness ("Smoothness", Range(0, 1)) = 0.4
         _Metallic ("Metallic", Range(0, 1)) = 0.0
@@ -43,6 +46,7 @@ Shader "Custom/Tree Wood"
             float4 _BarkColor, _InnerColor, _CoreColor;
             float _BarkWidth, _BarkEdgeWidth, _CoreStart;
             float _Smoothness, _Metallic;
+            float _DebugDamage;
             CBUFFER_END
 
             struct appdata
@@ -93,6 +97,9 @@ Shader "Custom/Tree Wood"
                     float t = saturate((depth - barkFullWidth) / (_CoreStart - barkFullWidth + 0.0001));
                     albedo = lerp(_InnerColor.rgb, _CoreColor.rgb, t);
                 }
+
+                // Debug view of the per vertex damage stored in uv y
+                if (_DebugDamage > 0.5) albedo = lerp(albedo, half3(0.9, 0.1, 0.05), saturate(i.uv.y));
 
                 // Standard URP PBR lighting setup
                 InputData inputData = (InputData)0;
