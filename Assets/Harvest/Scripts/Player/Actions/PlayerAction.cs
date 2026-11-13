@@ -15,6 +15,13 @@ public class CancelOnMovementInput : PlayerActionCancelCondition
     public override bool Evaluate(Player player) => Active && player.Input.InputMovement.sqrMagnitude > 0.01f;
 }
 
+public class CancelOnBackwardInput : PlayerActionCancelCondition
+{
+    public override bool Evaluate(Player player) => Active && player.Input.InputMovementAxes.y < BACKWARD_THRESHOLD;
+
+    private static readonly float BACKWARD_THRESHOLD = -0.5f;
+}
+
 public class CancelOnUnequip : PlayerActionCancelCondition
 {
     public override bool Evaluate(Player player) => Active && player.Gear.CurrentTool == null;
@@ -40,6 +47,7 @@ public abstract class PlayerAction
     public bool IsRunning { get; private set; }
     public virtual bool IsAvailable => true;
     public virtual bool IsRunnable => IsAvailable;
+    public virtual bool OverridesMovementInput => false;
 
     public List<PlayerActionCancelCondition> CancelConditions { get; private set; } = new();
 

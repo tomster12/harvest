@@ -18,9 +18,20 @@ public class PlayerMovement
         IsMoving = false;
     }
 
+    public void SetFollowTarget(Vector3? position)
+    {
+        // Overwrite and ease towards a position that keeps moving, slowing down as it arrives
+        followTargetPosition = position;
+        if (!position.HasValue) return;
+
+        inputDirection = null;
+        setTargetPosition = null;
+    }
+
     public void SetMovementTarget(Vector3 position, float threshold = 0.1f)
     {
         // Overwrite and set to moving towards a position
+        followTargetPosition = null;
         inputDirection = null;
         setTargetPosition = position;
         targetThreshold = threshold;
@@ -29,6 +40,7 @@ public class PlayerMovement
     public void SetMovementInput(Vector3 dir)
     {
         // Overwrite and set to moving in a direction
+        followTargetPosition = null;
         inputDirection = dir.normalized;
         setTargetPosition = null;
     }
@@ -61,6 +73,7 @@ public class PlayerMovement
 
         // Check if moving in direction or towards position, prioritising input movement
         Vector3? finalMovementDir = null;
+        float followSpeedLimit = float.MaxValue;
         if (inputDirection.HasValue)
         {
             finalMovementDir = inputDirection.Value;
@@ -71,6 +84,16 @@ public class PlayerMovement
             Vector3 flatDir = Vector3.ProjectOnPlane(directDir, Vector3.up);
             finalMovementDir = flatDir.normalized;
         }
+        else if (followTargetPosition.HasValue)
+        {
+            // Speed is proportional to the distance left, so a slowly moving target is followed smoothly
+            Vector3 followDelta = Vector3.ProjectOnPlane(followTargetPosition.Value - player.transform.position, Vector3.up);
+            if (followDelta.magnitude > FOLLOW_STOP_DISTANCE)
+            {
+                finalMovementDir = followDelta.normalized;
+                followSpeedLimit = followDelta.magnitude * FOLLOW_GAIN;
+            }
+        }
 
         // Default to set facing dir
         if (setFacingDir.HasValue) targetFacingDir = setFacingDir.Value;
@@ -80,7 +103,7 @@ public class PlayerMovement
             // Naively move in target movement direction
             IsMoving = true;
             var movementSpeed = player.Stats.GetStat(Stat.MovementSpeed);
-            Vector3 movement = movementSpeed * finalMovementDir.Value;
+            Vector3 movement = Mathf.Min(movementSpeed, followSpeedLimit) * finalMovementDir.Value;
             rb.linearVelocity = new Vector3(movement.x, rb.linearVelocity.y, movement.z);
 
             // Then overwrite final direction if configured
@@ -126,9 +149,13 @@ public class PlayerMovement
     private Player player;
     private Vector3? inputDirection;
     private Vector3? setTargetPosition;
+    private Vector3? followTargetPosition;
     private Vector3? setFacingDir;
     private Vector3 targetFacingDir;
     private bool setFacingDirPrioritise = false;
     private float rotationSpeedMult = 1.0f;
     private float targetThreshold = 0.01f;
+
+    private static readonly float FOLLOW_GAIN = 6f;
+    private static readonly float FOLLOW_STOP_DISTANCE = 0.005f;
 }

@@ -16,14 +16,27 @@ public static class TreeHitMath
         return baseHardness * sizeFactor * coreFactor;
     }
 
-    public static float LandChance(float effectiveSharpness, float hardness)
+    public static float BiteQuality(float effectiveSharpness, float hardness)
     {
         float capability = Mathf.Max(0.0001f, effectiveSharpness * SHARPNESS_CAPABILITY_SCALE);
-        float raw = 1f / (1f + Mathf.Pow(hardness / capability, LAND_CURVE_STEEPNESS));
+        float raw = 1f / (1f + Mathf.Pow(hardness / capability, BITE_CURVE_STEEPNESS));
 
         // Fade the low tail to exactly zero so unchoppable wood is truly unchoppable
-        float tail = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(LAND_TAIL_MIN, LAND_TAIL_MAX, raw));
+        float tail = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(BITE_TAIL_MIN, BITE_TAIL_MAX, raw));
         return raw * tail;
+    }
+
+    public static bool IsBlunt(float biteQuality) => biteQuality < BLUNT_OUTCOME_THRESHOLD;
+
+    // Sharp bites are narrow and deep, blunt ones wide and shallow, with removed volume tracking bite quality
+    public static float WidthMultiplier(float biteQuality)
+    {
+        return Mathf.Lerp(BLUNT_WIDTH_MULTIPLIER, SHARP_WIDTH_MULTIPLIER, Mathf.Clamp01(biteQuality));
+    }
+
+    public static float DepthMultiplier(float biteQuality)
+    {
+        return Mathf.Clamp01(biteQuality) / WidthMultiplier(biteQuality);
     }
 
     public static float DentDepth(float effectiveStrength, float hardness)
@@ -32,26 +45,31 @@ public static class TreeHitMath
         return DEPTH_SCALE * ratio;
     }
 
-    public static float WoodDamage(float effectiveStrength, float landChance)
+    public static float WoodDamage(float effectiveStrength, float biteQuality)
     {
-        float marginalMultiplier = Mathf.Clamp(1f / Mathf.Max(0.0001f, landChance), 1f, MAX_MARGINAL_DAMAGE_MULTIPLIER);
+        float marginalMultiplier = Mathf.Clamp(1f / Mathf.Max(0.0001f, biteQuality), 1f, MAX_MARGINAL_DAMAGE_MULTIPLIER);
         return DAMAGE_BASE * (effectiveStrength / REFERENCE_STRENGTH) * marginalMultiplier;
     }
 
-    public static float HalfHeightFromBitWidth(float bitWidth) => bitWidth * BIT_HEIGHT_RATIO;
+    public static float HalfWidth(float bitWidth, float biteQuality) => 0.5f * bitWidth * WidthMultiplier(biteQuality);
+
+    public static float HalfHeightFromHalfWidth(float halfWidth) => halfWidth * BIT_HEIGHT_RATIO;
 
     private static readonly float MIN_SWING_QUALITY = 0.25f;
     private static readonly float REFERENCE_RADIUS = 0.35f;
-    private static readonly float CORE_HARDNESS_MULTIPLIER = 5f;
+    private static readonly float CORE_HARDNESS_MULTIPLIER = 3f;
     private static readonly float SHARPNESS_CAPABILITY_SCALE = 5f;
-    private static readonly float LAND_CURVE_STEEPNESS = 1.4f;
-    private static readonly float LAND_TAIL_MIN = 0.03f;
-    private static readonly float LAND_TAIL_MAX = 0.08f;
-    private static readonly float DEPTH_SCALE = 0.0235f;
+    private static readonly float BITE_CURVE_STEEPNESS = 1.4f;
+    private static readonly float BITE_TAIL_MIN = 0.03f;
+    private static readonly float BITE_TAIL_MAX = 0.08f;
+    private static readonly float DEPTH_SCALE = 0.0188f;
     private static readonly float MIN_DENT_RATIO = 0.25f;
     private static readonly float MAX_DENT_RATIO = 3f;
     private static readonly float DAMAGE_BASE = 1f;
     private static readonly float REFERENCE_STRENGTH = 5f;
     private static readonly float MAX_MARGINAL_DAMAGE_MULTIPLIER = 4f;
     private static readonly float BIT_HEIGHT_RATIO = 0.125f;
+    private static readonly float BLUNT_OUTCOME_THRESHOLD = 0.5f;
+    private static readonly float SHARP_WIDTH_MULTIPLIER = 0.7f;
+    private static readonly float BLUNT_WIDTH_MULTIPLIER = 1.6f;
 }

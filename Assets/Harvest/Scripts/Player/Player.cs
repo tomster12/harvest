@@ -73,7 +73,7 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (Input.IsInputtingMovement)
+        if (Input.IsInputtingMovement && !Actions.OverridesMovementInput)
         {
             Movement.SetMovementInput(Input.InputMovement);
         }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 public enum TreeHitOutcome
 {
-    Miss, Glance, Clean, Splinter
+    Miss, Blunt, Clean, Splinter
 }
 
 public struct TreeHitInput
@@ -20,7 +20,7 @@ public struct TreeHitResult
     public Vector3 Position;
     public Vector3 Normal;
     public Vector2Int Cell;
-    public float LandChance;
+    public float BiteQuality;
     public float Depth;
     public float LitresRemoved;
     public float Damage;

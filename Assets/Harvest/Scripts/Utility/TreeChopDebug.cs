@@ -12,7 +12,7 @@ public class TreeChopDebug : MonoBehaviour
     public float strength = 5f;
     public float sharpness = 1f;
     public float accuracy = 1f;
-    public float bitWidth = 0.5f;
+    public float bitWidth = 0.3f;
 
     [Header("Debug")]
     public bool showDebug = true;

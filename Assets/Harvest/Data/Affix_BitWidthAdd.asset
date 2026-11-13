@@ -15,8 +15,8 @@ MonoBehaviour:
   ID: bit_width_add
   DisplayName: Bit Width
   Stat: 7
-  MinValue: 0.05
-  MaxValue: 0.15
+  MinValue: 3
+  MaxValue: 9
   ValueType: 0
   Weight: 1
   IsUnique: 0

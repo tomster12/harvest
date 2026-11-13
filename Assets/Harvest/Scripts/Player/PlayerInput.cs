@@ -8,6 +8,7 @@ public class PlayerInput
     public static Vector2 PointerPosition => pointAction != null ? pointAction.ReadValue<Vector2>() : Vector2.zero;
 
     public Vector3 InputMovement { get; private set; } = Vector3.zero;
+    public Vector2 InputMovementAxes { get; private set; } = Vector2.zero;
     public float InputScroll => Mathf.Abs(zoomAction.ReadValue<float>()) > 0.001f ? Mathf.Sign(zoomAction.ReadValue<float>()) : 0f;
     public Vector2 MouseDelta { get; private set; } = Vector2.zero;
     public bool IsMousePressed = false;
@@ -39,6 +40,7 @@ public class PlayerInput
 
         // Update movement input relative to the camera yaw, ignoring sway
         Vector2 moveInput = moveAction.ReadValue<Vector2>();
+        InputMovementAxes = moveInput;
         InputMovement = Vector3.zero;
         InputMovement += moveInput.x * player.Camera.FlatRight;
         InputMovement += moveInput.y * player.Camera.FlatForward;

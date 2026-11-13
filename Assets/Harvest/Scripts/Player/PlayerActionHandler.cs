@@ -8,6 +8,7 @@ using UnityEngine;
 public class PlayerActionHandler
 {
     public bool IsActing { get; private set; }
+    public bool OverridesMovementInput => IsActing && currentAction != null && currentAction.OverridesMovementInput;
 
     public void Init(Player player)
     {
